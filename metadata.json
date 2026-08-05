@@ -1,0 +1,6 @@
+{
+  "name": "Infominer Personal Discussion Automator",
+  "description": "Production-grade Infominer Personal Discussion (PD) Report Automation, Validation, and Financial Risk Engine for Micro Lending and MSME Credit Assessment.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
