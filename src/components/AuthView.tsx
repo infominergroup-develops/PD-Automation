@@ -9,19 +9,11 @@ interface AuthViewProps {
 }
 
 export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
-  const [mode, setMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
   const [role, setRole] = useState<UserRole>('EMPLOYEE');
   
   // Login Form State
   const [loginEmail, setLoginEmail] = useState('employee@infominers.com');
   const [loginPassword, setLoginPassword] = useState('password123');
-  
-  // Sign Up Form State
-  const [signupName, setSignupName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupDesignation, setSignupDesignation] = useState('');
-  const [signupAgency, setSignupAgency] = useState('Axis Bank Infominer Division');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -57,7 +49,10 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
       const emails: Record<UserRole, string> = {
         ADMIN: 'admin@infominers.com',
         MANAGER: 'manager@infominers.com',
-        EMPLOYEE: 'employee@infominers.com'
+        EMPLOYEE: 'employee@infominers.com',
+        CREDIT_MANAGER: 'credit@infominers.com',
+        FIELD_OFFICER: 'field@infominers.com',
+        AUDITOR: 'auditor@infominers.com'
       };
       const res = await api.login({
         email: emails[selectedRole],
@@ -90,30 +85,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     }
   };
 
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!signupName.trim() || !signupEmail.trim()) {
-      setErrorMsg('Please enter your full name and valid official email.');
-      return;
-    }
-    setIsLoading(true);
-    setErrorMsg(null);
-    try {
-      const res = await api.signup({
-        name: signupName,
-        email: signupEmail,
-        role,
-        designation: signupDesignation,
-        agency: signupAgency,
-        password: signupPassword
-      });
-      onLoginSuccess(res.user);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Registration failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
 
   return (
     <div className="min-h-screen bg-slate-900 text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 font-sans relative overflow-hidden">
@@ -151,39 +123,13 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
         {/* Right Side: Form Gate */}
         <div className="md:w-7/12 p-6 sm:p-8 bg-white flex flex-col justify-between">
           <div>
-            {/* Mode Tabs */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl mb-6 border border-slate-200">
-              <button
-                type="button"
-                onClick={() => { setMode('LOGIN'); setErrorMsg(null); }}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 ${
-                  mode === 'LOGIN' ? 'bg-[#384c5e] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                Sign In to Account
-              </button>
-              <button
-                type="button"
-                onClick={() => { setMode('SIGNUP'); setErrorMsg(null); }}
-                className={`flex-1 py-2 text-xs font-bold rounded-lg transition flex items-center justify-center gap-2 ${
-                  mode === 'SIGNUP' ? 'bg-[#eb8a23] text-white shadow-sm' : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                <UserPlus className="w-3.5 h-3.5" />
-                Register New Account
-              </button>
-            </div>
-
             {/* Title */}
             <div className="mb-5">
               <h2 className="text-lg font-bold text-[#2d3e50]">
-                {mode === 'LOGIN' ? 'Enterprise Staff Authentication' : 'Create Employee Profile'}
+                Enterprise Staff Authentication
               </h2>
               <p className="text-xs text-slate-500 font-medium">
-                {mode === 'LOGIN' 
-                  ? 'Select your designated role and provide official credentials to open the workspace.'
-                  : 'Register a new employee into the system directory with assigned role and designation.'}
+                Select your designated role and provide official credentials to open the workspace.
               </p>
             </div>
 
@@ -227,132 +173,52 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
             </div>
 
             {/* Login Form */}
-            {mode === 'LOGIN' ? (
-              <form onSubmit={handleLoginSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Official Email Address</label>
-                  <div className="relative">
-                    <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="email"
-                      required
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      placeholder="e.g. employee@infominers.com"
-                      className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] focus:border-transparent font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Security PIN / Password</label>
-                  <div className="relative">
-                    <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                    <input
-                      type="password"
-                      required
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] focus:border-transparent font-medium"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-2.5 bg-[#384c5e] hover:bg-[#2d3e50] text-white rounded-lg font-bold text-xs transition shadow-md flex items-center justify-center gap-2 mt-2"
-                >
-                  {isLoading ? (
-                    <span className="animate-pulse">Authenticating Session...</span>
-                  ) : (
-                    <>
-                      <LogIn className="w-4 h-4 text-[#eb8a23]" />
-                      Access PD Workspace
-                    </>
-                  )}
-                </button>
-              </form>
-            ) : (
-              /* Signup Form */
-              <form onSubmit={handleSignupSubmit} className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={signupName}
-                      onChange={(e) => setSignupName(e.target.value)}
-                      placeholder="e.g. Priya Sharma"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Official Email *</label>
-                    <input
-                      type="email"
-                      required
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      placeholder="p.sharma@axisbank.com"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Job Designation *</label>
-                    <input
-                      type="text"
-                      required
-                      value={signupDesignation}
-                      onChange={(e) => setSignupDesignation(e.target.value)}
-                      placeholder="e.g. Senior Credit Risk Manager"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-medium"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Department / Agency</label>
-                    <input
-                      type="text"
-                      value={signupAgency}
-                      onChange={(e) => setSignupAgency(e.target.value)}
-                      placeholder="e.g. Infominer Micro Lending"
-                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-medium"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Password</label>
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Official Email Address</label>
+                <div className="relative">
+                  <UserCheck className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
                   <input
-                    type="password"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
-                    placeholder="Set account password"
-                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-medium"
+                    type="email"
+                    required
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="e.g. employee@infominers.com"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] focus:border-transparent font-medium"
                   />
                 </div>
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-2.5 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-lg font-bold text-xs transition shadow-md flex items-center justify-center gap-2 mt-2"
-                >
-                  {isLoading ? (
-                    <span className="animate-pulse">Registering Profile...</span>
-                  ) : (
-                    <>
-                      <UserPlus className="w-4 h-4 text-white" />
-                      Register & Launch Session
-                    </>
-                  )}
-                </button>
-              </form>
-            )}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Security PIN / Password</label>
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="password"
+                    required
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] focus:border-transparent font-medium"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-2.5 bg-[#384c5e] hover:bg-[#2d3e50] text-white rounded-lg font-bold text-xs transition shadow-md flex items-center justify-center gap-2 mt-2"
+              >
+                {isLoading ? (
+                  <span className="animate-pulse">Authenticating Session...</span>
+                ) : (
+                  <>
+                    <LogIn className="w-4 h-4 text-[#eb8a23]" />
+                    Access PD Workspace
+                  </>
+                )}
+              </button>
+            </form>
           </div>
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">

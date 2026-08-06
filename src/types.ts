@@ -1,8 +1,7 @@
 /**
  * Core Data Models & Types for Personal Discussion (PD) Automation System
  */
-
-export type UserRole = 'ADMIN' | 'MANAGER' | 'EMPLOYEE';
+export type UserRole = 'ADMIN' | 'MANAGER' | 'EMPLOYEE' | 'CREDIT_MANAGER' | 'FIELD_OFFICER' | 'AUDITOR';
 
 export interface User {
   id: string;

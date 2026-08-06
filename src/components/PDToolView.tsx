@@ -114,15 +114,33 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [loadingApplicants, setLoadingApplicants] = useState(true);
 
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchApps = async (showLoading = false) => {
+      if (!selectedClient?.id) return;
+      if (showLoading) setLoadingApplicants(true);
+      
+      try {
+        const data = await api.getApplicants(selectedClient.id);
+        // React handles state updates efficiently, but we can do a deep equality check if needed.
+        // For now, we will just set it so it updates the gallery in real-time.
+        setApplicantsList(data);
+      } catch (err) {
+        console.error('Failed to fetch applicants:', err);
+      } finally {
+        if (showLoading) setLoadingApplicants(false);
+      }
+    };
+
     if (selectedClient?.id) {
-      setLoadingApplicants(true);
-      api.getApplicants(selectedClient.id)
-        .then(data => {
-          setApplicantsList(data);
-        })
-        .catch(err => console.error(err))
-        .finally(() => setLoadingApplicants(false));
+      fetchApps(true);
+      // Poll every 5 seconds for real-time updates
+      intervalId = setInterval(() => fetchApps(false), 5000);
     }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [selectedClient]);
 
   // Form Section Tabs
@@ -364,38 +382,38 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // 1-CLICK LOAD APPLICATION HANDLER
   const handleLoadSampleApp = (app: any) => {
     handleSelectCategory(app.categoryId);
-    setApplicantName(app.applicantName);
-    setMobileNumber(app.mobileNumber);
-    setPanNumber(app.panNumber);
-    setAadhaarNumber(app.aadhaarNumber);
-    setResidenceAddress(app.residenceAddress);
-    setResidenceOwnership(app.residenceOwnership);
-    setCibilScore(app.cibilScore);
-    setDependentsCount(app.dependentsCount);
-    setFirmName(app.firmName);
-    setConstitution(app.constitution);
-    setYearsInBusiness(app.yearsInBusiness);
-    setShopOwnership(app.shopOwnership);
-    setMonthlyRent(app.monthlyRent);
-    setShopAreaSqFt(app.shopAreaSqFt);
-    setInventoryValue(app.inventoryValue);
-    setDailyFootfall(app.dailyFootfall);
-    setAvgTicketValue(app.avgTicketValue);
-    setWorkingDays(app.workingDays);
-    setNeighborFeedback(app.neighborFeedback);
-    setLandlordFeedback(app.landlordFeedback);
-    setAppliedAmount(app.appliedAmount);
-    setTenureMonths(app.tenureMonths);
-    setInterestRatePct(app.interestRatePct);
-    setStatedMonthlySales(app.statedMonthlySales);
-    setCogsMarginPct(app.cogsMarginPct);
-    setSalariesExpense(app.salariesExpense);
-    setUtilitiesExpense(app.utilitiesExpense);
-    setTransportExpense(app.transportExpense);
-    setMiscExpense(app.miscExpense);
-    setOtherIncome(app.otherIncome);
-    setHouseholdExpenses(app.householdExpenses);
-    setExistingEmis(app.existingEmis);
+    setApplicantName(app.applicantName || '');
+    setMobileNumber(app.mobileNumber || '');
+    setPanNumber(app.panNumber || '');
+    setAadhaarNumber(app.aadhaarNumber || '');
+    setResidenceAddress(app.residenceAddress || '');
+    setResidenceOwnership(app.residenceOwnership || 'OWN');
+    setCibilScore(app.cibilScore || 0);
+    setDependentsCount(app.dependentsCount || 0);
+    setFirmName(app.firmName || '');
+    setConstitution(app.constitution || 'Proprietorship');
+    setYearsInBusiness(app.yearsInBusiness || 0);
+    setShopOwnership(app.shopOwnership || 'OWN');
+    setMonthlyRent(app.monthlyRent || 0);
+    setShopAreaSqFt(app.shopAreaSqFt || 0);
+    setInventoryValue(app.inventoryValue || 0);
+    setDailyFootfall(app.dailyFootfall || 0);
+    setAvgTicketValue(app.avgTicketValue || 0);
+    setWorkingDays(app.workingDays || 0);
+    setNeighborFeedback(app.neighborFeedback || '');
+    setLandlordFeedback(app.landlordFeedback || '');
+    setAppliedAmount(app.appliedAmount || 0);
+    setTenureMonths(app.tenureMonths || 12);
+    setInterestRatePct(app.interestRatePct || 12);
+    setStatedMonthlySales(app.statedMonthlySales || 0);
+    setCogsMarginPct(app.cogsMarginPct || 0);
+    setSalariesExpense(app.salariesExpense || 0);
+    setUtilitiesExpense(app.utilitiesExpense || 0);
+    setTransportExpense(app.transportExpense || 0);
+    setMiscExpense(app.miscExpense || 0);
+    setOtherIncome(app.otherIncome || 0);
+    setHouseholdExpenses(app.householdExpenses || 0);
+    setExistingEmis(app.existingEmis || 0);
     setPhotos(app.photos || []);
 
     const defaultLines = getCategoryDefaultItemizedLines(app.categoryId, app.dailyFootfall, app.avgTicketValue, app.workingDays);
@@ -2230,7 +2248,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500 font-medium">Applied Amount:</span>
-                        <span className="font-extrabold text-emerald-700">₹{app.appliedAmount.toLocaleString('en-IN')}</span>
+                        <span className="font-extrabold text-emerald-700">₹{(app.appliedAmount || 0).toLocaleString('en-IN')}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500 font-medium">CIBIL / Vintage:</span>

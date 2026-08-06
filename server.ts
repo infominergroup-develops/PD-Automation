@@ -1,3 +1,4 @@
+console.log("--- STARTING TSX EXECUTION ---");
 import "dotenv/config";
 import express from "express";
 import path from "path";
@@ -10,12 +11,13 @@ import { runHtmlToolValidationSuite } from "./src/data/testSuitesData";
 import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, User } from "./src/types";
 
 async function startServer() {
+  console.log("Starting PD System Server init...");
   const app = express();
   const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 
   let mongoDb: Db | null = null;
   const mongoUri = process.env.MONGODB_URI;
-  if (mongoUri) {
+  if (mongoUri) { // MongoDB Enabled
     try {
       const client = new MongoClient(mongoUri);
       await client.connect();
@@ -787,4 +789,7 @@ Style: Authoritative, objective, bank credit analyst tone. Focus on cash flow ad
   });
 }
 
-startServer();
+startServer().catch(err => {
+  console.error("Fatal error during server startup:", err);
+  process.exit(1);
+});
