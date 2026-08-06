@@ -12,8 +12,8 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
   const [role, setRole] = useState<UserRole>('EMPLOYEE');
   
   // Login Form State
-  const [loginEmail, setLoginEmail] = useState('employee@infominers.com');
-  const [loginPassword, setLoginPassword] = useState('password123');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
