@@ -301,20 +301,22 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [exifGpsLng, setExifGpsLng] = useState('75.7873° E');
 
   // Form Fields - Loan Scheme & Facilities
-  const [appliedAmount, setAppliedAmount] = useState(350000);
-  const [tenureMonths, setTenureMonths] = useState(24);
-  const [interestRatePct, setInterestRatePct] = useState(16.5);
+  const [appliedAmount, setAppliedAmount] = useState(0);
+  const [tenureMonths, setTenureMonths] = useState(0);
+  const [interestRatePct, setInterestRatePct] = useState(0);
 
   // Form Fields - Financial Analysis & Waterfall Numbers
-  const [statedMonthlySales, setStatedMonthlySales] = useState(280000);
-  const [cogsMarginPct, setCogsMarginPct] = useState(78); // COGS %
-  const [salariesExpense, setSalariesExpense] = useState(15000);
-  const [utilitiesExpense, setUtilitiesExpense] = useState(8000);
-  const [transportExpense, setTransportExpense] = useState(4000);
-  const [miscExpense, setMiscExpense] = useState(3000);
-  const [otherIncome, setOtherIncome] = useState(6000);
-  const [householdExpenses, setHouseholdExpenses] = useState(24000);
-  const [existingEmis, setExistingEmis] = useState(8500);
+  const [statedMonthlySales, setStatedMonthlySales] = useState(0);
+  const [cogsMarginPct, setCogsMarginPct] = useState(0); // COGS %
+  const [salariesExpense, setSalariesExpense] = useState(0);
+  const [utilitiesExpense, setUtilitiesExpense] = useState(0);
+  const [transportExpense, setTransportExpense] = useState(0);
+  const [miscExpense, setMiscExpense] = useState(0);
+  const [otherIncome, setOtherIncome] = useState(0);
+  const [householdExpenses, setHouseholdExpenses] = useState(0);
+  const [existingEmis, setExistingEmis] = useState(0);
+  const [solarPurposeUsage, setSolarPurposeUsage] = useState('');
+  const [riskFactor, setRiskFactor] = useState('');
 
   const handleDeleteApplication = (appNumber: string) => {
     if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appNumber}?`)) {
@@ -330,42 +332,44 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const newAppNumber = `INF/2026/${Math.floor(Math.random() * 90000) + 10000}`;
     const newApplicant = {
       applicationNumber: newAppNumber,
-      applicantName: 'New Applicant',
+      applicantName: '',
       categoryId: 'kirana',
       product: selectedClient.defaultScheme,
-      appliedAmount: 100000,
+      appliedAmount: 0,
       tenureMonths: 24,
-      purpose: 'Working Capital',
-      status: 'IN_REVIEW',
-      firmName: 'New Business',
-      mobileNumber: '9999999999',
-      panNumber: 'ABCDE1234F',
-      aadhaarNumber: '1111 2222 3333',
-      residenceAddress: 'Address',
+      purpose: '',
+      status: 'DRAFT',
+      firmName: '',
+      mobileNumber: '',
+      panNumber: '',
+      aadhaarNumber: '',
+      residenceAddress: '',
       residenceOwnership: 'OWN',
-      cibilScore: 700,
-      dependentsCount: 2,
+      cibilScore: 0,
+      dependentsCount: 0,
       constitution: 'Proprietorship',
-      yearsInBusiness: 2,
+      yearsInBusiness: 0,
       shopOwnership: 'RENTED',
-      monthlyRent: 5000,
-      shopAreaSqFt: 150,
-      inventoryValue: 50000,
-      dailyFootfall: 20,
-      avgTicketValue: 100,
+      monthlyRent: 0,
+      shopAreaSqFt: 0,
+      inventoryValue: 0,
+      dailyFootfall: 0,
+      avgTicketValue: 0,
       workingDays: 26,
-      neighborFeedback: 'Good',
-      landlordFeedback: 'Good',
+      neighborFeedback: '',
+      landlordFeedback: '',
       interestRatePct: 24,
-      statedMonthlySales: 50000,
-      cogsMarginPct: 75,
+      statedMonthlySales: 0,
+      cogsMarginPct: 0,
       salariesExpense: 0,
-      utilitiesExpense: 1000,
-      transportExpense: 500,
-      miscExpense: 500,
+      utilitiesExpense: 0,
+      transportExpense: 0,
+      miscExpense: 0,
       otherIncome: 0,
-      householdExpenses: 10000,
+      householdExpenses: 0,
       existingEmis: 0,
+      solarPurposeUsage: '',
+      riskFactor: '',
       photos: []
     };
     try {
@@ -594,45 +598,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     return { score, flags, strengths, decision };
   }, [cibilScore, dscrRatio, foirPct, yearsInBusiness, totalProductContribPct]);
 
-  // 1-CLICK AUTOMATE & PRE-FILL SAMPLE DATA
-  const handlePreFillSampleData = () => {
-    const cat = currentCategory;
-    setApplicantName(
-      cat.id === 'kirana' ? 'Ramesh Chandra Sharma' :
-      cat.id === 'hardware' ? 'Rajesh Kumar Gupta' :
-      cat.id === 'pharmacy' ? 'Dr. Ananya Deshmukh' :
-      cat.id === 'garage' ? 'Vikram Singh Motor' :
-      'Sunil Kumar Mehta'
-    );
-    setMobileNumber('9876543210');
-    setPanNumber('ABCPS1234F');
-    setAadhaarNumber('9876 5432 1098');
-    setFirmName(`${applicantName.split(' ')[0]} ${cat.name}`);
-    setYearsInBusiness(7);
-    setShopOwnership('RENTED');
-    setMonthlyRent(15000);
-    setShopAreaSqFt(400);
-    setInventoryValue(650000);
-    setDailyFootfall(cat.id === 'kirana' ? 50 : cat.id === 'hardware' ? 25 : 35);
-    setAvgTicketValue(cat.id === 'kirana' ? 240 : cat.id === 'hardware' ? 850 : 450);
-    setWorkingDays(26);
-    setStatedMonthlySales(cat.id === 'kirana' ? 310000 : cat.id === 'hardware' ? 550000 : 380000);
-    setCogsMarginPct(100 - Math.round((cat.typicalMarginMin + cat.typicalMarginMax) / 2));
-    setSalariesExpense(18000);
-    setUtilitiesExpense(5500);
-    setTransportExpense(4000);
-    setMiscExpense(3000);
-    setOtherIncome(6000);
-    setHouseholdExpenses(24000);
-    setExistingEmis(9000);
-    setAppliedAmount(400000);
-    setTenureMonths(24);
-    setInterestRatePct(16.0);
-
-    const defaultLines = getCategoryDefaultItemizedLines(cat.id, cat.id === 'kirana' ? 50 : 35, cat.id === 'kirana' ? 240 : 450, 26);
-    setIncomeLines(defaultLines.income);
-    setExpenseLines(defaultLines.expense);
-  };
 
   // Compile & Sync Report to AI Generator
   const handleSyncToAIStudio = () => {
@@ -744,7 +709,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       firmName,
       loanAmount: appliedAmount,
       loanType: `${currentCategory.name} Facility`,
-      loanPurpose: `Operational enhancement & working capital expansion for ${firmName}.`,
+      loanPurpose: solarPurposeUsage || `Operational enhancement & working capital expansion for ${firmName}.`,
       residenceAddress: 'Dumari, Parora Garhpura Begusarai 848204 Br',
       businessAddress: 'Dumari, Parora Garhpura Begusarai 848204 Br',
       metPersonName: `${applicantName} (Self) & Spouse`,
@@ -757,7 +722,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       residenceGpsCoords: `${exifGpsLat}, ${exifGpsLng}`,
       residenceStatus: 'Recommended',
 
-      briefBusinessProfile: `${applicantName} has been engaged in the ${firmName} business for approximately ${yearsInBusiness} years. The business operates with daily footfall of ${dailyFootfall} verified customers with average ticket size of ₹${avgTicketValue}. Total inventory stock is estimated at ₹${inventoryValue.toLocaleString('en-IN')}.`,
+      briefBusinessProfile: `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total available physical stock/inventory at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`,
       businessVintage: `${yearsInBusiness} Years`,
       staffCount: 'Managed by family members with zero external staff dependency',
       businessPremiseOwnership: shopOwnership === 'OWN' ? 'Self-Owned Premises' : `Rented Premises (Rent: ₹${monthlyRent}/mo)`,
@@ -821,6 +786,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       riskLevel: riskAssessment.decision,
       strengths: riskAssessment.strengths,
       flags: riskAssessment.flags,
+      riskFactor: riskFactor,
       proposedEmi: proposedEmi,
       postLoanSurplus: postLoanSurplus,
 
@@ -1043,14 +1009,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               Switch Category ({INITIAL_CATEGORIES.length})
             </button>
 
-            <button
-              onClick={handlePreFillSampleData}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition shadow-xs"
-              title="Instantly pre-fill realistic sample values for rapid evaluation"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-600 animate-pulse" />
-              Automate & Pre-Fill Data
-            </button>
 
             <button
               onClick={handleSyncToAIStudio}

@@ -133,6 +133,9 @@ export interface PDReportPrintData {
   proposedEmi?: number;
   postLoanSurplus?: number;
 
+  // Risk Factor
+  riskFactor?: string;
+
   // AI Narrative Summary
   aiExecutiveSummary?: string;
 
@@ -417,7 +420,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td>${data.loanType || 'Commercial MSME Express Loan'}</td>
     </tr>
     <tr>
-      <td class="bold">Purpose & Usage Confirmation (as per applicant)</td>
+      <td class="bold">Solar Purpose & Usage Confirmation (as per applicant)</td>
       <td colspan="3">${data.loanPurpose || `The applicant currently operates the business to generate daily income. Proposed facility of ₹${Number(data.loanAmount || 350000).toLocaleString('en-IN')} will be utilized for inventory stock expansion and operational equipment to lower cost and increase savings.`}</td>
     </tr>
     <tr>
@@ -783,6 +786,20 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       </td>
     </tr>
   </table>
+
+  <!-- RISK FACTOR -->
+  ${data.riskFactor ? `
+  <table class="report-table" style="margin-top: 10px; margin-bottom: 15px;">
+    <tr>
+      <td class="sec-head" style="background-color: #fce7f3; color: #9f1239;">Risk Factor / Key Risks Noted</td>
+    </tr>
+    <tr>
+      <td style="padding: 10px; font-weight: bold; text-align: justify; color: #9f1239;">
+        ${data.riskFactor}
+      </td>
+    </tr>
+  </table>
+  ` : ''}
 
   <!-- DISCLAIMER & SIGNATURE BLOCK -->
   <div class="disclaimer-box">
@@ -1438,6 +1455,55 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td colspan="2" class="bold">Approx - 10000/- per month</td>
     </tr>
   </table>
+
+  <!-- Detailed Summary Section -->
+  <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
+    <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Detailed Summary</h3>
+    <p style="text-align: justify; font-size: 9.5pt; line-height: 1.6;">
+      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'the business'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
+      <br/><br/>
+      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'Business Expansion / Solar Upgrade'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
+      <br/><br/>
+      <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(data.appliedAmount * 0.05).toLocaleString('en-IN')}.
+    </p>
+  </div>
+
+  <!-- Risk Assessment & Meter -->
+  <div style="margin-top: 20px; margin-bottom: 20px; border: 1px solid #000; padding: 15px; display: flex; align-items: center; justify-content: space-between; background: #fff;">
+    <div style="width: 65%;">
+      <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Risk Assessment</h3>
+      <p style="font-size: 9.5pt; line-height: 1.5;">
+        <strong>CIBIL Score:</strong> ${data.cibilScore || 'N/A'}<br/>
+        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'Standard business risks apply. Cash flows are stable and vintage provides comfort.'}
+      </p>
+    </div>
+    <div style="width: 30%; text-align: center;">
+      <div style="font-weight: bold; margin-bottom: 10px; font-size: 10pt;">Risk Meter</div>
+      <!-- SVG Semi-circle Gauge -->
+      <svg viewBox="0 0 100 50" style="width: 150px; height: 75px; overflow: visible;">
+        <!-- Base Track -->
+        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e5e7eb" stroke-width="15" stroke-linecap="round" />
+        <!-- Low Risk (Green) -->
+        <path d="M 10 50 A 40 40 0 0 1 30 15" fill="none" stroke="#22c55e" stroke-width="15" stroke-linecap="round" />
+        <!-- Medium Risk (Yellow) -->
+        <path d="M 30 15 A 40 40 0 0 1 70 15" fill="none" stroke="#eab308" stroke-width="15" />
+        <!-- High Risk (Red) -->
+        <path d="M 70 15 A 40 40 0 0 1 90 50" fill="none" stroke="#ef4444" stroke-width="15" stroke-linecap="round" />
+        <!-- Needle -->
+        ${(() => {
+          const score = data.cibilScore ? Math.max(0, Math.min(100, (data.cibilScore - 300) / 6)) : 75; // Map 300-900 to 0-100
+          const angle = -90 + (score * 1.8);
+          return `<g transform="rotate(${angle} 50 50)">
+                   <polygon points="48,50 52,50 50,5" fill="#334155" />
+                   <circle cx="50" cy="50" r="5" fill="#334155" />
+                 </g>`;
+        })()}
+      </svg>
+      <div style="font-size: 9.5pt; font-weight: bold; margin-top: 8px; color: ${data.cibilScore && data.cibilScore < 650 ? '#ef4444' : data.cibilScore && data.cibilScore > 750 ? '#22c55e' : '#eab308'}">
+        ${data.cibilScore && data.cibilScore < 650 ? 'HIGH RISK' : data.cibilScore && data.cibilScore > 750 ? 'LOW RISK' : 'MODERATE RISK'}
+      </div>
+    </div>
+  </div>
 
   <!-- Disclaimer and Signature inside the table border structure -->
   <div class="disclaimer-box">
