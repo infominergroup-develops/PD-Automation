@@ -35,6 +35,12 @@ export interface PDReportPrintData {
   locatingPremisesType?: string;
   residenceOwnership?: string;
   houseDetails?: string;
+  shopAreaSqFt?: number | string;
+  yearsInBusiness?: number;
+  shopOwnership?: string;
+  solarPurposeUsage?: string;
+  purpose?: string;
+  appliedAmount?: number | string;
   familyMembers?: Array<{
     srNo: number;
     name: string;
@@ -1464,7 +1470,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <br/><br/>
       <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'Business Expansion / Solar Upgrade'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
       <br/><br/>
-      <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(data.appliedAmount * 0.05).toLocaleString('en-IN')}.
+      <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')}.
     </p>
   </div>
 

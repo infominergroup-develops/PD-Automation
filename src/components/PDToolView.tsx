@@ -5,7 +5,7 @@ import { SAMPLE_APPLICATIONS, SampleApplication } from '../data/sampleApplicatio
 import { api, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
-import { BusinessCategory, CategoryProduct, FinancialWaterfall } from '../types';
+import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
 import { openStandardPDReportPrintWindow } from '../utils/pdReportPrinter';
 import { 
   Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2, 
@@ -23,7 +23,7 @@ export interface ItemizedCalculationLine {
   workingDays: number;
 }
 
-const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, avgTicket: number = 250, days: number = 26) => {
+const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, avgTicket: number = 250, days: number = 26, catsList: BusinessCategory[] = INITIAL_CATEGORIES) => {
   if (catId === 'chakki' || catId === 'flour_mill' || catId === 'atta_chakki') {
     return {
       income: [
@@ -70,7 +70,7 @@ const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, a
     };
   }
 
-  const cat = INITIAL_CATEGORIES.find(c => c.id === catId);
+  const cat = catsList.find(c => c.id === catId);
   const dailyRev = (avgTicket || 250) * (footfall || 40);
   return {
     income: [
@@ -97,6 +97,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('kirana');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
+  const [categoriesList, setCategoriesList] = useState<BusinessCategory[]>(INITIAL_CATEGORIES);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIndustry, setNewCatIndustry] = useState('Retail');
 
   // Application Search & 1-Click Load States
   const [appSearchQuery, setAppSearchQuery] = useState('');
@@ -148,7 +152,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Active Category Data
   const currentCategory = useMemo(() => {
-    return INITIAL_CATEGORIES.find(c => c.id === selectedCategoryId) || INITIAL_CATEGORIES[0];
+    return categoriesList.find(c => c.id === selectedCategoryId) || categoriesList[0];
   }, [selectedCategoryId]);
 
   // Product Mapping State
@@ -232,7 +236,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (catProds.length > 0) {
       setProductsList(catProds);
     } else {
-      const cat = INITIAL_CATEGORIES.find(c => c.id === catId);
+      const cat = categoriesList.find(c => c.id === catId);
       setProductsList([
         {
           id: `prod-${catId}-01`,
@@ -257,48 +261,70 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       ]);
     }
 
-    const defaultLines = getCategoryDefaultItemizedLines(catId, dailyFootfall, avgTicketValue, workingDays);
+    const defaultLines = getCategoryDefaultItemizedLines(catId, dailyFootfall, avgTicketValue, workingDays, categoriesList);
     setIncomeLines(defaultLines.income);
     setExpenseLines(defaultLines.expense);
     setIsCategoryModalOpen(false);
   };
 
+  const handleAddNewCategory = () => {
+    if (!newCatName.trim()) return;
+    const newCatId = `custom_${Date.now()}`;
+    const newCat: BusinessCategory = {
+      id: newCatId,
+      name: newCatName.trim(),
+      icon: '✨',
+      description: 'Custom added business category',
+      industryGroup: newCatIndustry,
+      typicalMarginMin: 15,
+      typicalMarginMax: 40,
+      requiredDocs: [],
+      validationRules: [],
+      riskParameters: []
+    };
+    setCategoriesList(prev => [...prev, newCat]);
+    setSelectedCategoryId(newCatId);
+    setNewCatName('');
+    setIsAddingCategory(false);
+    setIsCategoryModalOpen(false);
+  };
+
   // Form Fields - Applicant
-  const [applicantName, setApplicantName] = useState('Ramesh Chandra Sharma');
-  const [mobileNumber, setMobileNumber] = useState('9876543210');
-  const [panNumber, setPanNumber] = useState('ABCPS1234F');
-  const [aadhaarNumber, setAadhaarNumber] = useState('9876 5432 1098');
-  const [residenceAddress, setResidenceAddress] = useState('Flat 402, Sai Residency, Station Road, Jaipur');
+  const [applicantName, setApplicantName] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [panNumber, setPanNumber] = useState('');
+  const [residenceAddress, setResidenceAddress] = useState('');
   const [residenceOwnership, setResidenceOwnership] = useState<'OWN' | 'RENTED' | 'FAMILY'>('OWN');
-  const [yearsAtResidence, setYearsAtResidence] = useState(12);
-  const [cibilScore, setCibilScore] = useState(748);
-  const [dependentsCount, setDependentsCount] = useState(3);
+  const [yearsAtResidence, setYearsAtResidence] = useState(0);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [businessRemark, setBusinessRemark] = useState('');
+  const [dependentsCount, setDependentsCount] = useState(0);
 
   // Form Fields - Business
-  const [firmName, setFirmName] = useState('Sharma Kirana & General Store');
+  const [firmName, setFirmName] = useState('');
   const [constitution, setConstitution] = useState('Proprietorship');
-  const [yearsInBusiness, setYearsInBusiness] = useState(8);
+  const [yearsInBusiness, setYearsInBusiness] = useState(0);
   const [shopOwnership, setShopOwnership] = useState<'OWN' | 'RENTED' | 'FAMILY'>('RENTED');
-  const [monthlyRent, setMonthlyRent] = useState(12000);
-  const [shopAreaSqFt, setShopAreaSqFt] = useState(350);
-  const [inventoryValue, setInventoryValue] = useState(450000);
+  const [monthlyRent, setMonthlyRent] = useState(0);
+  const [shopAreaSqFt, setShopAreaSqFt] = useState(0);
+  const [inventoryValue, setInventoryValue] = useState(0);
 
   // Form Fields - Field Investigation
-  const [dailyFootfall, setDailyFootfall] = useState(45);
-  const [avgTicketValue, setAvgTicketValue] = useState(220);
+  const [dailyFootfall, setDailyFootfall] = useState(0);
+  const [avgTicketValue, setAvgTicketValue] = useState(0);
   const [workingDays, setWorkingDays] = useState(26);
 
   // Sync field investigation inputs with Waterfall Engine Itemized Lines
   useEffect(() => {
-    const newLines = getCategoryDefaultItemizedLines(selectedCategoryId, dailyFootfall, avgTicketValue, workingDays);
+    const newLines = getCategoryDefaultItemizedLines(selectedCategoryId, dailyFootfall, avgTicketValue, workingDays, categoriesList);
     setIncomeLines(newLines.income);
     setExpenseLines(newLines.expense);
-  }, [dailyFootfall, avgTicketValue, workingDays, selectedCategoryId]);
-  const [neighborName, setNeighborName] = useState('Suresh Verma (Verma Electronics)');
-  const [neighborFeedback, setNeighborFeedback] = useState('Excellent local reputation. Living in community for 15+ years. Prompt bill payer.');
-  const [landlordFeedback, setLandlordFeedback] = useState('Rent paid regularly by 5th of every month. Active lease agreement for next 3 years.');
-  const [exifGpsLat, setExifGpsLat] = useState('26.9124° N');
-  const [exifGpsLng, setExifGpsLng] = useState('75.7873° E');
+  }, [dailyFootfall, avgTicketValue, workingDays, selectedCategoryId, categoriesList]);
+  const [neighborName, setNeighborName] = useState('');
+  const [neighborFeedback, setNeighborFeedback] = useState('');
+  const [landlordFeedback, setLandlordFeedback] = useState('');
+  const [exifGpsLat, setExifGpsLat] = useState('');
+  const [exifGpsLng, setExifGpsLng] = useState('');
 
   // Form Fields - Loan Scheme & Facilities
   const [appliedAmount, setAppliedAmount] = useState(0);
@@ -345,7 +371,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       aadhaarNumber: '',
       residenceAddress: '',
       residenceOwnership: 'OWN',
-      cibilScore: 0,
       dependentsCount: 0,
       constitution: 'Proprietorship',
       yearsInBusiness: 0,
@@ -389,10 +414,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setApplicantName(app.applicantName || '');
     setMobileNumber(app.mobileNumber || '');
     setPanNumber(app.panNumber || '');
-    setAadhaarNumber(app.aadhaarNumber || '');
     setResidenceAddress(app.residenceAddress || '');
     setResidenceOwnership(app.residenceOwnership || 'OWN');
-    setCibilScore(app.cibilScore || 0);
+    setFamilyMembers(app.familyMembers || []);
+    setBusinessRemark(app.businessRemark || '');
     setDependentsCount(app.dependentsCount || 0);
     setFirmName(app.firmName || '');
     setConstitution(app.constitution || 'Proprietorship');
@@ -420,7 +445,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setExistingEmis(app.existingEmis || 0);
     setPhotos(app.photos || []);
 
-    const defaultLines = getCategoryDefaultItemizedLines(app.categoryId, app.dailyFootfall, app.avgTicketValue, app.workingDays);
+    const defaultLines = getCategoryDefaultItemizedLines(app.categoryId, app.dailyFootfall, app.avgTicketValue, app.workingDays, categoriesList);
     setIncomeLines(app.incomeLines || defaultLines.income);
     setExpenseLines(app.expenseLines || defaultLines.expense);
 
@@ -441,8 +466,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (!activeAppId || !selectedClient?.id) return;
     const timeout = setTimeout(() => {
       const updateData = {
-        applicantName, mobileNumber, panNumber, aadhaarNumber, residenceAddress, residenceOwnership,
-        cibilScore, dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent,
+        applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
+        dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
         shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
         landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
         salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
@@ -452,8 +477,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }, 1500);
     return () => clearTimeout(timeout);
   }, [
-    activeAppId, selectedClient, applicantName, mobileNumber, panNumber, aadhaarNumber, residenceAddress, residenceOwnership,
-    cibilScore, dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent,
+    activeAppId, selectedClient, applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
+    dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
     landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
@@ -556,13 +581,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const flags: string[] = [];
     const strengths: string[] = [];
 
-    if (cibilScore >= 720) {
-      strengths.push(`Strong CIBIL score of ${cibilScore}`);
-    } else {
-      score -= 15;
-      flags.push(`Moderate CIBIL score (${cibilScore})`);
-    }
-
     if (dscrRatio >= 1.25) {
       strengths.push(`Healthy DSCR of ${dscrRatio}x (exceeds 1.25x policy norm)`);
     } else {
@@ -596,7 +614,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
 
     return { score, flags, strengths, decision };
-  }, [cibilScore, dscrRatio, foirPct, yearsInBusiness, totalProductContribPct]);
+  }, [dscrRatio, foirPct, yearsInBusiness, totalProductContribPct]);
 
 
   // Compile & Sync Report to AI Generator
@@ -781,7 +799,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,
-      cibilScore: cibilScore,
+      familyMembers: familyMembers.length > 0 ? familyMembers.map((fm, idx) => ({ srNo: idx + 1, name: fm.name, age: `${fm.age} Yrs`, relation: fm.relationship, qualification: fm.education || fm.occupation, occupation: fm.occupation, dependent: fm.isDependent ? 'Yes' : 'No' })) : undefined,
+      businessLocationRemarks: businessRemark || 'Premises physically verified and business found active.',
       riskScore: riskAssessment.score,
       riskLevel: riskAssessment.decision,
       strengths: riskAssessment.strengths,
@@ -790,7 +809,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       proposedEmi: proposedEmi,
       postLoanSurplus: postLoanSurplus,
 
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Bureau & Community Verification:</strong> Credit bureau CIBIL score is verified at <strong>${cibilScore}</strong> with clean repayment track record. Local market and neighbor reference checks confirm positive reputation and stable operating history.`
+      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`
     });
   };
 
@@ -858,7 +877,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     );
   };
 
-  const filteredCategoriesModal = INITIAL_CATEGORIES.filter(c => 
+  const filteredCategoriesModal = categoriesList.filter(c => 
     c.name.toLowerCase().includes(categorySearch.toLowerCase()) ||
     c.description.toLowerCase().includes(categorySearch.toLowerCase()) ||
     c.industryGroup.toLowerCase().includes(categorySearch.toLowerCase())
@@ -1006,7 +1025,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg text-xs font-bold transition border border-slate-300"
             >
               <Store className="w-4 h-4 text-[#eb8a23]" />
-              Switch Category ({INITIAL_CATEGORIES.length})
+              Switch Category ({categoriesList.length})
             </button>
 
 
@@ -1145,6 +1164,17 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
               </div>
+              
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Remark</label>
+                <textarea
+                  value={businessRemark}
+                  onChange={(e) => setBusinessRemark(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  placeholder="Enter business remarks..."
+                />
+              </div>
             </div>
           </div>
 
@@ -1274,25 +1304,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Aadhaar Number *</label>
-                <input
-                  type="text"
-                  value={aadhaarNumber}
-                  onChange={(e) => setAadhaarNumber(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Bureau CIBIL Score</label>
-                <input
-                  type="number"
-                  value={cibilScore}
-                  onChange={(e) => setCibilScore(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold text-emerald-700"
-                />
-              </div>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Residence Ownership</label>
@@ -1324,6 +1336,70 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   onChange={(e) => setDependentsCount(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
+              </div>
+            </div>
+
+            {/* Family Members Section */}
+            <div className="mt-8">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-sm font-bold text-slate-800">Spouse & Dependencies Details</h4>
+                <button
+                  type="button"
+                  onClick={() => setFamilyMembers([...familyMembers, { id: Date.now().toString(), name: '', age: 0, relationship: '', education: '', occupation: '', isEarning: false, monthlyIncome: 0, isDependent: true }])}
+                  className="flex items-center gap-1 px-3 py-1.5 bg-[#eb8a23] text-white text-xs font-bold rounded hover:bg-[#d17a1f]"
+                >
+                  <Plus className="w-3 h-3" /> Add Member
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-slate-600 border border-slate-200">
+                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase">
+                    <tr>
+                      <th className="px-3 py-2 border-b border-slate-200">Name</th>
+                      <th className="px-3 py-2 border-b border-slate-200">Age</th>
+                      <th className="px-3 py-2 border-b border-slate-200">Relation</th>
+                      <th className="px-3 py-2 border-b border-slate-200">Profession / Qual.</th>
+                      <th className="px-3 py-2 border-b border-slate-200">Occupation</th>
+                      <th className="px-3 py-2 border-b border-slate-200 text-center">Dependent</th>
+                      <th className="px-3 py-2 border-b border-slate-200 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {familyMembers.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-3 py-4 text-center text-slate-500 italic">No family members added.</td>
+                      </tr>
+                    ) : (
+                      familyMembers.map((member, idx) => (
+                        <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="text" value={member.name} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].name = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs" placeholder="Name" />
+                          </td>
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="number" value={member.age} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].age = Number(e.target.value); setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs" />
+                          </td>
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="text" value={member.relationship} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs" placeholder="Spouse/Son..." />
+                          </td>
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="text" value={member.education} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].education = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs" placeholder="Qualification" />
+                          </td>
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="text" value={member.occupation} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].occupation = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs" placeholder="Student/Housewife..." />
+                          </td>
+                          <td className="p-2 border-r border-slate-100 text-center">
+                            <input type="checkbox" checked={member.isDependent} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.checked; setFamilyMembers(newFm); }} className="accent-[#eb8a23]" />
+                          </td>
+                          <td className="p-2 text-center">
+                            <button onClick={() => { const newFm = [...familyMembers]; newFm.splice(idx, 1); setFamilyMembers(newFm); }} className="text-red-500 hover:text-red-700 p-1">
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1997,7 +2073,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {tenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.
                 </p>
                 <p>
-                  <strong>Bureau & Community Verification:</strong> Credit bureau CIBIL score is verified at <strong>{cibilScore}</strong> with clean repayment track record. Local market and neighbor reference checks confirm positive reputation and stable operating history.
+                  <strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.
                 </p>
               </div>
 
@@ -2073,27 +2149,56 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             <div className="bg-[#384c5e] text-white px-6 py-4 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2">
                 <Store className="w-5 h-5 text-[#eb8a23]" />
-                <h3 className="font-bold text-sm">Select Business Category ({INITIAL_CATEGORIES.length} Profiles)</h3>
+                <h3 className="font-bold text-sm">Select Business Category ({categoriesList.length} Profiles)</h3>
               </div>
-              <button onClick={() => setIsCategoryModalOpen(false)} className="text-slate-300 hover:text-white font-bold text-xl">
+              <button onClick={() => { setIsCategoryModalOpen(false); setIsAddingCategory(false); }} className="text-slate-300 hover:text-white font-bold text-xl">
                 &times;
               </button>
             </div>
 
-            <div className="p-4 bg-slate-50 border-b border-slate-200 shrink-0">
-              <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
-                <input
-                  type="text"
-                  value={categorySearch}
-                  onChange={(e) => setCategorySearch(e.target.value)}
-                  placeholder="Search among 21 categories (e.g. Kirana, Hardware, Pharmacy, Garage...)"
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
-                />
+            {isAddingCategory ? (
+              <div className="p-6">
+                <h4 className="text-sm font-bold text-slate-800 mb-4">Add Custom Category</h4>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Category Name *</label>
+                    <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Mobile Repair Shop" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Industry Group</label>
+                    <select value={newCatIndustry} onChange={(e) => setNewCatIndustry(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
+                      <option value="Retail">Retail</option>
+                      <option value="Services">Services</option>
+                      <option value="Manufacturing">Manufacturing</option>
+                      <option value="Wholesale">Wholesale</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  <div className="flex justify-end gap-2 pt-4">
+                    <button onClick={() => setIsAddingCategory(false)} className="px-4 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200">Cancel</button>
+                    <button onClick={handleAddNewCategory} disabled={!newCatName.trim()} className="px-4 py-2 text-xs font-bold text-white bg-[#eb8a23] rounded-lg hover:bg-[#d97917] disabled:opacity-50">Save Category</button>
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="p-4 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center justify-between gap-4">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      value={categorySearch}
+                      onChange={(e) => setCategorySearch(e.target.value)}
+                      placeholder="Search categories (e.g. Kirana, Hardware, Pharmacy, Garage...)"
+                      className="w-full pl-9 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
+                    />
+                  </div>
+                  <button onClick={() => setIsAddingCategory(true)} className="shrink-0 flex items-center gap-1 px-3 py-2 bg-[#2d3e50] text-white text-xs font-bold rounded-lg hover:bg-[#1e293b]">
+                    <Plus className="w-4 h-4 text-[#eb8a23]" /> Add New
+                  </button>
+                </div>
 
-            <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               {filteredCategoriesModal.map((cat) => (
                 <button
                   key={cat.id}
@@ -2121,6 +2226,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                 </button>
               ))}
             </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -2210,7 +2317,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                       </div>
                       <div className="flex justify-between">
                         <span className="text-slate-500 font-medium">CIBIL / Vintage:</span>
-                        <span className="font-bold text-slate-700">{app.cibilScore} Score / {app.yearsInBusiness} yrs</span>
+                        <span className="font-bold text-slate-700">Vintage: {app.yearsInBusiness} yrs</span>
                       </div>
                     </div>
                   </div>
