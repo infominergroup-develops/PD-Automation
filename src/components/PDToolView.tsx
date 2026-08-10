@@ -154,6 +154,18 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         // React handles state updates efficiently, but we can do a deep equality check if needed.
         // For now, we will just set it so it updates the gallery in real-time.
         setApplicantsList(data);
+        
+        // Auto-load last active app if one isn't currently loaded
+        if (!activeAppId) {
+          const lastId = localStorage.getItem('lastActiveAppId');
+          if (lastId) {
+            const appToLoad = data.find((a: any) => a._id === lastId);
+            if (appToLoad) {
+              // We do a small timeout to let the initial render settle before triggering 100 state updates
+              setTimeout(() => handleLoadApplication(appToLoad), 100);
+            }
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch applicants:', err);
       } finally {
@@ -173,7 +185,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedClient]);
 
   // Form Section Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>('applicant');
+  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>(
+    (localStorage.getItem('lastActiveTab') as any) || 'applicant'
+  );
+
+  useEffect(() => {
+    localStorage.setItem('lastActiveTab', activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeAppId) {
+      localStorage.setItem('lastActiveAppId', activeAppId);
+    }
+  }, [activeAppId]);
 
   // Real-time categories and products sync
   useEffect(() => {
