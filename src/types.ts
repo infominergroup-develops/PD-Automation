@@ -49,6 +49,9 @@ export interface CategoryProduct {
   inventoryType: 'FAST_MOVING' | 'SLOW_MOVING' | 'PERISHABLE' | 'HIGH_VALUE' | 'SERVICE';
   averageMarginPct: number;
   businessImportance: 'HIGH' | 'MEDIUM' | 'LOW';
+  price?: number;
+  quantity?: number;
+  total?: number;
 }
 
 export interface FamilyMember {

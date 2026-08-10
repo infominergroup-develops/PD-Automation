@@ -381,34 +381,67 @@ async function startServer() {
   });
 
   // Client Category Management APIs
-  app.get("/api/categories", (req, res) => {
-    res.json({ categories: categoriesStore });
+  app.get("/api/categories", async (req, res) => {
+    try {
+      if (!mongoDb) return res.json({ categories: categoriesStore });
+      let categories = await mongoDb.collection("categories").find({}).toArray();
+      if (categories.length === 0) {
+        // Seed DB if empty
+        await mongoDb.collection("categories").insertMany(categoriesStore);
+        categories = await mongoDb.collection("categories").find({}).toArray();
+      }
+      res.json({ categories: categories.map(c => ({ ...c, _id: undefined })) });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch categories" });
+    }
   });
 
-  app.post("/api/categories", (req, res) => {
+  app.post("/api/categories", async (req, res) => {
     const newCat: BusinessCategory = req.body;
     if (!newCat.id || !newCat.name) {
       return res.status(400).json({ error: "Category ID and Name are required" });
     }
-    const idx = categoriesStore.findIndex(c => c.id === newCat.id);
-    if (idx >= 0) {
-      categoriesStore[idx] = { ...categoriesStore[idx], ...newCat };
-    } else {
-      categoriesStore.push(newCat);
+    
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("categories").updateOne(
+          { id: newCat.id },
+          { $set: newCat },
+          { upsert: true }
+        );
+      }
+      // Also update in-memory as fallback
+      const idx = categoriesStore.findIndex(c => c.id === newCat.id);
+      if (idx >= 0) {
+        categoriesStore[idx] = { ...categoriesStore[idx], ...newCat };
+      } else {
+        categoriesStore.push(newCat);
+      }
+      addAuditLog("Admin User", "ADMIN", idx >= 0 ? "CATEGORY_UPDATED" : "CATEGORY_CREATED", "BusinessCategory", newCat.id, `Saved category ${newCat.name}`);
+      res.json({ success: true, category: newCat });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save category" });
     }
-    addAuditLog("Admin User", "ADMIN", idx >= 0 ? "CATEGORY_UPDATED" : "CATEGORY_CREATED", "BusinessCategory", newCat.id, `Saved category ${newCat.name}`);
-    res.json({ success: true, category: newCat });
   });
 
-  app.delete("/api/categories/:id", (req, res) => {
+  app.delete("/api/categories/:id", async (req, res) => {
     const catId = req.params.id;
-    const initialLen = categoriesStore.length;
-    categoriesStore = categoriesStore.filter(c => c.id !== catId);
-    if (categoriesStore.length === initialLen) {
-      return res.status(404).json({ error: "Category not found" });
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("categories").deleteOne({ id: catId });
+      }
+      
+      const initialLen = categoriesStore.length;
+      categoriesStore = categoriesStore.filter(c => c.id !== catId);
+      if (categoriesStore.length === initialLen && !mongoDb) {
+        return res.status(404).json({ error: "Category not found" });
+      }
+      
+      addAuditLog("Admin User", "ADMIN", "CATEGORY_DELETED", "BusinessCategory", catId, `Deleted category ${catId}`);
+      res.json({ success: true, message: `Category ${catId} deleted` });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete category" });
     }
-    addAuditLog("Admin User", "ADMIN", "CATEGORY_DELETED", "BusinessCategory", catId, `Deleted category ${catId}`);
-    res.json({ success: true, message: `Category ${catId} deleted` });
   });
 
   // Product Mapping APIs

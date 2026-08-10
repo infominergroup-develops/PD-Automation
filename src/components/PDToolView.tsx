@@ -98,10 +98,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [categoriesList, setCategoriesList] = useState<BusinessCategory[]>(INITIAL_CATEGORIES);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCatName, setNewCatName] = useState('');
-  const [newCatNumber, setNewCatNumber] = useState('');
-  const [newCatSize, setNewCatSize] = useState('');
-  const [newCatUsage, setNewCatUsage] = useState('');
-  const [newCatCharges, setNewCatCharges] = useState('');
   const [newCatIndustry, setNewCatIndustry] = useState('Retail');
   const [newCatMarginMin, setNewCatMarginMin] = useState<number>(15);
   const [newCatMarginMax, setNewCatMarginMax] = useState<number>(40);
@@ -157,7 +153,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedClient]);
 
   // Form Section Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>('applicant');
 
   // Active Category Data
   const currentCategory = useMemo(() => {
@@ -281,10 +277,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       industryGroup: newCatIndustry,
       typicalMarginMin: newCatMarginMin,
       typicalMarginMax: newCatMarginMax,
-      customNumber: newCatNumber,
-      customSize: newCatSize,
-      customUsage: newCatUsage,
-      customCharges: newCatCharges,
       requiredDocs: [],
       validationRules: [],
       riskParameters: []
@@ -316,10 +308,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setNewCatName('');
     setNewCatMarginMin(15);
     setNewCatMarginMax(40);
-    setNewCatNumber('');
-    setNewCatSize('');
-    setNewCatUsage('');
-    setNewCatCharges('');
     setNewProducts([{ id: 'tmp-1', categoryId: '', productName: 'Core Assortment', productCategory: 'Main', revenueContributionPct: 100, inventoryType: 'FAST_MOVING', averageMarginPct: 20, businessImportance: 'HIGH' }]);
     setIsAddingCategory(false);
     setIsCategoryModalOpen(false);
@@ -640,7 +628,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
         landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
         salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
-        photos, incomeLines, expenseLines,
+        photos, incomeLines, expenseLines, productsList,
         visitDate, reportDate, hasCoApplicant, coApplicantName, coApplicantRelation, coApplicantOtherRelation, coApplicantMobileNumber,
         hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
         powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
@@ -672,7 +660,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
     landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
-    photos, incomeLines, expenseLines,
+    photos, incomeLines, expenseLines, productsList,
     visitDate, reportDate, hasCoApplicant, coApplicantName, coApplicantRelation, coApplicantOtherRelation, coApplicantMobileNumber,
     hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
     powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
@@ -1039,8 +1027,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   const renderTabNavigationFooter = () => {
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
-      { id: 'profile', label: '1. Business Profile' },
-      { id: 'applicant', label: '2. Applicant & Household' },
+      { id: 'applicant', label: '1. Applicant & Household' },
+      { id: 'profile', label: '2. Business Profile & Products' },
       { id: 'verification', label: '3. Business & Residence Verification' },
       { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
       { id: 'field', label: '5. Field Verification' },
@@ -1277,8 +1265,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       {/* Navigation Module Tabs */}
       <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
         {[
-          { id: 'profile', label: '1. Business Profile & Products', icon: Store },
-          { id: 'applicant', label: '2. Applicant & Household', icon: User },
+          { id: 'applicant', label: '1. Applicant & Household', icon: User },
+          { id: 'profile', label: '2. Business Profile & Products', icon: Store },
           { id: 'verification', label: '3. Business & Residence Verification', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
           { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
@@ -1412,19 +1400,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               <div>
                 <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                   <PieChart className="w-4 h-4 text-[#eb8a23]" />
-                  Product Mapping & Revenue Contribution Matrix
+                  Product Mapping & Revenue Calculation
                 </h3>
                 <p className="text-xs text-slate-500 font-medium">
-                  Category specific item breakdown with margin % and sales share.
+                  Editable product items with price and quantity auto-calculating to total revenue.
                 </p>
-              </div>
-
-              <div className={`text-xs font-extrabold px-3 py-1 rounded-full border ${
-                totalProductContribPct === 100 
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300' 
-                  : 'bg-amber-50 text-amber-800 border-amber-300 animate-pulse'
-              }`}>
-                Total Share: {totalProductContribPct}% {totalProductContribPct !== 100 && '(Must sum to 100%)'}
               </div>
             </div>
 
@@ -1434,56 +1414,64 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   <tr>
                     <th className="p-3">Product / Service Name</th>
                     <th className="p-3">Category</th>
-                    <th className="p-3 text-center">Share %</th>
-                    <th className="p-3 text-center">Avg Margin %</th>
-                    <th className="p-3">Inventory Type</th>
+                    <th className="p-3 text-center">Price (₹)</th>
+                    <th className="p-3 text-center">Quantity</th>
+                    <th className="p-3 text-right">Total (₹)</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {productsList.map((prod, idx) => (
-                    <tr key={prod.id || idx} className="hover:bg-slate-50/80">
-                      <td className="p-3 font-bold text-[#2d3e50]">
-                        <input
-                          type="text"
-                          value={prod.productName}
-                          onChange={(e) => {
-                            const updated = [...productsList];
-                            updated[idx].productName = e.target.value;
-                            setProductsList(updated);
-                          }}
-                          className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
-                        />
-                      </td>
-                      <td className="p-3 text-slate-600">{prod.productCategory}</td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="number"
-                          value={prod.revenueContributionPct}
-                          onChange={(e) => {
-                            const updated = [...productsList];
-                            updated[idx].revenueContributionPct = Number(e.target.value);
-                            setProductsList(updated);
-                          }}
-                          className="w-16 text-center border border-slate-300 rounded py-1 font-bold text-[#2d3e50]"
-                        />
-                      </td>
-                      <td className="p-3 text-center">
-                        <input
-                          type="number"
-                          value={prod.averageMarginPct}
-                          onChange={(e) => {
-                            const updated = [...productsList];
-                            updated[idx].averageMarginPct = Number(e.target.value);
-                            setProductsList(updated);
-                          }}
-                          className="w-16 text-center border border-slate-300 rounded py-1 font-bold text-emerald-700"
-                        />
-                      </td>
-                      <td className="p-3 text-slate-600 font-bold">
-                        {prod.inventoryType}
-                      </td>
-                    </tr>
-                  ))}
+                  {productsList.map((prod, idx) => {
+                    const currentPrice = prod.price || 0;
+                    const currentQty = prod.quantity || 0;
+                    const calculatedTotal = currentPrice * currentQty;
+
+                    return (
+                      <tr key={prod.id || idx} className="hover:bg-slate-50/80">
+                        <td className="p-3 font-bold text-[#2d3e50]">
+                          <input
+                            type="text"
+                            value={prod.productName}
+                            onChange={(e) => {
+                              const updated = [...productsList];
+                              updated[idx].productName = e.target.value;
+                              setProductsList(updated);
+                            }}
+                            className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
+                          />
+                        </td>
+                        <td className="p-3 text-slate-600">{prod.productCategory}</td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="number"
+                            value={currentPrice}
+                            onChange={(e) => {
+                              const updated = [...productsList];
+                              updated[idx].price = Number(e.target.value);
+                              updated[idx].total = updated[idx].price! * (updated[idx].quantity || 0);
+                              setProductsList(updated);
+                            }}
+                            className="w-20 text-center border border-slate-300 rounded py-1 font-bold text-[#2d3e50]"
+                          />
+                        </td>
+                        <td className="p-3 text-center">
+                          <input
+                            type="number"
+                            value={currentQty}
+                            onChange={(e) => {
+                              const updated = [...productsList];
+                              updated[idx].quantity = Number(e.target.value);
+                              updated[idx].total = (updated[idx].price || 0) * updated[idx].quantity!;
+                              setProductsList(updated);
+                            }}
+                            className="w-16 text-center border border-slate-300 rounded py-1 font-bold text-emerald-700"
+                          />
+                        </td>
+                        <td className="p-3 text-right text-slate-800 font-bold text-[13px]">
+                          ₹{calculatedTotal.toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1878,19 +1866,18 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             {/* 17. Executive Name */}
             <div className="pt-6 border-t border-slate-200">
                <label className="block text-xs font-bold text-slate-700 mb-1">17. Executive Name</label>
-               {currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER' ? (
-                  <select value={executiveName} onChange={(e) => setExecutiveName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                     <option value={currentUser.name}>{currentUser.name} (Self)</option>
-                     <option value="Mr. Sumit">Mr. Sumit</option>
-                     <option value="Rajat Kumar">Rajat Kumar</option>
-                     {/* Dynamic options would load here */}
-                  </select>
-               ) : (
-                  <input type="text" value={currentUser?.name || executiveName} readOnly className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-100 text-slate-500 font-semibold" />
-               )}
+               <input 
+                 type="text" 
+                 value={executiveName} 
+                 onChange={(e) => setExecutiveName(e.target.value)} 
+                 placeholder="Enter Executive Name..." 
+                 className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" 
+               />
+
             </div>
 
           </div>
+          {renderTabNavigationFooter()}
         </div>
       )}
 
@@ -2708,6 +2695,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             </div>
 
           </div>
+          {renderTabNavigationFooter()}
         </div>
       )}
 
@@ -2959,6 +2947,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             </div>
 
           </div>
+          {renderTabNavigationFooter()}
         </div>
       )}
 
@@ -3704,22 +3693,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Category Name *</label>
                     <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Mobile Repair Shop" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Number</label>
-                    <input type="text" value={newCatNumber} onChange={(e) => setNewCatNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 10" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Size</label>
-                    <input type="text" value={newCatSize} onChange={(e) => setNewCatSize(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Large" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Usage</label>
-                    <input type="text" value={newCatUsage} onChange={(e) => setNewCatUsage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Commercial" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Charges</label>
-                    <input type="text" value={newCatCharges} onChange={(e) => setNewCatCharges(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. ₹500/day" />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Industry Group</label>
