@@ -203,7 +203,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
 
         <div className="flex items-center gap-2 overflow-x-auto">
           <span className="text-xs text-slate-500 font-bold whitespace-nowrap">Filter Role:</span>
-          {['ALL', 'ADMIN', 'CREDIT_MANAGER', 'FIELD_OFFICER', 'AUDITOR'].map((roleKey) => (
+          {['ALL', 'ADMIN', 'MANAGER', 'EMPLOYEE'].map((roleKey) => (
             <button
               key={roleKey}
               onClick={() => setRoleFilter(roleKey)}
@@ -362,9 +362,8 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-bold text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                   >
                     <option value="ADMIN">Admin</option>
-                    <option value="CREDIT_MANAGER">Credit Manager</option>
-                    <option value="FIELD_OFFICER">Field Officer</option>
-                    <option value="AUDITOR">Auditor</option>
+                    <option value="MANAGER">Manager</option>
+                    <option value="EMPLOYEE">Employee</option>
                   </select>
                 </div>
 

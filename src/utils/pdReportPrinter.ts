@@ -933,14 +933,15 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td style="padding: 15px; text-align: center;">
         <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-          <div style="border: 1px solid #000; padding: 8px; background-color: #fafafa; max-width: 320px;">
-            <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=400&auto=format&fit=crop" alt="PAN Card" style="width: 100%; height: 160px; object-fit: cover; border: 1px solid #ccc;" />
-            <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">Verified PAN Card: ${data.applicantName}</div>
-          </div>
-          <div style="border: 1px solid #000; padding: 8px; background-color: #fafafa; max-width: 320px;">
-            <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=400&auto=format&fit=crop" alt="Aadhaar Card" style="width: 100%; height: 160px; object-fit: cover; border: 1px solid #ccc;" />
-            <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">Verified Co-Applicant KYC</div>
-          </div>
+          ${(data.photos || []).filter(p => p.category?.toLowerCase().includes('kyc') || p.name?.toLowerCase().includes('pan') || p.name?.toLowerCase().includes('aadhaar')).length > 0 
+            ? (data.photos || []).filter(p => p.category?.toLowerCase().includes('kyc') || p.name?.toLowerCase().includes('pan') || p.name?.toLowerCase().includes('aadhaar')).map(p => `
+              <div style="border: 1px solid #000; padding: 8px; background-color: #fafafa; max-width: 320px;">
+                <img src="${p.dataUrl}" alt="${p.name}" style="width: 100%; height: 160px; object-fit: cover; border: 1px solid #ccc;" />
+                <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
+              </div>
+            `).join('')
+            : `<div style="padding: 20px; border: 1px dashed #ccc; width: 100%; text-align: center; color: #666; font-size: 9pt;">No KYC documents uploaded</div>`
+          }
         </div>
       </td>
     </tr>
@@ -950,18 +951,16 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td style="padding: 10px;">
         <div class="photo-grid">
-          ${(data.photos && data.photos.length > 0 ? data.photos : [
-            { id: '1', name: 'Residence Premises Entrance', dataUrl: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=500&auto=format&fit=crop', category: 'Residence', gps: { lat: 25.66933, lng: 86.131778 } },
-            { id: '2', name: 'Business Signboard & Counter', dataUrl: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=500&auto=format&fit=crop', category: 'Business Signboard', gps: { lat: 25.669427, lng: 86.131675 } },
-            { id: '3', name: 'Inventory Stock & Machinery', dataUrl: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=500&auto=format&fit=crop', category: 'Machinery/Stock', gps: { lat: 25.669427, lng: 86.131675 } },
-            { id: '4', name: 'Field Inspection Interview', dataUrl: 'https://images.unsplash.com/photo-1556742049-0a670f4a4591?w=500&auto=format&fit=crop', category: 'Field Interview', gps: { lat: 25.66933, lng: 86.131778 } }
-          ]).map(p => `
+          ${(data.photos || []).filter(p => !p.category?.toLowerCase().includes('kyc') && !p.name?.toLowerCase().includes('pan') && !p.name?.toLowerCase().includes('aadhaar')).length > 0 
+            ? (data.photos || []).filter(p => !p.category?.toLowerCase().includes('kyc') && !p.name?.toLowerCase().includes('pan') && !p.name?.toLowerCase().includes('aadhaar')).slice(0, 4).map(p => `
             <div class="photo-card">
               <img src="${p.dataUrl}" alt="${p.name}" />
               <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || '25.6693'}, ${p.gps?.lng || '86.1317'} • Verified Stamp</div>
+              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'N/A'}, ${p.gps?.lng || 'N/A'} • Verified Stamp</div>
             </div>
-          `).join('')}
+          `).join('')
+            : `<div style="padding: 20px; border: 1px dashed #ccc; width: 100%; text-align: center; color: #666; font-size: 9pt;">No field inspection photos uploaded</div>`
+          }
         </div>
       </td>
     </tr>
@@ -1535,55 +1534,22 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </div>
   </div>
 
-  <!-- Page 6: KYC Photos -->
+  <!-- Annexure: Uploaded Photos -->
+  ${(data.photos || []).length > 0 ? `
   <div class="page-break"></div>
   <table>
-    <tr><td class="sec-title" style="font-size: 14pt;">KYC Documents</td></tr>
+    <tr><td class="sec-title" style="font-size: 14pt;">Annexure: Field Inspection & KYC Photos</td></tr>
   </table>
-  <div class="photo-grid" style="grid-template-columns: 1fr; max-width: 600px; margin: 0 auto;">
-    <div class="photo-card" style="border: none;">
-      <img src="https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop" style="border: 2px solid #000; max-height: 350px;" alt="KYC 1" />
-    </div>
-    <div class="photo-card" style="border: none;">
-      <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=600&auto=format&fit=crop" style="border: 2px solid #000; max-height: 350px;" alt="KYC 2" />
-    </div>
-  </div>
-
-  <!-- Page 7: Residence Visit Photos -->
-  <div class="page-break"></div>
-  <table>
-    <tr><td class="sec-title" style="font-size: 14pt;">Residence visit photos</td></tr>
-  </table>
-  <div class="photo-grid">
-    ${[1, 2, 3, 4].map(i => `
+  <div class="photo-grid" style="grid-template-columns: 1fr 1fr; max-width: 800px; margin: 0 auto;">
+    ${data.photos!.map(p => `
       <div class="photo-card">
-        <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=500&auto=format&fit=crop&random=${i}" alt="Residence Photo ${i}" />
+        <img src="${p.dataUrl}" alt="${p.name}" />
+        <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
+        <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'N/A'}, ${p.gps?.lng || 'N/A'} • Verified Stamp</div>
       </div>
     `).join('')}
   </div>
-
-  <!-- Page 8: Residence Visit Photos Continued -->
-  <div class="page-break"></div>
-  <div class="photo-grid">
-    ${[5, 6].map(i => `
-      <div class="photo-card">
-        <img src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=500&auto=format&fit=crop&random=${i}" alt="Residence Photo ${i}" />
-      </div>
-    `).join('')}
-  </div>
-
-  <!-- Page 9: Business Visit Photos -->
-  <div class="page-break"></div>
-  <table>
-    <tr><td class="sec-title" style="font-size: 14pt;">Business visit photos</td></tr>
-  </table>
-  <div class="photo-grid">
-    ${[1, 2, 3, 4].map(i => `
-      <div class="photo-card">
-        <img src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=500&auto=format&fit=crop&random=${i}" alt="Business Photo ${i}" />
-      </div>
-    `).join('')}
-  </div>
+  ` : ''}
 </body>
 </html>
   `;

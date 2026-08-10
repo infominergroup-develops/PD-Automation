@@ -20,6 +20,10 @@ export interface BusinessCategory {
   industryGroup: string; // e.g. 'Retail', 'Manufacturing', 'Services'
   typicalMarginMin: number; // %
   typicalMarginMax: number; // %
+  customNumber?: string;
+  customSize?: string;
+  customUsage?: string;
+  customCharges?: string;
   requiredDocs: string[];
   validationRules: {
     ruleId: string;
@@ -57,6 +61,8 @@ export interface FamilyMember {
   isEarning: boolean;
   monthlyIncome: number;
   isDependent: boolean;
+  profession?: 'Student' | 'Working professional' | 'Housewife' | '';
+  qualification?: string;
 }
 
 export interface CollateralEntry {
