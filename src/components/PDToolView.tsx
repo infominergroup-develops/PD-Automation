@@ -1016,12 +1016,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'Recommended',
 
-      briefBusinessProfile: `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total available physical stock/inventory at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`,
+      briefBusinessProfile: `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`,
       businessVintage: `${yearsInBusiness} Years`,
       staffCount: 'Managed by family members with zero external staff dependency',
       businessPremiseOwnership: shopOwnership === 'OWN' ? 'Self-Owned Premises' : `Rented Premises (Rent: ₹${monthlyRent}/mo)`,
       factoryInfrastructure: 'Display racks, storage shelves, weighing scales, counter, and necessary processing fixtures',
-      stockDetailsValue: `Estimated inventory value of ₹${inventoryValue.toLocaleString('en-IN')}`,
+      stockDetailsValue: `Estimated business premises value of ₹${inventoryValue.toLocaleString('en-IN')}`,
       fixedAndCurrentAssetAnalysis: 'Fixed assets comprise shop furniture, display racks, and fixtures. Current assets include stock inventory and working capital.',
       assetCreationThroughBusiness: 'Income generated has been utilized for house construction, family living expenses, and inventory expansion.',
       initialBusinessInvestment: `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`,
@@ -1445,7 +1445,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estimated Inventory Value (₹)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Estimated Business Premises Value (₹)</label>
                 <input
                   type="number"
                   value={inventoryValue}
@@ -1512,7 +1512,18 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                             className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
                           />
                         </td>
-                        <td className="p-3 text-slate-600">{prod.productCategory}</td>
+                        <td className="p-3 text-slate-600">
+                          <input
+                            type="text"
+                            value={prod.productCategory}
+                            onChange={(e) => {
+                              const updated = [...productsList];
+                              updated[idx].productCategory = e.target.value as any;
+                              setProductsList(updated);
+                            }}
+                            className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
+                          />
+                        </td>
                         <td className="p-3 text-center">
                           <input
                             type="number"
