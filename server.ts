@@ -445,39 +445,80 @@ async function startServer() {
   });
 
   // Product Mapping APIs
-  app.get("/api/products", (req, res) => {
-    const { categoryId } = req.query;
-    if (categoryId) {
-      const filtered = productsStore.filter(p => p.categoryId === categoryId);
-      return res.json({ products: filtered });
+  app.get("/api/products", async (req, res) => {
+    try {
+      if (!mongoDb) {
+        const { categoryId } = req.query;
+        if (categoryId) {
+          return res.json({ products: productsStore.filter(p => p.categoryId === categoryId) });
+        }
+        return res.json({ products: productsStore });
+      }
+
+      let products = await mongoDb.collection("products").find({}).toArray();
+      if (products.length === 0) {
+        // Seed DB if empty
+        await mongoDb.collection("products").insertMany(productsStore);
+        products = await mongoDb.collection("products").find({}).toArray();
+      }
+
+      const { categoryId } = req.query;
+      let finalProducts = products.map(p => ({ ...p, _id: undefined }));
+      if (categoryId) {
+        finalProducts = finalProducts.filter(p => p.categoryId === categoryId);
+      }
+      res.json({ products: finalProducts });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch products" });
     }
-    res.json({ products: productsStore });
   });
 
-  app.post("/api/products", (req, res) => {
+  app.post("/api/products", async (req, res) => {
     const newProd: CategoryProduct = req.body;
     if (!newProd.id || !newProd.productName) {
       return res.status(400).json({ error: "Product ID and Name required" });
     }
-    const idx = productsStore.findIndex(p => p.id === newProd.id);
-    if (idx >= 0) {
-      productsStore[idx] = newProd;
-    } else {
-      productsStore.push(newProd);
+    
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("products").updateOne(
+          { id: newProd.id },
+          { $set: newProd },
+          { upsert: true }
+        );
+      }
+      
+      const idx = productsStore.findIndex(p => p.id === newProd.id);
+      if (idx >= 0) {
+        productsStore[idx] = { ...productsStore[idx], ...newProd };
+      } else {
+        productsStore.push(newProd);
+      }
+      addAuditLog("Admin User", "ADMIN", idx >= 0 ? "PRODUCT_UPDATED" : "PRODUCT_CREATED", "CategoryProduct", newProd.id, `Saved product ${newProd.productName}`);
+      res.json({ success: true, product: newProd });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save product" });
     }
-    addAuditLog("Admin User", "ADMIN", "PRODUCT_SAVED", "CategoryProduct", newProd.id, `Saved product ${newProd.productName}`);
-    res.json({ success: true, product: newProd });
   });
 
-  app.delete("/api/products/:id", (req, res) => {
+  app.delete("/api/products/:id", async (req, res) => {
     const prodId = req.params.id;
-    const initialLen = productsStore.length;
-    productsStore = productsStore.filter(p => p.id !== prodId);
-    if (productsStore.length === initialLen) {
-      return res.status(404).json({ error: "Product not found" });
+    try {
+      if (mongoDb) {
+        await mongoDb.collection("products").deleteOne({ id: prodId });
+      }
+      
+      const initialLen = productsStore.length;
+      productsStore = productsStore.filter(p => p.id !== prodId);
+      if (productsStore.length === initialLen && !mongoDb) {
+        return res.status(404).json({ error: "Product not found" });
+      }
+      
+      addAuditLog("Admin User", "ADMIN", "PRODUCT_DELETED", "CategoryProduct", prodId, `Deleted product ${prodId}`);
+      res.json({ success: true, message: `Product ${prodId} deleted` });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete product" });
     }
-    addAuditLog("Admin User", "ADMIN", "PRODUCT_DELETED", "CategoryProduct", prodId, `Deleted product ${prodId}`);
-    res.json({ success: true, message: `Product ${prodId} deleted` });
   });
 
   // Reports Management APIs

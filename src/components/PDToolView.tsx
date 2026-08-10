@@ -83,6 +83,26 @@ const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, a
   };
 };
 
+const numberToWordsIndian = (num: number): string => {
+  if (num === 0) return 'Zero';
+  if (num === null || isNaN(num)) return '';
+
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  const n = ('000000000' + num).slice(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+  if (!n) return '';
+
+  let str = '';
+  str += (n[1] != '00') ? (a[Number(n[1])] || b[Number(n[1][0])] + ' ' + a[Number(n[1][1])]) + 'Crore ' : '';
+  str += (n[2] != '00') ? (a[Number(n[2])] || b[Number(n[2][0])] + ' ' + a[Number(n[2][1])]) + 'Lakh ' : '';
+  str += (n[3] != '00') ? (a[Number(n[3])] || b[Number(n[3][0])] + ' ' + a[Number(n[3][1])]) + 'Thousand ' : '';
+  str += (n[4] != '0') ? (a[Number(n[4])] || b[Number(n[4][0])] + ' ' + a[Number(n[4][1])]) + 'Hundred ' : '';
+  str += (n[5] != '00') ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[Number(n[5][0])] + ' ' + a[Number(n[5][1])]) : '';
+  
+  return str.trim() + ' Rupees';
+};
+
 interface PDToolViewProps {
   currentUser?: EmployeeRecord | null;
   selectedClient?: ClientBank;
@@ -154,6 +174,35 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Form Section Tabs
   const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>('applicant');
+
+  // Real-time categories and products sync
+  useEffect(() => {
+    let isMounted = true;
+    const fetchCatalog = async () => {
+      try {
+        const [fetchedCategories, fetchedProducts] = await Promise.all([
+          api.getCategories(),
+          api.getProducts()
+        ]);
+        if (isMounted) {
+          if (fetchedCategories?.length) setCategoriesList(fetchedCategories);
+          if (fetchedProducts?.length) setAllProducts(fetchedProducts);
+        }
+      } catch (error) {
+        console.error('Failed to sync catalog', error);
+      }
+    };
+    
+    // Initial fetch
+    fetchCatalog();
+    
+    // Poll every 15 seconds for real-time updates
+    const interval = setInterval(fetchCatalog, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Active Category Data
   const currentCategory = useMemo(() => {
@@ -1612,10 +1661,23 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
-                    <input type="number" value={appliedAmount || ''} onChange={(e) => setAppliedAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" disabled={appliedAmount === null} />
+                    <input 
+                      type="number" 
+                      value={appliedAmount ? appliedAmount / 1000 : ''} 
+                      onChange={(e) => setAppliedAmount(Number(e.target.value) * 1000)} 
+                      className="w-full pl-7 pr-7 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" 
+                      placeholder="Amount in '000s" 
+                      disabled={appliedAmount === null} 
+                    />
+                    <span className="absolute right-3 top-2 text-slate-400 font-bold text-[10px]">k</span>
                   </div>
                   <button type="button" onClick={() => setAppliedAmount(appliedAmount === null ? 0 : null)} className={`px-3 py-2 text-[10px] font-bold rounded-lg border ${appliedAmount === null ? 'bg-red-50 text-red-600 border-red-200' : 'bg-white text-slate-600 border-slate-300'}`}>Not Provided</button>
                 </div>
+                {appliedAmount > 0 && (
+                  <div className="mt-1 text-[10px] font-bold text-[#eb8a23]">
+                    {numberToWordsIndian(appliedAmount)}
+                  </div>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">10. Type of Loan</label>
