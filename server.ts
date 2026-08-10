@@ -463,9 +463,9 @@ async function startServer() {
       }
 
       const { categoryId } = req.query;
-      let finalProducts = products.map(p => ({ ...p, _id: undefined }));
+      let finalProducts = products.map((p: any) => ({ ...p, _id: undefined }));
       if (categoryId) {
-        finalProducts = finalProducts.filter(p => p.categoryId === categoryId);
+        finalProducts = finalProducts.filter((p: any) => p.categoryId === categoryId);
       }
       res.json({ products: finalProducts });
     } catch (err) {

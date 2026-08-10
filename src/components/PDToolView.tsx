@@ -162,7 +162,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             const appToLoad = data.find((a: any) => a._id === lastId);
             if (appToLoad) {
               // We do a small timeout to let the initial render settle before triggering 100 state updates
-              setTimeout(() => handleLoadApplication(appToLoad), 100);
+              setTimeout(() => handleLoadSampleApp(appToLoad), 100);
             }
           }
         }
