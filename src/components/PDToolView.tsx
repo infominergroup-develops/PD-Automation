@@ -795,6 +795,125 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     return () => clearInterval(interval);
   }, [activeAppId, selectedClient?.id]);
 
+  // Auto-Calculation and Generation for Aata Chakki Business Profile
+  useEffect(() => {
+    if (!currentCategory?.name?.toLowerCase().includes('atta chakki') && !currentCategory?.name?.toLowerCase().includes('aata chakki')) return;
+
+    let dailyTotalIncome = 0;
+    const machinesInfo = [];
+    const qaPairs = [];
+
+    // Atta Chakki calculations
+    if (aataChakkiData.machines.includes('Atta Chakki') && Number(aataChakkiData.attaChakki.wheatKg) > 0) {
+      const charge = Number(aataChakkiData.attaChakki.charge) || 0;
+      const wheatKg = Number(aataChakkiData.attaChakki.wheatKg) || 0;
+      dailyTotalIncome += wheatKg * charge;
+      machinesInfo.push(`${aataChakkiData.attaChakki.size || 'Standard'}-inch Atta Chakki (${wheatKg} kg wheat/day @ ₹${charge}/kg)`);
+      qaPairs.push(`Q: What is the capacity and daily output of the Atta Chakki?\nA: The ${aataChakkiData.attaChakki.size || 'Standard'}-inch machine processes ${wheatKg} kg of wheat daily at a charge of ₹${charge}/kg.`);
+    }
+
+    // Kohlu calculations
+    if (aataChakkiData.machines.includes('Kohlu') && Number(aataChakkiData.kohlu.mustardKg) > 0) {
+      const mustardKg = Number(aataChakkiData.kohlu.mustardKg) || 0;
+      const charge = Number(aataChakkiData.kohlu.charge) || 0;
+      const khaliKg = Number(aataChakkiData.kohlu.khaliKg) || 0;
+      const khaliRate = Number(aataChakkiData.kohlu.khaliRate) || 0;
+      dailyTotalIncome += (mustardKg * charge) + (khaliKg * khaliRate);
+      machinesInfo.push(`Kohlu - ${aataChakkiData.kohlu.boltDetails || 'Standard'} (${mustardKg} kg mustard/day @ ₹${charge}/kg)`);
+      qaPairs.push(`Q: How much mustard is processed daily and what are the byproducts?\nA: Approximately ${mustardKg} kg of mustard is processed daily. The process yields ${khaliKg} kg of Khali, which is sold at ₹${khaliRate}/kg.`);
+    }
+
+    // Dhan Polisher calculations
+    if (aataChakkiData.machines.includes('Dhan Polisher') && Number(aataChakkiData.dhanPolisher.paddyKg) > 0) {
+      const paddyKg = Number(aataChakkiData.dhanPolisher.paddyKg) || 0;
+      const charge = Number(aataChakkiData.dhanPolisher.charge) || 0;
+      const bhusiKg = Number(aataChakkiData.dhanPolisher.bhusiKg) || 0;
+      const bhusiRate = Number(aataChakkiData.dhanPolisher.bhusiRate) || 0;
+      const ricePolishKg = Number(aataChakkiData.dhanPolisher.ricePolishKg) || 0;
+      const ricePolishRate = Number(aataChakkiData.dhanPolisher.ricePolishRate) || 0;
+      dailyTotalIncome += (paddyKg * charge) + (bhusiKg * bhusiRate) + (ricePolishKg * ricePolishRate);
+      machinesInfo.push(`${aataChakkiData.dhanPolisher.size || 'Standard'}-inch Dhan Polisher (${paddyKg} kg paddy/day)`);
+      qaPairs.push(`Q: What is the output of the Dhan Polisher?\nA: The machine processes ${paddyKg} kg of paddy daily. Byproducts include ${bhusiKg} kg of Bhusi (sold at ₹${bhusiRate}/kg) and ${ricePolishKg} kg of Rice Polish (sold at ₹${ricePolishRate}/kg).`);
+    }
+
+    // Masala Machine calculations
+    if (aataChakkiData.machines.includes('Masala Grinding Machine') && Number(aataChakkiData.masalaMachine.masalaKg) > 0) {
+      const masalaKg = Number(aataChakkiData.masalaMachine.masalaKg) || 0;
+      const charge = Number(aataChakkiData.masalaMachine.charge) || 0;
+      dailyTotalIncome += masalaKg * charge;
+      machinesInfo.push(`${aataChakkiData.masalaMachine.size || 'Standard'} Masala Machine (${masalaKg} kg masala/day @ ₹${charge}/kg)`);
+      qaPairs.push(`Q: What is the daily output for masala grinding?\nA: The machine grinds ${masalaKg} kg of masala daily, charging ₹${charge}/kg.`);
+    }
+
+    // Engine/Motor Info
+    if (aataChakkiData.machines.includes('Engine')) {
+      machinesInfo.push('Engine');
+    }
+    if (aataChakkiData.machines.includes('Motor')) {
+      machinesInfo.push('Motor');
+    }
+
+    const monthlyIncome = dailyTotalIncome * workingDays;
+    
+    // Calculate Expenses (Power Source)
+    let dailyExpense = 0;
+    const consumption = Number(aataChakkiData.powerDetails.consumption) || 0;
+    const rate = Number(aataChakkiData.powerDetails.rate) || 0;
+    let engineInfo = 'standard power configuration';
+
+    if (consumption > 0) {
+      dailyExpense = consumption * rate;
+      engineInfo = aataChakkiData.powerSource === 'Diesel' 
+        ? `Diesel Engine consuming ${consumption} litres/day @ ₹${rate}/litre` 
+        : `Electric Motor consuming ${consumption} units/day @ ₹${rate}/unit`;
+      qaPairs.push(`Q: What is the power consumption and cost?\nA: The facility uses a ${aataChakkiData.powerSource} source, consuming ${consumption} ${aataChakkiData.powerSource === 'Diesel' ? 'litres' : 'units'} daily at a rate of ₹${rate} per ${aataChakkiData.powerSource === 'Diesel' ? 'litre' : 'unit'}.`);
+    }
+
+    const monthlyExpense = dailyExpense * workingDays;
+
+    // Only update lines if there's actual income/expense data to avoid overriding default template immediately on load
+    if (dailyTotalIncome > 0) {
+      setIncomeLines(prev => {
+        const hasAataLine = prev.find(l => l.particulars.includes('Aata Chakki Daily Collection') || l.particulars.includes('Aata Chakki / Milling Income') || l.particulars.includes('Milling Income'));
+        if (hasAataLine) {
+          if (hasAataLine.monthlyAmount === monthlyIncome) return prev; // Avoid unnecessary re-renders
+          return prev.map(l => (l.particulars.includes('Aata Chakki') || l.particulars.includes('Milling Income')) ? { ...l, monthlyAmount: monthlyIncome, particulars: 'Aata Chakki / Milling Income' } : l);
+        }
+        return [...prev, { id: 'auto-income-aata', particulars: 'Aata Chakki / Milling Income', monthlyAmount: monthlyIncome }];
+      });
+    }
+
+    if (consumption > 0 && rate > 0) {
+      setExpenseLines(prev => {
+        const hasPowerLine = prev.find(l => l.particulars.includes('Fuel / Electricity') || l.particulars.includes('Power / Fuel Expense') || l.particulars.includes('Power Expense'));
+        if (hasPowerLine) {
+          if (hasPowerLine.monthlyAmount === monthlyExpense) return prev; // Avoid unnecessary re-renders
+          return prev.map(l => (l.particulars.includes('Fuel / Electricity') || l.particulars.includes('Power') || l.particulars.includes('Expense')) ? { ...l, monthlyAmount: monthlyExpense, particulars: 'Power / Fuel Expense' } : l);
+        }
+        return [...prev, { id: 'auto-expense-power', particulars: 'Power / Fuel Expense', monthlyAmount: monthlyExpense }];
+      });
+    }
+
+    // Auto-Generate Business Profile & Q&A if there is some data
+    if (dailyTotalIncome > 0 || consumption > 0) {
+      const profileText = `Background & Setup: The applicant, ${applicantName || 'Applicant'}, operates ${firmName || 'the business'}, a milling and processing unit established ${yearsInBusiness || 0} years ago. 
+
+Machinery & Operations: The unit is equipped with ${machinesInfo.length > 0 ? machinesInfo.join(' + ') : 'essential processing machinery'}. It is powered by a ${engineInfo}.
+
+Income Estimation: The facility generates a daily processing revenue of approximately ₹${dailyTotalIncome.toLocaleString('en-IN')} resulting in a robust monthly turnover of ₹${monthlyIncome.toLocaleString('en-IN')} across ${workingDays} working days. The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} premises covering ${shopAreaSqFt || 200} sq.ft, demonstrating steady community demand.
+
+--- Q&A ---
+${qaPairs.join('\n\n')}`;
+
+      // Only set if different to prevent infinite loops or losing manual edits if unchanged
+      setBusinessRemark(prev => {
+        if (prev === profileText) return prev;
+        return profileText;
+      });
+    }
+
+  }, [aataChakkiData, currentCategory, workingDays, applicantName, firmName, yearsInBusiness, shopOwnership, shopAreaSqFt]);
+
   // Search Results for Autocomplete Dropdown
   const searchedApplications = useMemo(() => {
     if (!appSearchQuery.trim()) return applicantsList;
@@ -1547,7 +1666,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">Select Available Machines</label>
                 <div className="flex flex-wrap gap-4">
-                  {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine'].map(machine => (
+                  {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine', 'Engine', 'Motor'].map(machine => (
                     <label key={machine} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                       <input 
                         type="checkbox" 
