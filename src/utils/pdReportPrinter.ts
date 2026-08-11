@@ -9,7 +9,7 @@ export interface PDReportPrintData {
     address: string;
   };
   clientBankName?: string;
-  initiationDate?: string;
+  caseInitiationDate?: string;
   reportDate?: string;
   visitDate?: string;
   applicationNumber?: string;
@@ -18,8 +18,7 @@ export interface PDReportPrintData {
   // Applicant & Co-applicant Profile
   applicantName: string;
   applicantPhone?: string;
-  coApplicantName?: string;
-  coApplicantPhone?: string;
+  coApplicants?: any[];
   femaleCandidateDetails?: string;
   firmName?: string;
   loanAmount?: number | string;
@@ -157,7 +156,7 @@ export interface PDReportPrintData {
 
 export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
-  const initiationDate = data.initiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+  const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const appNo = data.applicationNumber || 'INF/2026/88492';
@@ -165,7 +164,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
     { srNo: 1, name: data.applicantName, age: '43 Yrs', relation: 'Self', qualification: '10th Pass', occupation: 'Self-employed Business', dependent: 'No' },
-    { srNo: 2, name: data.coApplicantName || 'Spouse', age: '38 Yrs', relation: 'Spouse', qualification: '10th Pass', occupation: 'Housewife', dependent: 'Yes' },
+    { srNo: 2, name: ((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Spouse', age: '38 Yrs', relation: 'Spouse', qualification: '10th Pass', occupation: 'Housewife', dependent: 'Yes' },
     { srNo: 3, name: 'Child 1', age: '18 Yrs', relation: 'Son', qualification: '12th Student', occupation: 'Student', dependent: 'Yes' },
     { srNo: 4, name: 'Child 2', age: '15 Yrs', relation: 'Daughter', qualification: '10th Student', occupation: 'Student', dependent: 'Yes' }
   ];
@@ -400,6 +399,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td style="width: 30%;">${reportDate}</td>
     </tr>
     <tr>
+      <td class="bold">Date of initiation of case</td>
+      <td>${data.caseInitiationDate ? new Date(data.caseInitiationDate).toLocaleDateString('en-IN') : (data.caseInitiationDate || '')}</td>
+      <td class="bold">Date of Preparation of report</td>
+      <td style="width: 30%;">${reportDate}</td>
+    </tr>
+    <tr>
       <td class="bold">Name of applicant</td>
       <td>${data.applicantName}</td>
       <td class="bold">Contact Number</td>
@@ -409,15 +414,24 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Business firm name</td>
       <td colspan="3">${data.firmName || 'NA'}</td>
     </tr>
+    ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, i: number) => `
+    <tr>
+      <td class="bold">Co-applicant ${i + 1} Name with relation</td>
+      <td>${c.name} (${c.relation})</td>
+      <td class="bold">Contact Number</td>
+      <td>${c.mobileNumber || 'NA'}</td>
+    </tr>
+    `).join('') : `
     <tr>
       <td class="bold">Co-applicant Name with relation</td>
-      <td>${data.coApplicantName || 'Mrs. Rubi Devi (Spouse)'}</td>
+      <td>NA</td>
       <td class="bold">Contact Number</td>
-      <td>${data.coApplicantPhone || '8252240942'}</td>
+      <td>NA</td>
     </tr>
+    `}
     <tr>
       <td class="bold">Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || `Yes, the female candidate is already included in the application as ${data.coApplicantName || 'Mrs. Rubi Devi'}, spouse of the applicant.`}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Loan Amount (as mention in application form)</td>
@@ -439,7 +453,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Met person during visit time</td>
-      <td>${data.metPersonName || `${data.applicantName} (Self) & ${data.coApplicantName || 'Mrs. Rubi Devi'} (Wife)`}</td>
+      <td>${data.metPersonName || `${data.applicantName} (Self) & ${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Mrs. Rubi Devi'} (Wife)`}</td>
       <td class="bold">Met person identity proof</td>
       <td>${data.metPersonIdProof || 'PAN Card / Aadhaar Card'}</td>
     </tr>
@@ -514,11 +528,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Neighbor Name</td>
-      <td colspan="3">${data.residenceNeighborName || 'Adjoining neighbors'}</td>
+      <td colspan="3">${data.residenceNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbor Feedback</td>
-      <td colspan="3">${data.residenceNeighborFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that both applicant and co-applicant have been residing at the given address. The feedback received was positive regarding their behaviour and character.'}</td>
+      <td colspan="3">${data.residenceNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Latitude & Longitude of premises</td>
@@ -699,11 +713,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Neighbour Name</td>
-      <td colspan="2">${data.businessNeighborName || 'Adjoining market shopkeepers'}</td>
+      <td colspan="2">${data.businessNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbour Feedback</td>
-      <td colspan="2">${data.businessNeighborFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that applicant has been engaged in stated business for considerable period, indicating business stability.'}</td>
+      <td colspan="2">${data.businessNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Business Status</td>
@@ -815,15 +829,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     Actual Profit and Loss figures were not made available by "${bankName}" hence only estimated figures are captured as per the information and understanding provided by the applicant during visit.
   </div>
 
-  <div class="sig-block">
+  <div class="sig-block" style="padding-top: 40px; border-top: 0;">
     <div>
       <strong>(Sign of Agency authorized signatory)</strong>
     </div>
-    <div style="text-align: right; font-family: monospace; font-size: 8pt;">
-      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Authorized Signatory'}</strong><br/>
-      Digitally signed by ${data.companyHeader?.name || 'System Generated'}<br/>
-      Date: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} +05'30'<br/>
-      <span class="stamp-badge">✓ VERIFIED INSTITUTIONAL AUDIT STAMP</span>
+    <div style="text-align: right;">
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Authorized Signatory'}</strong>
     </div>
   </div>
 
@@ -836,10 +847,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       DETAILED EXECUTIVE SUMMARY & CREDIT APPRAISAL REPORT
     </div>
 
-    <p style="font-size: 9pt; line-height: 1.5; color: #1e293b; text-align: justify; margin-bottom: 12px;">
-      ${data.aiExecutiveSummary || `<strong>Executive Overview:</strong> Infominer Services Private Limited conducted an end-to-end Personal Discussion (PD) and field verification for applicant <strong>${data.applicantName}</strong> (${data.firmName || 'Proprietorship Firm'}), applying for a micro-lending facility of <strong>₹${Number(data.loanAmount || 350000).toLocaleString('en-IN')}</strong> under <strong>${bankName}</strong>.<br/><br/>
+    <div style="font-size: 9pt; line-height: 1.5; color: #1e293b; text-align: justify; margin-bottom: 12px;">
+      ${data.aiExecutiveSummary || `<strong>Executive Overview:</strong> Infominer Services Private Limited conducted an end-to-end Personal Discussion (PD) and field verification for applicant <strong>${data.applicantName}</strong> (${data.firmName || 'Proprietorship Firm'}), applying for a micro-lending facility of <strong>₹${Number(data.loanAmount || 350000).toLocaleString('en-IN')}</strong> under <strong>${data.clientBankName || 'the Bank'}</strong>.<br/><br/>
       <strong>Key On-Ground Observations:</strong> Physical inspection confirmed an active business vintage of approximately ${data.businessVintage || '8-10 years'} at the verified premises. Customer footfall, inventory stock depth, and market reputation were cross-verified through adjoining shopkeepers and neighborhood feedback, confirming high stability and zero adverse antecedents.`}
-    </p>
+    </div>
 
     <!-- Financial Metrics Summary Table -->
     <table class="report-table" style="margin-bottom: 12px;">
@@ -973,7 +984,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
-  const initiationDate = data.initiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const appNo = data.applicationNumber || 'INF/2026/88492';
@@ -981,7 +992,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
     { srNo: 1, name: data.applicantName, age: '45 Yrs', relation: 'Self', qualification: 'Uneducated', occupation: 'Self-employed', dependent: 'No' },
-    { srNo: 2, name: data.coApplicantName || 'Spouse', age: '50 Yrs', relation: 'Spouse', qualification: 'Uneducated', occupation: 'Same business', dependent: 'No' }
+    { srNo: 2, name: ((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Spouse', age: '50 Yrs', relation: 'Spouse', qualification: 'Uneducated', occupation: 'Same business', dependent: 'No' }
   ];
 
   const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
@@ -1092,11 +1103,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Co-applicant Name with relation</td>
-      <td colspan="3">${data.coApplicantName || 'Ms. Jamuna devi (Daughter)'}</td>
+      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Ms. Jamuna devi (Daughter)'}</td>
     </tr>
     <tr>
       <td>Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || 'Yes, the female candidate is already included in the application'}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Loan Amount (as mention in application form)</td>
@@ -1196,11 +1207,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Name</td>
-      <td colspan="5">${data.residenceNeighborName || 'Mr. Satish and Mr. Dablu'}</td>
+      <td colspan="5">${data.residenceNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.residenceNeighborFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive regarding their behaviour.'}</td>
+      <td colspan="5">${data.residenceNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
@@ -1373,11 +1384,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
-      <td colspan="5">${data.businessNeighborName || 'Mr. Satish and Mr. Dablu'}</td>
+      <td colspan="5">${data.businessNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.businessNeighborFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period.'}</td>
+      <td colspan="5">${data.businessNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
@@ -1524,13 +1535,12 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <strong>Actual Profit and Loss figures were not made available by "${bankName}" hence only estimated figures are captured as per the 
     information and understanding provided by the applicant during visit.</strong>
   </div>
-  <div class="sig-block">
+  <div class="sig-block" style="padding-top: 40px; border-top: 0;">
     <div>
       <strong style="text-decoration: underline;">(Sign of Agency authorized signatory)</strong>
     </div>
-    <div style="text-align: right; font-family: sans-serif; display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
-       <div style="font-size: 24px; color: #2D3E50;">Kanchan Nandini<br/>Infominer-</div>
-       <div style="font-size: 9pt;">Digitally signed by Kanchan<br/>Nandini Infominer-<br/>Date: ${new Date().toISOString().substring(0, 10).replace(/-/g, '.')} 19:01:19<br/>+05'30'</div>
+    <div style="text-align: right;">
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Authorized Signatory'}</strong>
     </div>
   </div>
 

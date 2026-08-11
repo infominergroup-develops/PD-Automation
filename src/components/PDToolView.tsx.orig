@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
@@ -12,22 +12,13 @@ import {
   Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2, 
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight, 
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
-  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings
+  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Wand2
 } from 'lucide-react';
 
 export interface ItemizedCalculationLine {
   id: string;
   particulars: string;
   monthlyAmount: number;
-}
-
-export interface CoApplicant {
-  name: string;
-  relation: string;
-  otherRelation?: string;
-  mobileNumber?: string;
-  inBusiness?: boolean;
-  businessRole?: string;
 }
 
 const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, avgTicket: number = 250, days: number = 26, catsList: BusinessCategory[] = INITIAL_CATEGORIES) => {
@@ -144,8 +135,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [loadedToastMessage, setLoadedToastMessage] = useState<string | null>(null);
   const [activeAppNumber, setActiveAppNumber] = useState<string>('INF/2026/88492');
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
-  const activeAppIdRef = useRef(activeAppId);
-  useEffect(() => { activeAppIdRef.current = activeAppId; }, [activeAppId]);
   
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -167,7 +156,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         setApplicantsList(data);
         
         // Auto-load last active app if one isn't currently loaded
-        if (!activeAppIdRef.current) {
+        if (!activeAppId) {
           const lastId = localStorage.getItem('lastActiveAppId');
           if (lastId) {
             const appToLoad = data.find((a: any) => a._id === lastId);
@@ -412,7 +401,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [caseInitiationDate, setCaseInitiationDate] = useState(new Date().toISOString().split('T')[0]);
   const [visitDate, setVisitDate] = useState(new Date().toISOString().split('T')[0]);
   const [reportDate, setReportDate] = useState(new Date().toISOString().split('T')[0]);
-  const [coApplicants, setCoApplicants] = useState<CoApplicant[]>([]);
+  const [hasCoApplicant, setHasCoApplicant] = useState(false);
+  const [coApplicantName, setCoApplicantName] = useState('');
+  const [coApplicantRelation, setCoApplicantRelation] = useState('Spouse');
+  const [coApplicantOtherRelation, setCoApplicantOtherRelation] = useState('');
+  const [coApplicantMobileNumber, setCoApplicantMobileNumber] = useState('');
   const [hasFemaleCandidate, setHasFemaleCandidate] = useState(false);
   const [femaleCandidateName, setFemaleCandidateName] = useState('');
   const [femaleCandidateRelation, setFemaleCandidateRelation] = useState('Spouse');
@@ -423,15 +416,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [otherPowerSource, setOtherPowerSource] = useState('');
   const [monthlyEnergyExpense, setMonthlyEnergyExpense] = useState<number | ''>('');
   const [solarPurposes, setSolarPurposes] = useState<string[]>([]);
-  const [aataChakkiData, setAataChakkiData] = useState({
-    machines: [] as string[],
-    attaChakki: { size: '', capacity: '', wheatKg: '', charge: '' },
-    kohlu: { boltDetails: '', mustardKg: '', charge: '', khaliKg: '', khaliRate: '' },
-    dhanPolisher: { size: '', paddyKg: '', charge: '', bhusiKg: '', ricePolishKg: '', bhusiRate: '', ricePolishRate: '' },
-    masalaMachine: { size: '', masalaKg: '', charge: '' },
-    powerSource: 'Diesel',
-    powerDetails: { consumption: '', rate: '' }
-  });
   const [otherSolarPurpose, setOtherSolarPurpose] = useState('');
   const [resAddressLine1, setResAddressLine1] = useState('');
   const [resAddressLine2, setResAddressLine2] = useState('');
@@ -444,13 +428,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [busAddressLine2, setBusAddressLine2] = useState('');
   const [busVillage, setBusVillage] = useState('');
   const [busCity, setBusCity] = useState('');
+  const [busAddressType, setBusAddressType] = useState('Address of the Business (Applicant)');
   const [busDistrict, setBusDistrict] = useState('');
   const [busState, setBusState] = useState('');
   const [busPin, setBusPin] = useState('');
   const [personsMet, setPersonsMet] = useState<string[]>([]);
   const [personsMetOtherName, setPersonsMetOtherName] = useState('');
   const [personsMetOtherRelation, setPersonsMetOtherRelation] = useState('');
-  const [identityProof, setIdentityProof] = useState('Aadhaar Card');
+  const [identityProofs, setIdentityProofs] = useState<string[]>(['Aadhaar Card']);
   const [otherIdentityProof, setOtherIdentityProof] = useState('');
   const [executiveName, setExecutiveName] = useState(''); // Assuming logic handles current user
   const [solarPurposeGeneratedText, setSolarPurposeGeneratedText] = useState('');
@@ -539,9 +524,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [bankingDetails, setBankingDetails] = useState<any[]>([{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }]);
   const [existingLoans, setExistingLoans] = useState<any[]>([{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]);
   const [currentObligation, setCurrentObligation] = useState('No any existing obligation');
+  const [coApplicantInBusiness, setCoApplicantInBusiness] = useState(false);
+  const [coApplicantBusinessRole, setCoApplicantBusinessRole] = useState('');
   const [businessLongitudeVerified, setBusinessLongitudeVerified] = useState(false);
   const [businessLongitudeRemarks, setBusinessLongitudeRemarks] = useState('The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.');
-  const [businessNeighbourName, setBusinessNeighbourName] = useState('');
+  const [businessNeighbourName, setBusinessNeighbourName] = useState('Adjoining neighbors');
   const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState('Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
   const [businessStatus, setBusinessStatus] = useState('Recommended');
 
@@ -626,15 +613,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       dailyFootfall: 0,
       avgTicketValue: 0,
       workingDays: 26,
-      aataChakkiData: {
-        machines: [],
-        attaChakki: { size: '', capacity: '', wheatKg: '', charge: '' },
-        kohlu: { boltDetails: '', mustardKg: '', charge: '', khaliKg: '', khaliRate: '' },
-        dhanPolisher: { size: '', paddyKg: '', charge: '', bhusiKg: '', ricePolishKg: '', bhusiRate: '', ricePolishRate: '' },
-        masalaMachine: { size: '', masalaKg: '', charge: '' },
-        powerSource: 'Diesel',
-        powerDetails: { consumption: '', rate: '' }
-      },
       neighborFeedback: '',
       landlordFeedback: '',
       interestRatePct: 24,
@@ -684,9 +662,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAvgTicketValue(app.avgTicketValue || 0);
     setWorkingDays(app.workingDays || 0);
     setNeighborFeedback(app.neighborFeedback || '');
-    if (app.aataChakkiData) {
-      setAataChakkiData(app.aataChakkiData);
-    }
     setLandlordFeedback(app.landlordFeedback || '');
     setAppliedAmount(app.appliedAmount || 0);
     setTenureMonths(app.tenureMonths || 12);
@@ -706,24 +681,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setIncomeLines(app.incomeLines || defaultLines.income);
     setExpenseLines(app.expenseLines || defaultLines.expense);
 
-    setCaseInitiationDate(app.caseInitiationDate || new Date().toISOString().split('T')[0]);
-    
-    if (app.coApplicants && Array.isArray(app.coApplicants)) {
-      setCoApplicants(app.coApplicants);
-    } else if (app.hasCoApplicant) {
-      // Migrate from old single co-applicant structure
-      setCoApplicants([{
-        name: app.coApplicantName || '',
-        relation: app.coApplicantRelation || 'Spouse',
-        otherRelation: app.coApplicantOtherRelation || '',
-        mobileNumber: app.coApplicantMobileNumber || '',
-        inBusiness: app.coApplicantInBusiness || false,
-        businessRole: app.coApplicantBusinessRole || ''
-      }]);
-    } else {
-      setCoApplicants([]);
-    }
-
     setActiveAppNumber(app.applicationNumber);
     setActiveAppId(app._id);
     setLoadedToastMessage(`Application #${app.applicationNumber} loaded for ${app.applicantName} (${app.firmName}). All 5 sections updated.`);
@@ -737,24 +694,23 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // Auto-Save Effect
-  // Optimization: Auto-save using refs to avoid massive dependency array overhead on every render
-  const updateDataRef = useRef<any>(null);
-  const lastSavedStrRef = useRef<string>('');
-
-  // Keep the ref updated with the latest state without triggering re-renders
-  updateDataRef.current = {
+  useEffect(() => {
+    if (!activeAppId || !selectedClient?.id) return;
+    const timeout = setTimeout(() => {
+      const updateData = {
+        categoryId: selectedCategoryId,
         applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
         dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
         shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
         landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
         salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
         photos, incomeLines, expenseLines, productsList,
-        caseInitiationDate, visitDate, reportDate, coApplicants,
+        caseInitiationDate, visitDate, reportDate, hasCoApplicant, coApplicantName, coApplicantRelation, coApplicantOtherRelation, coApplicantMobileNumber,
         hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
         powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
         resAddressLine1, resAddressLine2, resVillage, resCity, resDistrict, resState, resPin,
-        busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin,
-        personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName,
+        busAddressType, busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin,
+        personsMet, personsMetOtherName, personsMetOtherRelation, identityProofs, otherIdentityProof, executiveName,
         businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, externalStaffCount, businessManagedBy, businessManagedByOther,
         premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
         businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
@@ -767,33 +723,42 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
         neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
         neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
-        aataChakkiData,
-        prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
-        businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
-        businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId
-  };
-
-  useEffect(() => {
-    if (!activeAppId || !selectedClient?.id) return;
-    
-    // Auto-save loop that checks for changes every 1.5 seconds independently of state re-renders
-    const interval = setInterval(() => {
-      if (!updateDataRef.current) return;
-      
-      const currentData = updateDataRef.current;
-      const currentStr = JSON.stringify(currentData);
-      
-      if (lastSavedStrRef.current !== currentStr) {
-        api.updateApplicant(selectedClient.id, activeAppId, currentData)
-          .then(() => {
-            lastSavedStrRef.current = currentStr;
-          })
-          .catch(err => console.error('Failed to auto-save:', err));
-      }
+        prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation, coApplicantInBusiness,
+        coApplicantBusinessRole, businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
+        businessNeighbourFeedback, businessStatus
+      };
+      api.updateApplicant(selectedClient.id, activeAppId, updateData).catch(err => console.error('Failed to auto-save:', err));
     }, 1500);
-
-    return () => clearInterval(interval);
-  }, [activeAppId, selectedClient?.id]);
+    return () => clearTimeout(timeout);
+  }, [
+    activeAppId, selectedClient, selectedCategoryId, applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
+    dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
+    shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
+    landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
+    photos, incomeLines, expenseLines, productsList,
+    caseInitiationDate, visitDate, reportDate, hasCoApplicant, coApplicantName, coApplicantRelation, coApplicantOtherRelation, coApplicantMobileNumber,
+    hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
+    powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
+    resAddressLine1, resAddressLine2, resVillage, resCity, resDistrict, resState, resPin,
+    busAddressType, busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin,
+    personsMet, personsMetOtherName, personsMetOtherRelation, identityProofs, otherIdentityProof, executiveName,
+        businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, externalStaffCount, businessManagedBy, businessManagedByOther,
+        premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
+        businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
+        investmentSource, investmentSourceOther, hasAgricultureLand, agriLandArea, agriLandUnit, agriLandOwnership, agriLandOwnershipOther,
+        agriCrops, agriCropsOther, agriIncomeMin, agriIncomeMax, agriOwnershipDoc, hasOtherIncome, otherIncomeSources,
+        expectedSolarCostReductionPct, expectedSolarMonthlySaving, meetingAddressSource, meetAddressLine1, meetAddressLine2, meetVillage,
+        meetCity, meetDistrict, meetState, meetPin, locatingPremisesType, locatingPremisesTypeOther, propertyOwnership, propertyOwnershipOther,
+        propertyRentAmount, propertyOwnerName, propertyArea, propertyValue, propertyOwnershipDoc, houseFloors, houseRooms, houseStructureType,
+        houseStructureTypeOther, houseFloorPosition, houseFloorPositionOther, houseAdditionalDetails, monthlyHouseholdExpensesAmount,
+        hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
+        neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
+        neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
+        prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation, coApplicantInBusiness,
+        coApplicantBusinessRole, businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
+        businessNeighbourFeedback, businessStatus
+  ]);
 
   // Search Results for Autocomplete Dropdown
   const searchedApplications = useMemo(() => {
@@ -1014,9 +979,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
-    const compositeAddress = [meetAddressLine1, meetAddressLine2, meetVillage, meetCity, meetDistrict, meetState, meetPin].filter(Boolean).join(', ');
-    const finalBusinessAddress = compositeAddress || 'Not provided';
-    const finalResidenceAddress = compositeAddress || 'Not provided';
+    // Smart Autofill Extractors
+    const autoCoAppName = hasCoApplicant ? `${coApplicantName} (${coApplicantRelation === 'Other' ? coApplicantOtherRelation : coApplicantRelation})` : 'Not Applicable';
+    const autoCoAppPhone = hasCoApplicant ? (coApplicantMobileNumber || 'Not provided') : 'Not Applicable';
+    const compositeMeetAddress = [meetAddressLine1, meetAddressLine2, meetVillage, meetCity, meetDistrict, meetState, meetPin].filter(Boolean).join(', ');
+    const finalBusinessAddress = [busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin].filter(Boolean).join(', ') || compositeMeetAddress || 'Not provided';
+    const finalResidenceAddress = [resAddressLine1, resAddressLine2, resVillage, resCity, resDistrict, resState, resPin].filter(Boolean).join(', ') || compositeMeetAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
     openStandardPDReportPrintWindow({
@@ -1028,16 +996,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       },
       clientBankName: selectedClient?.name || 'Moneyboxx Finance Limited',
       applicationNumber: activeAppNumber,
-      statusOfCase: riskAssessment.decision === 'APPROVED' ? 'Recommended' : 'In Review',
+      statusOfCase: businessStatus || 'Recommended',
       applicantName,
       applicantPhone: mobileNumber,
-      coApplicants,
-      femaleCandidateDetails: hasFemaleCandidate 
-        ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || '[Name]'}, ${femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.`
-        : "We need to collect KYC documents and live photograph of the female candidate.",
+      coApplicantName: autoCoAppName,
+      coApplicantPhone: autoCoAppPhone,
       firmName,
       loanAmount: appliedAmount,
-      loanType: loanType === 'Other' ? (otherLoanType || 'Other') : loanType,
+      loanType: loanType === 'Other' ? otherLoanType : loanType,
       loanPurpose: solarPurposeUsage || `Operational enhancement & working capital expansion for ${firmName}.`,
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
@@ -1051,41 +1017,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses,
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'Recommended',
-      residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'Not mentioned',
-      residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback.toLowerCase()} regarding their behaviour.` : 'Not conducted',
 
-      briefBusinessProfile: (() => {
-        if (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) {
-          const machinesInfo = [];
-          let dailyTotalIncome = 0;
-          if (aataChakkiData.machines.includes('Atta Chakki') && Number(aataChakkiData.attaChakki.wheatKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.attaChakki.size || 'Standard'}-inch Atta Chakki (${aataChakkiData.attaChakki.wheatKg} kg wheat/day @ ₹${aataChakkiData.attaChakki.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.attaChakki.wheatKg) || 0) * (Number(aataChakkiData.attaChakki.charge) || 0);
-          }
-          if (aataChakkiData.machines.includes('Kohlu') && Number(aataChakkiData.kohlu.mustardKg) > 0) {
-            machinesInfo.push(`Kohlu - ${aataChakkiData.kohlu.boltDetails || 'Standard'} (${aataChakkiData.kohlu.mustardKg} kg mustard/day @ ₹${aataChakkiData.kohlu.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.kohlu.mustardKg) || 0) * (Number(aataChakkiData.kohlu.charge) || 0) + (Number(aataChakkiData.kohlu.khaliKg) || 0) * (Number(aataChakkiData.kohlu.khaliRate) || 0);
-          }
-          if (aataChakkiData.machines.includes('Dhan Polisher') && Number(aataChakkiData.dhanPolisher.paddyKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.dhanPolisher.size || 'Standard'}-inch Dhan Polisher (${aataChakkiData.dhanPolisher.paddyKg} kg paddy/day)`);
-            dailyTotalIncome += (Number(aataChakkiData.dhanPolisher.paddyKg) || 0) * (Number(aataChakkiData.dhanPolisher.charge) || 0) + (Number(aataChakkiData.dhanPolisher.bhusiKg) || 0) * (Number(aataChakkiData.dhanPolisher.bhusiRate) || 0) + (Number(aataChakkiData.dhanPolisher.ricePolishKg) || 0) * (Number(aataChakkiData.dhanPolisher.ricePolishRate) || 0);
-          }
-          if (aataChakkiData.machines.includes('Masala Grinding Machine') && Number(aataChakkiData.masalaMachine.masalaKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.masalaMachine.size || 'Standard'} Masala Machine (${aataChakkiData.masalaMachine.masalaKg} kg masala/day @ ₹${aataChakkiData.masalaMachine.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.masalaMachine.masalaKg) || 0) * (Number(aataChakkiData.masalaMachine.charge) || 0);
-          }
-          
-          let engineInfo = 'standard power configuration';
-          if (Number(aataChakkiData.powerDetails.consumption) > 0) {
-            engineInfo = aataChakkiData.powerSource === 'Diesel' ? `Diesel Engine consuming ${aataChakkiData.powerDetails.consumption} litres/day @ ₹${aataChakkiData.powerDetails.rate || 0}/litre` : `Electric Motor consuming ${aataChakkiData.powerDetails.consumption} units/day @ ₹${aataChakkiData.powerDetails.rate || 0}/unit`;
-          }
-          
-          return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, operates <strong>${firmName}</strong>, a milling and processing unit established ${yearsInBusiness} years ago. 
-          <br/><br/><strong>Machinery & Operations:</strong> The unit is equipped with ${machinesInfo.length > 0 ? machinesInfo.join(' + ') : 'essential processing machinery'}. It is powered by a ${engineInfo}.
-          <br/><br/><strong>Income Estimation:</strong> The facility generates a daily processing revenue of approximately <strong>₹${dailyTotalIncome.toLocaleString('en-IN')}</strong> resulting in a robust monthly turnover of ₹${(dailyTotalIncome * workingDays).toLocaleString('en-IN')} across ${workingDays} working days. The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} premises covering ${shopAreaSqFt || 200} sq.ft, demonstrating steady community demand.`;
-        }
-        return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`;
-      })(),
+      briefBusinessProfile: `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`,
       businessVintage: `${yearsInBusiness} Years`,
       staffCount: 'Managed by family members with zero external staff dependency',
       businessPremiseOwnership: shopOwnership === 'OWN' ? 'Self-Owned Premises' : `Rented Premises (Rent: ₹${monthlyRent}/mo)`,
@@ -1114,7 +1047,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       businessGpsCoords: formattedGps,
       businessLocationRemarks: businessLongitudeRemarks,
       businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'NA'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
-      businessNeighborName: businessNeighbourName || 'Not mentioned',
+      businessNeighborName: businessNeighbourName || neighborName || 'Adjoining market shopkeepers',
       businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Neighbour verification confirmed applicant business presence and stable local reputation.',
       businessStatus: businessStatus || 'Recommended',
 
@@ -1163,7 +1096,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`
+      aiExecutiveSummary: `<div style="font-family: Arial, sans-serif; font-size: 10pt; color: #333;">
+        <h4 style="color: #1e3a8a; border-bottom: 1px solid #1e3a8a; padding-bottom: 4px; margin-bottom: 8px; margin-top: 0;">1. Business & Promoter Profile</h4>
+        <p style="margin-top: 0; text-align: justify; margin-bottom: 12px;">The applicant, <strong>${applicantName}</strong>, is the proprietor of <strong>${firmName}</strong>, operating in the ${currentCategory.name} segment. The business has an established vintage of <strong>${yearsInBusiness} years</strong> at the current location. On-site verification confirms a stable operating model with a steady customer base. The promoter possesses adequate domain experience and demonstrates sound business acumen in managing day-to-day operations.</p>
+        
+        <h4 style="color: #1e3a8a; border-bottom: 1px solid #1e3a8a; padding-bottom: 4px; margin-bottom: 8px;">2. Operational Metrics & Cash Flow Analysis</h4>
+        <p style="margin-top: 0; text-align: justify; margin-bottom: 12px;">Field observations indicate a daily footfall of approximately <strong>${dailyFootfall} customers</strong>, with an average transaction value of <strong>₹${avgTicketValue}</strong> over ${workingDays} working days per month. The stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is consistent with our cross-verification estimate (₹${crossCheckMonthlySales.toLocaleString('en-IN')}). Adopting a conservative monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>, the business generates a gross profit margin of <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. Post deduction of business operating expenses (₹${totalOperatingExpenses.toLocaleString('en-IN')}) and household living costs (₹${householdExpenses.toLocaleString('en-IN')}), the net disposable surplus stands at a healthy <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.</p>
+        
+        <h4 style="color: #1e3a8a; border-bottom: 1px solid #1e3a8a; padding-bottom: 4px; margin-bottom: 8px;">3. Debt Servicing Capacity & Risk Assessment</h4>
+        <p style="margin-top: 0; text-align: justify; margin-bottom: 12px;">The applicant has requested a micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> for a tenure of ${tenureMonths} months. The proposed EMI is calculated at <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The financial appraisal yields a post-loan DSCR of <strong>${dscrRatio}x</strong> (comfortably above the benchmark threshold of 1.25x) and a FOIR of <strong>${foirPct}%</strong>, indicating robust repayment capacity. Furthermore, neighbor and market reference checks yielded positive feedback regarding the applicant's creditworthiness and social standing.</p>
+        
+        <h4 style="color: #1e3a8a; border-bottom: 1px solid #1e3a8a; padding-bottom: 4px; margin-bottom: 8px;">4. Final Recommendation & Decision</h4>
+        <p style="margin-top: 0; text-align: justify; margin-bottom: 0;">Based on the holistic assessment of the applicant's business viability, cash flow adequacy, and satisfactory field verification, the proposal is deemed acceptable from a credit risk perspective and is <strong>${businessStatus || 'Recommended'}</strong> for further processing.</p>
+      </div>`
     });
   };
 
@@ -1171,11 +1116,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
       { id: 'profile', label: '2. Business Profile & Products' },
-      { id: 'verification', label: '3. Business & Residence Verification' },
+      { id: 'verification', label: '3. Business & Residence Visit' },
       { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
-      { id: 'field', label: '5. Field Verification' },
-      { id: 'financials', label: '6. Financial Analysis' },
-      { id: 'decision', label: '7. Risk Score & Summary' },
+      { id: 'financials', label: '5. Financial Analysis / Waterfall' },
+      { id: 'decision', label: '6. Risk Score & Summary' },
     ];
 
     const currentIndex = TABS_LIST.findIndex(t => t.id === activeTab);
@@ -1409,11 +1353,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         {[
           { id: 'applicant', label: '1. Applicant & Household', icon: User },
           { id: 'profile', label: '2. Business Profile & Products', icon: Store },
-          { id: 'verification', label: '3. Business & Residence Verification', icon: Store },
+          { id: 'verification', label: '3. Business & Residence Visit', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
-          { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
-          { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
-          { id: 'decision', label: '7. Risk Score & Decision', icon: Shield },
+          { id: 'financials', label: '5. Waterfall Cash Flow Engine', icon: Calculator },
+          { id: 'decision', label: '6. Risk Score & Decision', icon: Shield },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1524,7 +1467,16 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               </div>
               
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Remark</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-700">Business Remark</label>
+                  <button type="button" onClick={() => {
+                    const ageText = businessAgeYears > 0 ? `operating for approximately ${businessAgeYears} years` : 'recently established';
+                    const catText = currentCategory ? currentCategory.name : 'this category';
+                    setBusinessRemark(`The applicant is engaged in the business of ${catText}, ${ageText}. The business premise was verified and found to be operational with standard stock and setup.`);
+                  }} className="text-[10px] bg-slate-100 text-[#eb8a23] px-3 py-1.5 rounded font-bold hover:bg-slate-200 border border-slate-300 flex items-center gap-1">
+                    <Wand2 className="w-3 h-3" /> Auto Generate
+                  </button>
+                </div>
                 <textarea
                   value={businessRemark}
                   onChange={(e) => setBusinessRemark(e.target.value)}
@@ -1536,169 +1488,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             </div>
           </div>
 
-          {/* AATA CHAKKI DYNAMIC SETUP */}
-          {(currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
-            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-              <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                <Settings className="w-4 h-4 text-[#eb8a23]" />
-                Aata Chakki Setup & Details
-              </h3>
-              
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Select Available Machines</label>
-                <div className="flex flex-wrap gap-4">
-                  {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine'].map(machine => (
-                    <label key={machine} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input 
-                        type="checkbox" 
-                        checked={aataChakkiData.machines.includes(machine)}
-                        onChange={(e) => {
-                          const newMachines = e.target.checked 
-                            ? [...aataChakkiData.machines, machine]
-                            : aataChakkiData.machines.filter(m => m !== machine);
-                          setAataChakkiData({ ...aataChakkiData, machines: newMachines });
-                        }}
-                        className="accent-[#eb8a23]" 
-                      />
-                      {machine}
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {aataChakkiData.machines.includes('Atta Chakki') && (
-                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
-                  <h4 className="text-xs font-bold text-orange-800">Atta Chakki Specifics</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size (Inches)</label>
-                      <input type="number" value={aataChakkiData.attaChakki.size} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Capacity (Per Hr)</label>
-                      <input type="number" value={aataChakkiData.attaChakki.capacity} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, capacity: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Wheat (Kg)</label>
-                      <input type="number" value={aataChakkiData.attaChakki.wheatKg} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, wheatKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Grinding Charge (₹/Kg)</label>
-                      <input type="number" value={aataChakkiData.attaChakki.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {aataChakkiData.machines.includes('Kohlu') && (
-                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
-                  <h4 className="text-xs font-bold text-orange-800">Kohlu Specifics</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Bolt/Patti Details</label>
-                      <input type="text" value={aataChakkiData.kohlu.boltDetails} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, boltDetails: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Mustard (Kg)</label>
-                      <input type="number" value={aataChakkiData.kohlu.mustardKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, mustardKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
-                      <input type="number" value={aataChakkiData.kohlu.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Qty (Kg)</label>
-                      <input type="number" value={aataChakkiData.kohlu.khaliKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Selling Rate (₹)</label>
-                      <input type="number" value={aataChakkiData.kohlu.khaliRate} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliRate: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {aataChakkiData.machines.includes('Dhan Polisher') && (
-                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
-                  <h4 className="text-xs font-bold text-orange-800">Dhan Polisher Specifics</h4>
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.size} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, size: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Paddy (Kg)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.paddyKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, paddyKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Charge (₹)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, charge: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi (Kg)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.bhusiKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi Rate (₹)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.bhusiRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Qty (Kg)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.ricePolishKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Rate (₹)</label>
-                      <input type="number" value={aataChakkiData.dhanPolisher.ricePolishRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {aataChakkiData.machines.includes('Masala Grinding Machine') && (
-                <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
-                  <h4 className="text-xs font-bold text-orange-800">Masala Grinding Specifics</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
-                      <input type="number" value={aataChakkiData.masalaMachine.size} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Masala (Kg)</label>
-                      <input type="number" value={aataChakkiData.masalaMachine.masalaKg} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, masalaKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
-                      <input type="number" value={aataChakkiData.masalaMachine.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-                <h4 className="text-xs font-bold text-slate-700">Power Source Configuration</h4>
-                <div className="flex gap-4 mb-2">
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <input type="radio" checked={aataChakkiData.powerSource === 'Diesel'} onChange={() => setAataChakkiData({ ...aataChakkiData, powerSource: 'Diesel' })} className="accent-[#eb8a23]" /> Diesel
-                  </label>
-                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                    <input type="radio" checked={aataChakkiData.powerSource === 'Electricity'} onChange={() => setAataChakkiData({ ...aataChakkiData, powerSource: 'Electricity' })} className="accent-[#eb8a23]" /> Electricity
-                  </label>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Consumption ({aataChakkiData.powerSource === 'Diesel' ? 'Litres' : 'Units'})</label>
-                    <input type="number" value={aataChakkiData.powerDetails.consumption} onChange={e => setAataChakkiData({ ...aataChakkiData, powerDetails: { ...aataChakkiData.powerDetails, consumption: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Rate per {aataChakkiData.powerSource === 'Diesel' ? 'Litre' : 'Unit'} (₹)</label>
-                    <input type="number" value={aataChakkiData.powerDetails.rate} onChange={e => setAataChakkiData({ ...aataChakkiData, powerDetails: { ...aataChakkiData.powerDetails, rate: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Product Breakdown Matrix */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
@@ -1707,8 +1496,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   <PieChart className="w-4 h-4 text-[#eb8a23]" />
                   Product Mapping & Revenue Calculation
                 </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Editable product items with price and quantity auto-calculating to total revenue.
+                <p className="text-xs text-slate-500 font-medium mt-1 p-2 bg-slate-50 rounded border border-slate-100">
+                  <strong>Explanation:</strong> This table maps each product or service offered by the business to calculate total revenue. Enter the quantity sold per day, the number of operational days per month, and the price per unit. The system will automatically calculate the monthly and yearly revenue for each item.
                 </p>
               </div>
             </div>
@@ -1805,18 +1594,18 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               Applicant & Household Details
             </h3>
 
-            {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
+            {/* 1. Case Initiation, Visit Date & 2. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">1. Case Initiation Date</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Case initiation date</label>
                 <input type="date" value={caseInitiationDate} onChange={(e) => setCaseInitiationDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">2. Visit Date</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">1. Visit Date</label>
                 <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">3. Report Date</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">2. Report Date</label>
                 <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </div>
             </div>
@@ -1841,72 +1630,50 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
             {/* 6. Co-applicant Name with Relation & 7. Contact */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-700">6. Co-applicant Details</label>
-                <button type="button" onClick={() => setCoApplicants([...coApplicants, { name: '', relation: 'Spouse', mobileNumber: '' }])} className="px-3 py-1.5 bg-[#2d3e50] text-white text-xs font-bold rounded-lg hover:bg-[#1e293b]">
-                  + Add Co-applicant
-                </button>
+              <label className="block text-xs font-bold text-slate-700">6. Co-applicant Name with Relation</label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-600">Co-applicant present?</span>
+                <button type="button" onClick={() => setHasCoApplicant(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasCoApplicant ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                <button type="button" onClick={() => { setHasCoApplicant(false); setCoApplicantName(''); setCoApplicantRelation(''); setCoApplicantMobileNumber(''); }} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${!hasCoApplicant ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
               </div>
               
-              {coApplicants.length === 0 && (
-                <div className="text-xs font-semibold text-slate-500 italic p-3 text-center border border-dashed border-slate-300 rounded-lg">No Co-applicants Added</div>
+              {!hasCoApplicant && (
+                <div className="text-xs font-semibold text-slate-500 italic">No Co-applicant</div>
               )}
               
-              {coApplicants.map((coApp, idx) => (
-                <div key={idx} className="relative p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
-                  <button type="button" onClick={() => setCoApplicants(coApplicants.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs font-bold">
-                    Remove
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
+              {hasCoApplicant && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-3">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Co-applicant Name</label>
+                    <input type="text" value={coApplicantName} onChange={(e) => setCoApplicantName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship</label>
+                    <select value={coApplicantRelation} onChange={(e) => setCoApplicantRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                      <option value="">Select Relationship ▼</option>
+                      <option value="Spouse">Spouse</option>
+                      <option value="Father">Father</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Son">Son</option>
+                      <option value="Daughter">Daughter</option>
+                      <option value="Brother">Brother</option>
+                      <option value="Sister">Sister</option>
+                      <option value="Business Partner">Business Partner</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                  {coApplicantRelation === 'Other' && (
                     <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Co-applicant Name</label>
-                      <input type="text" value={coApp.name} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].name = e.target.value;
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
+                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
+                      <input type="text" value={coApplicantOtherRelation} onChange={(e) => setCoApplicantOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                     </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship</label>
-                      <select value={coApp.relation} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].relation = e.target.value;
-                        if (e.target.value !== 'Other') newCoApps[idx].otherRelation = '';
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                        <option value="">Select Relationship ▼</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Son">Son</option>
-                        <option value="Daughter">Daughter</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Business Partner">Business Partner</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                    {coApp.relation === 'Other' && (
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
-                        <input type="text" value={coApp.otherRelation || ''} onChange={(e) => {
-                          const newCoApps = [...coApplicants];
-                          newCoApps[idx].otherRelation = e.target.value;
-                          setCoApplicants(newCoApps);
-                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                      </div>
-                    )}
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">7. Contact Number</label>
-                      <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].mobileNumber = e.target.value.replace(/\D/g, '');
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
-                    </div>
+                  )}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">7. Contact Number</label>
+                    <input type="text" maxLength={10} value={coApplicantMobileNumber} onChange={(e) => setCoApplicantMobileNumber(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
                   </div>
                 </div>
-              ))}
+              )}
             </div>
 
             {/* 8. Female Candidate */}
@@ -1914,13 +1681,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               <label className="block text-xs font-bold text-slate-700">8. Female candidate is on loan / application</label>
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                <button type="button" onClick={() => { setHasFemaleCandidate(false); setFemaleCandidateName(''); setFemaleCandidateRelation(''); }} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${!hasFemaleCandidate ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+                <button type="button" onClick={() => setHasFemaleCandidate(false)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${!hasFemaleCandidate ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
               </div>
 
-              {hasFemaleCandidate && (
+              {!hasFemaleCandidate && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Female Candidate Name</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Which Female Family Member will be included?</label>
                     <input type="text" value={femaleCandidateName} onChange={(e) => setFemaleCandidateName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
                   </div>
                   <div>
@@ -1940,23 +1707,37 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                       <input type="text" value={femaleCandidateOtherRelation} onChange={(e) => setFemaleCandidateOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                     </div>
                   )}
-                  <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                    Generated: Yes, the female candidate is already included in the application as {femaleCandidateName || '[Name]'}, {femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.
+                  <div className="md:col-span-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-800">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <strong>Mandatory KYC required:</strong> Since no female candidate is on the loan application, you must collect KYC documents and a live photograph of the female family member mentioned above.
+                        <div className="flex gap-2 mt-3">
+                           <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 text-amber-700 rounded shadow-sm text-[10px] font-bold hover:bg-amber-100">
+                             <Upload className="w-3 h-3" />
+                             Upload KYC Doc
+                           </button>
+                           <button type="button" className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-amber-300 text-amber-700 rounded shadow-sm text-[10px] font-bold hover:bg-amber-100">
+                             <Camera className="w-3 h-3" />
+                             Capture Live Photo
+                           </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {!hasFemaleCandidate && (
-                <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                   Generated: We need to collect KYC documents and live photograph of the female candidate.
+                  {hasFemaleCandidate && (
+                    <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
+                      Generated: Yes, the female candidate is already included in the application as {femaleCandidateName || '[Name]'}, {femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* 9. Loan Amount & 10. Type of Loan */}
+            {/* 9. Quotation amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Loan Amount</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">9. Quotation amount</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
@@ -2081,7 +1862,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             {/* 13. Address of Business */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
               <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">13. Address of the Business (Applicant)</label>
+                <div className="w-2/3">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">13. Address Type</label>
+                  <select value={busAddressType} onChange={(e) => setBusAddressType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                    <option value="Address of the Business (Applicant)">Address of the Business (Applicant)</option>
+                    <option value="Address of the Business (Co-Applicant)">Address of the Business (Co-Applicant)</option>
+                    <option value="Additional Business visit Address (With income assessment)">Additional Business visit Address (With income assessment)</option>
+                    <option value="Additional Business visit Address (Without income assessment)">Additional Business visit Address (Without income assessment)</option>
+                  </select>
+                </div>
                 <button type="button" onClick={() => {
                   setBusAddressLine1(resAddressLine1);
                   setBusAddressLine2(resAddressLine2);
@@ -2134,11 +1923,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                  <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Generated View:</span>
                  {personsMet.map(p => {
                     if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
-                    if (p === 'Co-applicant') {
-                       const c = coApplicants[0];
-                       if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
-                       return 'Co-applicant';
-                    }
+                    if (p === 'Co-applicant') return `${coApplicantName || 'Co-applicant'} (${coApplicantRelation === 'Other' ? coApplicantOtherRelation : coApplicantRelation})`;
                     if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
                     return p;
                  }).join(' & ') || 'No one selected'}
@@ -2151,12 +1936,20 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                <div className="flex flex-wrap gap-3">
                  {['Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving Licence', 'Passport', 'Other'].map(proof => (
                     <label key={proof} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input type="radio" name="identityProof" checked={identityProof === proof} onChange={() => setIdentityProof(proof)} className="accent-[#eb8a23]" />
+                      <input 
+                        type="checkbox" 
+                        checked={identityProofs.includes(proof)} 
+                        onChange={(e) => {
+                          if (e.target.checked) setIdentityProofs([...identityProofs, proof]);
+                          else setIdentityProofs(identityProofs.filter(p => p !== proof));
+                        }} 
+                        className="accent-[#eb8a23]" 
+                      />
                       {proof}
                     </label>
                  ))}
                </div>
-               {identityProof === 'Other' && (
+               {identityProofs.includes('Other') && (
                   <input type="text" value={otherIdentityProof} onChange={(e) => setOtherIdentityProof(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Identity Proof" />
                )}
             </div>
@@ -2254,7 +2047,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
             <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2 mb-6">
               <Store className="w-4 h-4 text-[#eb8a23]" />
-              Business & Residence Verification
+              Business & Residence Visit
             </h3>
 
             {/* 1. Vintage of Business */}
@@ -2268,38 +2061,28 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                       <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                    </div>
                 </div>
-                {businessAgeYears < 10 && (
+                <div>
+                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
+                   <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
+                      <option value="">Select...</option>
+                      <option value="Agriculture">Agriculture</option>
+                      <option value="Salaried Employment">Salaried Employment</option>
+                      <option value="Business">Business</option>
+                      <option value="Self-employed">Self-employed</option>
+                      <option value="Labour">Labour</option>
+                      <option value="Student">Student</option>
+                      <option value="Homemaker">Homemaker</option>
+                      <option value="Other">Other</option>
+                   </select>
+                </div>
+                {previousOccupation === 'Other' && (
                   <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
-                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                        <option value="">Select...</option>
-                        <option value="Agriculture">Agriculture</option>
-                        <option value="Salaried Employment">Salaried Employment</option>
-                        <option value="Business">Business</option>
-                        <option value="Self-employed">Self-employed</option>
-                        <option value="Labour">Labour</option>
-                        <option value="Student">Student</option>
-                        <option value="Homemaker">Homemaker</option>
-                        <option value="Other">Other</option>
-                     </select>
-                  </div>
-                )}
-                {(businessAgeYears < 10 && (previousOccupation === 'Other' || previousOccupation === 'Business' || previousOccupation === 'Salaried Employment')) && (
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
-                       {previousOccupation === 'Business' ? 'What was it about?' : 
-                        previousOccupation === 'Salaried Employment' ? 'Company and Position' : 
-                        'Specify Previous Occupation'}
-                     </label>
-                     <input type="text" value={previousOccupationOther} onChange={(e) => setPreviousOccupationOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder={
-                       previousOccupation === 'Business' ? 'Nature of business' : 
-                       previousOccupation === 'Salaried Employment' ? 'e.g., Manager at XYZ Corp' : 
-                       'Specify'
-                     } />
+                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Previous Occupation</label>
+                     <input type="text" value={previousOccupationOther} onChange={(e) => setPreviousOccupationOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                   </div>
                 )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                  Generated: {businessAgeApprox ? 'Approximately ' : ''}{businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} {(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}
+                  Generated: {businessAgeApprox ? 'Approximately ' : ''}{businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} {previousOccupation ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation.toLowerCase()}.` : ''}
                 </div>
               </div>
             </div>
@@ -2415,7 +2198,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               </div>
               
               {!hasStock ? (
-                 <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-lg">Generated: No significant stock maintained received from customers for processing.</div>
+                 <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-lg">Generated: No significant stock maintained, received from customers for processing.</div>
               ) : (
                  <div className="space-y-2">
                     {stockDetails.map((stock, idx) => (
@@ -2442,25 +2225,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               )}
             </div>
 
-            {/* 6. Details and confirmation of business by neighbor */}
+            {/* 6. Fixed & Current Asset Analysis */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">6. Details and confirmation of business by neighbor</label>
-               <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
-                  <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
-               </div>
-               <div>
-                  <div className="flex items-center justify-between mb-1">
-                     <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
-                     <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
-                  </div>
-                  <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
-               </div>
-            </div>
-
-            {/* 7. Fixed & Current Asset Analysis */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">7. Fixed & Current Asset Analysis</label>
+               <label className="block text-xs font-bold text-slate-700">6. Fixed & Current Asset Analysis</label>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
                      <h5 className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 pb-1 mb-2">Fixed Assets (Auto-populated)</h5>
@@ -2490,9 +2257,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                </div>
             </div>
 
-            {/* 8. Asset Creation Through Business */}
+            {/* 7. Asset Creation Through Business */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">8. Asset Creation Through Business</label>
+               <label className="block text-xs font-bold text-slate-700">7. Asset Creation Through Business</label>
                <div className="flex items-center gap-4">
                  <span className="text-xs font-semibold text-slate-600">Has business income been used for asset creation?</span>
                  <button type="button" onClick={() => setBusinessIncomeAssetCreation(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${businessIncomeAssetCreation ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -2535,10 +2302,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                )}
             </div>
 
-            {/* 9. Business Investment */}
+            {/* 8. Business Investment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">9. Business Investment (Initial)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">8. Business Investment (Initial)</label>
                   <div className="relative">
                      <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                      <input type="number" value={initialInvestment} onChange={(e) => setInitialInvestment(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" />
@@ -2560,9 +2327,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                </div>
             </div>
 
-            {/* 10. Agricultural Income Details */}
+            {/* 9. Agricultural Income Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">10. Agricultural Income Details</label>
+               <label className="block text-xs font-bold text-slate-700">9. Agricultural Income Details</label>
                <div className="flex items-center gap-4">
                  <span className="text-xs font-semibold text-slate-600">Agricultural Land?</span>
                  <button type="button" onClick={() => setHasAgricultureLand(true)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${hasAgricultureLand ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -2722,11 +2489,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                   <div className="text-xs font-semibold text-slate-700">
                      {personsMet.map(p => {
                         if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
-                        if (p === 'Co-applicant') {
-                           const c = coApplicants[0];
-                           if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
-                           return 'Co-applicant';
-                        }
+                        if (p === 'Co-applicant') return `${coApplicantName || 'Co-applicant'} (${coApplicantRelation === 'Other' ? coApplicantOtherRelation : coApplicantRelation})`;
                         if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
                         return p;
                      }).join(' & ') || 'No persons selected in Applicant Tab.'}
@@ -3265,40 +3028,21 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             </div>
 
             {/* D. Co-Applicant Business Details */}
-            {coApplicants.length > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-                 <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
-                 {coApplicants.map((coApp, idx) => (
-                   <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
-                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
-                        <div className="flex gap-2">
-                           <button type="button" onClick={() => {
-                             const arr = [...coApplicants];
-                             arr[idx].inBusiness = true;
-                             setCoApplicants(arr);
-                           }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>In Business</button>
-                           <button type="button" onClick={() => {
-                             const arr = [...coApplicants];
-                             arr[idx].inBusiness = false;
-                             setCoApplicants(arr);
-                           }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness === false ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Not involved</button>
-                        </div>
-                     </div>
-                     {coApp.inBusiness && (
-                        <div>
-                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
-                           <textarea value={coApp.businessRole || ''} onChange={(e) => {
-                             const arr = [...coApplicants];
-                             arr[idx].businessRole = e.target.value;
-                             setCoApplicants(arr);
-                           }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
-                        </div>
-                     )}
-                   </div>
-                 ))}
-              </div>
-            )}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
+               <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
+                  <div className="flex gap-2">
+                     <button type="button" onClick={() => setCoApplicantInBusiness(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApplicantInBusiness ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Co-applicant is in Business</button>
+                     <button type="button" onClick={() => setCoApplicantInBusiness(false)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${!coApplicantInBusiness ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Not involved</button>
+                  </div>
+               </div>
+               {coApplicantInBusiness && (
+                  <div>
+                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
+                     <textarea value={coApplicantBusinessRole} onChange={(e) => setCoApplicantBusinessRole(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
+                  </div>
+               )}
+            </div>
 
             {/* E. Latitude & Longitude Remarks */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
@@ -3333,6 +3077,21 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
                </div>
             </div>
 
+            {/* F. Neighbor Name & Feedback */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
+               <label className="block text-xs font-bold text-slate-700">Neighbor Feedback (Business)</label>
+               <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
+                  <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
+               </div>
+               <div>
+                  <div className="flex items-center justify-between mb-1">
+                     <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
+                     <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
+                  </div>
+                  <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
+               </div>
+            </div>
 
             {/* G. Business Status */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
@@ -3351,204 +3110,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         </div>
       )}
 
-      {activeTab === 'field' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-              <Camera className="w-4 h-4 text-[#eb8a23]" />
-              On-Site Footfall Observation & Field Verification
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Observed Customers / Day</label>
-                <input
-                  type="number"
-                  value={dailyFootfall}
-                  onChange={(e) => setDailyFootfall(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Avg Ticket Size (₹/customer)</label>
-                <input
-                  type="number"
-                  value={avgTicketValue}
-                  onChange={(e) => setAvgTicketValue(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Working Days / Month</label>
-                <input
-                  type="number"
-                  value={workingDays}
-                  onChange={(e) => setWorkingDays(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
-              <span className="font-bold text-slate-600">Automated Field Cross-Check Monthly Revenue Formula:</span>
-              <span className="font-black text-[#eb8a23] text-sm">
-                {dailyFootfall} cust × ₹{avgTicketValue} × {workingDays} days = ₹{crossCheckMonthlySales.toLocaleString('en-IN')} / mo
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Neighbor / Market Reference Feedback</label>
-                <textarea
-                  value={neighborFeedback}
-                  onChange={(e) => setNeighborFeedback(e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Landlord / Premises Verification Comments</label>
-                <textarea
-                  value={landlordFeedback}
-                  onChange={(e) => setLandlordFeedback(e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* EXIF GPS Photos */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#eb8a23]" />
-                EXIF GPS Geotagged Field Inspection Proofs
-              </h3>
-              <label className="flex items-center gap-1.5 px-3.5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer">
-                {isUploadingPhoto ? (
-                  <span className="animate-pulse">Uploading...</span>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 text-white" />
-                    Upload Photo
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setIsUploadingPhoto(true);
-
-                        let latToUse = parseFloat(exifGpsLat) || 26.9124;
-                        let lngToUse = parseFloat(exifGpsLng) || 75.7873;
-                        
-                        try {
-                          const gps = await exifr.gps(file);
-                          if (gps && gps.latitude && gps.longitude) {
-                            latToUse = gps.latitude;
-                            lngToUse = gps.longitude;
-                            setExifGpsLat(`${latToUse.toFixed(4)}° N`);
-                            setExifGpsLng(`${lngToUse.toFixed(4)}° E`);
-                          }
-                        } catch (exifErr) {
-                          console.error('EXIF extraction failed', exifErr);
-                        }
-
-                        const reader = new FileReader();
-                        reader.onloadend = async () => {
-                          try {
-                            const base64Data = reader.result as string;
-                            let res;
-                            try {
-                              res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
-                            } catch (apiErr) {
-                              res = { 
-                                id: Math.random().toString(), 
-                                url: base64Data, 
-                                caption: file.name,
-                                gps: { lat: latToUse, lng: lngToUse } 
-                              };
-                            }
-                            if (res) {
-                              setPhotos(prev => [...prev, { ...res, categoryTag: 'Field Proof' }]);
-                            }
-                          } catch (err) {
-                            console.error(err);
-                          } finally {
-                            setIsUploadingPhoto(false);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }} 
-                    />
-                  </>
-                )}
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 mb-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Latitude</label>
-                <input
-                  type="text"
-                  value={exifGpsLat}
-                  onChange={(e) => setExifGpsLat(e.target.value)}
-                  placeholder="e.g. 26.9124"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Longitude</label>
-                <input
-                  type="text"
-                  value={exifGpsLng}
-                  onChange={(e) => setExifGpsLng(e.target.value)}
-                  placeholder="e.g. 75.7873"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {photos.length === 0 ? (
-                <div className="col-span-1 sm:col-span-2 p-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                  <Camera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 font-bold">No photos uploaded yet</p>
-                  <p className="text-xs text-slate-400">Click upload to add field inspection proofs</p>
-                </div>
-              ) : (
-                photos.map((photo, idx) => (
-                  <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-                    <img
-                      src={photo.url}
-                      alt={photo.caption}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="p-3 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-bold text-[#2d3e50] truncate max-w-[150px]">{photo.caption}</div>
-                        <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-rose-500" />
-                          GPS: {photo.gpsCoordinates?.latitude?.toFixed(4)}, {photo.gpsCoordinates?.longitude?.toFixed(4)}
-                        </div>
-                      </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                        VERIFIED GPS
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
-      )}
 
       {/* TAB 4: FINANCIAL ANALYSIS & ITEMIZED PRICE x QTY x DAYS CALCULATOR */}
       {activeTab === 'financials' && (
@@ -3769,7 +3330,20 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             {/* Waterfall Input Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Stated Monthly Sales Turnover (₹)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-slate-700">Stated Monthly Sales Turnover (₹)</label>
+                  <button 
+                    onClick={() => {
+                      const mappingTotal = productsList.reduce((sum, p) => sum + (p.total || 0), 0);
+                      if (mappingTotal > 0) {
+                        setStatedMonthlySales(mappingTotal);
+                      }
+                    }}
+                    className="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold hover:bg-emerald-200 transition"
+                  >
+                    Fetch from Product Mapping
+                  </button>
+                </div>
                 <input
                   type="number"
                   value={statedMonthlySales}
