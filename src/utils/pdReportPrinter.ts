@@ -338,7 +338,6 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       border: 1px solid #10b981;
       border-radius: 3px;
     }
-    }
     .cover-page {
       display: flex;
       flex-direction: column;
@@ -346,60 +345,102 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       align-items: center;
       height: 100vh;
       text-align: center;
-      background-color: #f8fafc;
-      border: 10px solid #2d3e50;
+      background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      border: 15px solid #2d3e50;
+      border-top: 25px solid #eb8a23;
       padding: 40px;
       box-sizing: border-box;
       page-break-after: always;
+      position: relative;
+      overflow: hidden;
     }
-    .cover-title {
-      font-size: 26pt;
-      font-weight: 900;
-      color: #2d3e50;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      letter-spacing: 1px;
+    .cover-page::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 200px;
+      height: 200px;
+      background: #eb8a23;
+      opacity: 0.1;
+      border-radius: 50%;
     }
-    .cover-subtitle {
-      font-size: 16pt;
-      color: #eb8a23;
-      font-weight: bold;
-      margin-bottom: 40px;
-    }
-    .cover-details {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      width: 80%;
-      text-align: left;
-    }
-    .cover-details table {
-      width: 100%;
-      font-size: 12pt;
-    }
-    .cover-details td {
-      padding: 10px;
-      border-bottom: 1px solid #e2e8f0;
+    .cover-page::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 300px;
+      height: 300px;
+      background: #2d3e50;
+      opacity: 0.05;
+      border-radius: 50%;
     }
     .cover-logo {
-      width: 120px;
-      height: 120px;
-      background-color: #2d3e50;
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, #2d3e50 0%, #1a252f 100%);
       color: #fff;
-      border-radius: 50%;
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32pt;
-      font-weight: bold;
+      font-size: 36pt;
+      font-weight: 900;
       margin-bottom: 30px;
-      box-shadow: 0 4px 10px rgba(45,62,80,0.3);
+      box-shadow: 0 10px 25px rgba(45,62,80,0.4);
+      border: 4px solid #ffffff;
+      z-index: 1;
+    }
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 900;
+      color: #1e293b;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      letter-spacing: 2px;
+      z-index: 1;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .cover-subtitle {
+      font-size: 18pt;
+      color: #eb8a23;
+      font-weight: 800;
+      margin-bottom: 40px;
+      z-index: 1;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .cover-details {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      width: 75%;
+      text-align: left;
+      z-index: 1;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    .cover-details table {
+      width: 100%;
+      font-size: 13pt;
+    }
+    .cover-details td {
+      padding: 12px 15px;
+      border-bottom: 1px dashed #cbd5e1;
+      color: #334155;
+    }
+    .cover-details tr:last-child td {
+      border-bottom: none;
     }
     .cover-footer {
       margin-top: auto;
       font-size: 10pt;
       color: #64748b;
+      z-index: 1;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
     @media print {
       body { padding: 0; }
@@ -423,7 +464,15 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <!-- COVER PAGE -->
   <div class="cover-page">
     <div class="cover-logo">
-      ${data.companyHeader?.name ? data.companyHeader.name.charAt(0) : 'C'}
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="url(#orange-gradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f97316" />
+            <stop offset="100%" stop-color="#f59e0b" />
+          </linearGradient>
+        </defs>
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
     <div class="cover-subtitle">${data.companyHeader?.name || 'Company Name'}</div>
@@ -1144,60 +1193,102 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       align-items: center;
       height: 100vh;
       text-align: center;
-      background-color: #f8fafc;
-      border: 10px solid #2d3e50;
+      background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+      border: 15px solid #2d3e50;
+      border-top: 25px solid #eb8a23;
       padding: 40px;
       box-sizing: border-box;
       page-break-after: always;
+      position: relative;
+      overflow: hidden;
     }
-    .cover-title {
-      font-size: 26pt;
-      font-weight: 900;
-      color: #2d3e50;
-      text-transform: uppercase;
-      margin-bottom: 20px;
-      letter-spacing: 1px;
+    .cover-page::before {
+      content: '';
+      position: absolute;
+      top: -50px;
+      right: -50px;
+      width: 200px;
+      height: 200px;
+      background: #eb8a23;
+      opacity: 0.1;
+      border-radius: 50%;
     }
-    .cover-subtitle {
-      font-size: 16pt;
-      color: #eb8a23;
-      font-weight: bold;
-      margin-bottom: 40px;
-    }
-    .cover-details {
-      background: #ffffff;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-      width: 80%;
-      text-align: left;
-    }
-    .cover-details table {
-      width: 100%;
-      font-size: 12pt;
-    }
-    .cover-details td {
-      padding: 10px;
-      border-bottom: 1px solid #e2e8f0;
+    .cover-page::after {
+      content: '';
+      position: absolute;
+      bottom: -100px;
+      left: -100px;
+      width: 300px;
+      height: 300px;
+      background: #2d3e50;
+      opacity: 0.05;
+      border-radius: 50%;
     }
     .cover-logo {
-      width: 120px;
-      height: 120px;
-      background-color: #2d3e50;
+      width: 140px;
+      height: 140px;
+      background: linear-gradient(135deg, #2d3e50 0%, #1a252f 100%);
       color: #fff;
-      border-radius: 50%;
+      border-radius: 20px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32pt;
-      font-weight: bold;
+      font-size: 36pt;
+      font-weight: 900;
       margin-bottom: 30px;
-      box-shadow: 0 4px 10px rgba(45,62,80,0.3);
+      box-shadow: 0 10px 25px rgba(45,62,80,0.4);
+      border: 4px solid #ffffff;
+      z-index: 1;
+    }
+    .cover-title {
+      font-size: 28pt;
+      font-weight: 900;
+      color: #1e293b;
+      text-transform: uppercase;
+      margin-bottom: 15px;
+      letter-spacing: 2px;
+      z-index: 1;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    .cover-subtitle {
+      font-size: 18pt;
+      color: #eb8a23;
+      font-weight: 800;
+      margin-bottom: 40px;
+      z-index: 1;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .cover-details {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      padding: 35px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.08);
+      width: 75%;
+      text-align: left;
+      z-index: 1;
+      border: 1px solid rgba(255,255,255,0.4);
+    }
+    .cover-details table {
+      width: 100%;
+      font-size: 13pt;
+    }
+    .cover-details td {
+      padding: 12px 15px;
+      border-bottom: 1px dashed #cbd5e1;
+      color: #334155;
+    }
+    .cover-details tr:last-child td {
+      border-bottom: none;
     }
     .cover-footer {
       margin-top: auto;
       font-size: 10pt;
       color: #64748b;
+      z-index: 1;
+      font-weight: 600;
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
@@ -1212,7 +1303,15 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <!-- COVER PAGE -->
   <div class="cover-page">
     <div class="cover-logo">
-      ${data.companyHeader?.name ? data.companyHeader.name.charAt(0) : 'M'}
+      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="url(#orange-gradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <defs>
+          <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#f97316" />
+            <stop offset="100%" stop-color="#f59e0b" />
+          </linearGradient>
+        </defs>
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
     <div class="cover-subtitle">${data.clientBankName || 'Moneyboxx Finance Limited'}</div>
