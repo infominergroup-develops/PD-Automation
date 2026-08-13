@@ -604,6 +604,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Operational / Saving analysis</td>
       <td>${data.operationalSavingAnalysis || 'With proposed working capital expansion, procurement cost per unit is projected to reduce by 8-12%, bolstering net monthly disposable surplus.'}</td>
     </tr>
+    <tr>
+      <td colspan="2" style="text-align: center; font-style: italic; font-weight: bold; padding: 10px; background-color: #f8fafc;">
+        All the work details are confirmed by applicant
+      </td>
+    </tr>
   </table>
 
   <!-- SECTION 4: CUSTOMERS, SUPPLIERS, BANKING & LIABILITIES -->

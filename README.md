@@ -62,6 +62,11 @@ The application operates as a Single Page Application (SPA) built with React and
 - **How it works:** Injects state data into raw HTML templates and triggers the browser's native `window.print()` functionality to generate formatted PDFs (including custom client formats like Moneyboxx).
 - **Pages:** `pdReportPrinter.ts`.
 
+### AI Chatbot & Editable QnA Autofill
+- **Purpose:** Provide a seamless way to populate text-heavy QnA inputs.
+- **How it works:** A collapsible chatbot interface allows users to paste markdown-formatted QnA text. The tool automatically parses the tables and populates corresponding editable text areas across the PD form, reducing manual data entry while maintaining user editability prior to printing.
+- **Pages:** `PDToolView.tsx`.
+
 ---
 
 ## 5. Current Implementation Status

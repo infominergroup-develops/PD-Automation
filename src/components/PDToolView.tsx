@@ -200,6 +200,119 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     (localStorage.getItem('lastActiveTab') as any) || 'applicant'
   );
 
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
+  const [chatbotText, setChatbotText] = useState('');
+
+  // Editable QnA fields
+  const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
+  const [businessVintageText, setBusinessVintageText] = useState('');
+  const [staffCountText, setStaffCountText] = useState('');
+  const [premiseOwnershipText, setPremiseOwnershipText] = useState('');
+  const [factoryInfrastructureText, setFactoryInfrastructureText] = useState('');
+  const [stockDetailsValueText, setStockDetailsValueText] = useState('');
+  const [fixedAndCurrentAssetAnalysisText, setFixedAndCurrentAssetAnalysisText] = useState('');
+  const [assetCreationText, setAssetCreationText] = useState('');
+  const [businessInvestmentText, setBusinessInvestmentText] = useState('');
+  const [agriculturalIncomeText, setAgriculturalIncomeText] = useState('');
+  const [solarSavingText, setSolarSavingText] = useState('');
+  const [projectedIncomeText, setProjectedIncomeText] = useState('');
+
+  const handleAutofillFromChatbot = () => {
+    if (!chatbotText) return;
+    
+    const extractTableValue = (key: string) => {
+       const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+       const regex = new RegExp(`\\|\\s*\\*\\*${escapedKey}\\*\\*\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
+       const match = chatbotText.match(regex);
+       if (match && match[1]) return match[1].replace(/\*\*/g, '').trim();
+       return '';
+    };
+
+    const parsedVintage = extractTableValue('Vintage of the business');
+    if (parsedVintage) setBusinessVintageText(parsedVintage);
+
+    const parsedStaff = extractTableValue('Number of Staffs');
+    if (parsedStaff) setStaffCountText(parsedStaff);
+
+    const parsedPremise = extractTableValue('Is office premise on rented / owned');
+    if (parsedPremise) setPremiseOwnershipText(parsedPremise);
+
+    const parsedAssets = extractTableValue('Details of Office / Factory Infrastructure (Assets)');
+    if (parsedAssets) setFactoryInfrastructureText(parsedAssets);
+
+    const parsedStock = extractTableValue('Stock details with estimated value');
+    if (parsedStock) setStockDetailsValueText(parsedStock);
+
+    const parsedAnalysis = extractTableValue('Fixed & Current Asset Analysis');
+    if (parsedAnalysis) setFixedAndCurrentAssetAnalysisText(parsedAnalysis);
+
+    const parsedCreation = extractTableValue('Asset Creation Through Business');
+    if (parsedCreation) setAssetCreationText(parsedCreation);
+
+    const parsedInvest = extractTableValue('Business Investment');
+    if (parsedInvest) setBusinessInvestmentText(parsedInvest);
+
+    const parsedAgri = extractTableValue('Agricultural Income Details');
+    if (parsedAgri) setAgriculturalIncomeText(parsedAgri);
+
+    const parsedSolar = extractTableValue('Solar Saving Analysis');
+    if (parsedSolar) setSolarSavingText(parsedSolar);
+
+    const parsedProjected = extractTableValue('Projected Income');
+    if (parsedProjected) setProjectedIncomeText(parsedProjected);
+
+    const profileMatch = chatbotText.match(/### Business Profile\n([\s\S]*?)### Business Profile/);
+    if (profileMatch && profileMatch[1]) {
+       setBriefBusinessProfile(profileMatch[1].trim());
+    }
+    
+    // Parse Vintage
+    const vintageMatch = chatbotText.match(/vintage.*?(\d+)\s*years/i) || chatbotText.match(/(\d+)\s*years/i);
+    if (vintageMatch && vintageMatch[1]) {
+      setYearsInBusiness(parseInt(vintageMatch[1]));
+    }
+    
+    // Parse Business Investment
+    const invMatch = chatbotText.match(/₹(\d+)\s*lakh/i) || chatbotText.match(/investment.*?₹(\d+)\s*lakh/i);
+    if (invMatch && invMatch[1]) {
+      setInitialInvestment(parseInt(invMatch[1]) * 100000);
+    }
+    
+    // Parse Agriculture
+    if (chatbotText.match(/Agricultural Income Details/i) && chatbotText.match(/bighas/i)) {
+      setHasAgricultureLand(true);
+      const bighasMatch = chatbotText.match(/(\d+)\s*bighas/i);
+      if (bighasMatch && bighasMatch[1]) setAgriLandArea(parseInt(bighasMatch[1]));
+      setAgriLandUnit('Bigha');
+      const agriIncMatch = chatbotText.match(/₹(\d+)\s*lakh per crop/i);
+      if (agriIncMatch && agriIncMatch[1]) {
+        setAgriIncomeMin(parseInt(agriIncMatch[1]) * 100000);
+        setAgriIncomeMax(parseInt(agriIncMatch[1]) * 100000);
+      }
+    }
+    
+    // Parse Kirana store
+    if (chatbotText.match(/Kirana Store/i) || chatbotText.match(/Other Source Income/i)) {
+      setHasOtherIncome(true);
+      setOtherIncomeSources([{ id: Date.now(), source: 'Business', frequency: 'Monthly', amount: 1000 * 30, remarks: 'Kirana Store' }]);
+    }
+
+    // Solar saving
+    const solarMatch = chatbotText.match(/(\d+)–(\d+)\s*units.*?₹(\d+)/i) || chatbotText.match(/(\d+)\s*units.*?₹(\d+)/i);
+    if (solarMatch) {
+       setPowerSource('Electricity');
+       if (solarMatch.length === 4) {
+         setMonthlyEnergyExpense(parseInt(solarMatch[2]) * parseInt(solarMatch[3]) * 30);
+       } else if (solarMatch.length === 3) {
+         setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30);
+       }
+    }
+    
+    alert('Autofilled fields based on the pasted profile summary and QnA!');
+    setIsChatbotOpen(false);
+    setChatbotText('');
+  };
+
   useEffect(() => {
     localStorage.setItem('lastActiveTab', activeTab);
   }, [activeTab]);
@@ -544,6 +657,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [businessNeighbourName, setBusinessNeighbourName] = useState('');
   const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState('Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
   const [businessStatus, setBusinessStatus] = useState('Recommended');
+  const [hasAdditionalBusiness, setHasAdditionalBusiness] = useState(false);
+  const [additionalBusinessAddress, setAdditionalBusinessAddress] = useState('');
+  const [additionalBusinessIncomeAssessment, setAdditionalBusinessIncomeAssessment] = useState('');
 
   // Form Fields - Business
   const [firmName, setFirmName] = useState('');
@@ -1176,7 +1292,7 @@ ${qaPairs.join('\n\n')}`;
       residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'Not mentioned',
       residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback.toLowerCase()} regarding their behaviour.` : 'Not conducted',
 
-      briefBusinessProfile: (() => {
+      briefBusinessProfile: briefBusinessProfile || (() => {
         if (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) {
           const machinesInfo = [];
           let dailyTotalIncome = 0;
@@ -1208,17 +1324,17 @@ ${qaPairs.join('\n\n')}`;
         }
         return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`;
       })(),
-      businessVintage: `${yearsInBusiness} Years`,
-      staffCount: 'Managed by family members with zero external staff dependency',
-      businessPremiseOwnership: shopOwnership === 'OWN' ? 'Self-Owned Premises' : `Rented Premises (Rent: ₹${monthlyRent}/mo)`,
-      factoryInfrastructure: 'Display racks, storage shelves, weighing scales, counter, and necessary processing fixtures',
-      stockDetailsValue: `Estimated business premises value of ₹${inventoryValue.toLocaleString('en-IN')}`,
-      fixedAndCurrentAssetAnalysis: 'Fixed assets comprise shop furniture, display racks, and fixtures. Current assets include stock inventory and working capital.',
-      assetCreationThroughBusiness: 'Income generated has been utilized for house construction, family living expenses, and inventory expansion.',
-      initialBusinessInvestment: `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`,
-      agriculturalIncomeDetails: hasAgricultureLand ? `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.` : 'Applicant owns agricultural land with yearly supplementary crop income.',
+      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} ${(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}`,
+      staffCount: staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`,
+      businessPremiseOwnership: premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`),
+      factoryInfrastructure: factoryInfrastructureText || (businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Standard fixtures and setup'),
+      stockDetailsValue: stockDetailsValueText || (hasStock && stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.'),
+      fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`,
+      assetCreationThroughBusiness: assetCreationText || `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`,
+      initialBusinessInvestment: businessInvestmentText || `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`,
+      agriculturalIncomeDetails: agriculturalIncomeText || (hasAgricultureLand ? `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.` : 'Applicant owns agricultural land with yearly supplementary crop income.'),
       otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'Not applicable / Rental Income',
-      operationalSavingAnalysis: expectedSolarMonthlySaving ? `Expected monthly saving of ₹${expectedSolarMonthlySaving} (~${expectedSolarCostReductionPct}% reduction).` : 'Working capital stock expansion will reduce unit procurement cost and optimize monthly profit margins.',
+      operationalSavingAnalysis: solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`,
 
       prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [
         { name: 'Local Retail Walk-in Customers', phone: 'Multiple', remark: 'Satisfactory daily cash & digital UPI sales' }
@@ -2420,8 +2536,12 @@ ${qaPairs.join('\n\n')}`;
                      } />
                   </div>
                 )}
-                <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                  Generated: {businessAgeApprox ? 'Approximately ' : ''}{businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} {(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}
+                <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                  </div>
+                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} ${(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}`} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </div>
@@ -2454,9 +2574,12 @@ ${qaPairs.join('\n\n')}`;
                      <input type="text" value={businessManagedByOther} onChange={(e) => setBusinessManagedByOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                    )}
                 </div>
-                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                  Generated: {externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}
-                  {businessManagedBy.length > 0 && `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.`}
+                <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setStaffCountText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                  </div>
+                  <textarea value={staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </div>
@@ -2475,9 +2598,13 @@ ${qaPairs.join('\n\n')}`;
                {premiseOwnership === 'Other' && (
                   <input type="text" value={premiseOwnershipOther} onChange={(e) => setPremiseOwnershipOther(e.target.value)} className="w-full md:w-1/2 mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                )}
-               {premiseOwnership === 'Self-Owned' && (
-                  <div className="mt-2 text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: Business is being operated from self-owned premises.</div>
-               )}
+               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                 <div className="flex justify-between items-center">
+                   <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                   <button type="button" onClick={() => setPremiseOwnershipText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                 </div>
+                 <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+               </div>
             </div>
 
             {/* 4. Details of Office / Factory Infrastructure */}
@@ -2511,8 +2638,12 @@ ${qaPairs.join('\n\n')}`;
                  ))}
                  {businessAssets.length === 0 && <div className="text-xs text-slate-500 italic p-2">No assets added.</div>}
                  {businessAssets.length > 0 && (
-                    <div className="mt-2 text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-lg">
-                       Generated: The business setup comprises {businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                        <button type="button" onClick={() => setFactoryInfrastructureText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                      </div>
+                      <textarea value={factoryInfrastructureText || `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.`} onChange={(e) => setFactoryInfrastructureText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                     </div>
                  )}
               </div>
@@ -2537,7 +2668,13 @@ ${qaPairs.join('\n\n')}`;
               </div>
               
               {!hasStock ? (
-                 <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-lg">Generated: No significant stock maintained received from customers for processing.</div>
+                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                   <div className="flex justify-between items-center">
+                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                     <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                   </div>
+                   <textarea value={stockDetailsValueText || 'No significant stock maintained received from customers for processing.'} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                 </div>
               ) : (
                  <div className="space-y-2">
                     {stockDetails.map((stock, idx) => (
@@ -2556,8 +2693,12 @@ ${qaPairs.join('\n\n')}`;
                        </div>
                     ))}
                     {stockDetails.length > 0 && (
-                       <div className="mt-2 text-xs font-semibold text-blue-800 bg-blue-50 p-3 rounded-lg">
-                          Generated: The estimated value of observed stock ({stockDetails.map(s => s.name).join(', ')}) is approximately ₹{stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.
+                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                         <div className="flex justify-between items-center">
+                           <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                           <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                         </div>
+                         <textarea value={stockDetailsValueText || `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.`} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                        </div>
                     )}
                  </div>
@@ -2605,12 +2746,19 @@ ${qaPairs.join('\n\n')}`;
                            </label>
                         ))}
                      </div>
-                     {currentAssets.includes('Other') && (
-                        <input type="text" value={currentAssetsOther} onChange={(e) => setCurrentAssetsOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Other Current Assets" />
-                     )}
+                      {currentAssets.includes('Other') && (
+                         <input type="text" value={currentAssetsOther} onChange={(e) => setCurrentAssetsOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Other Current Assets" />
+                      )}
+                   </div>
+                </div>
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setFixedAndCurrentAssetAnalysisText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-               </div>
-            </div>
+                  <textarea value={fixedAndCurrentAssetAnalysisText || `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`} onChange={(e) => setFixedAndCurrentAssetAnalysisText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                </div>
+             </div>
 
             {/* 8. Asset Creation Through Business */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -2650,8 +2798,12 @@ ${qaPairs.join('\n\n')}`;
                         <input type="text" value={otherHouseholdExpensesDesc} onChange={(e) => setOtherHouseholdExpensesDesc(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Optional description..." />
                      )}
 
-                     <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                        Generated: As informed by the applicant, the income generated from the business has been utilized for {createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}{otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}
+                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                       <div className="flex justify-between items-center">
+                         <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                         <button type="button" onClick={() => setAssetCreationText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                       </div>
+                       <textarea value={assetCreationText || `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`} onChange={(e) => setAssetCreationText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                      </div>
                   </div>
                )}
@@ -2680,6 +2832,13 @@ ${qaPairs.join('\n\n')}`;
                      <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
                   )}
                </div>
+            </div>
+            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+              <div className="flex justify-between items-center">
+                <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                <button type="button" onClick={() => setBusinessInvestmentText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+              </div>
+              <textarea value={businessInvestmentText || `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`} onChange={(e) => setBusinessInvestmentText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
             </div>
 
             {/* 10. Agricultural Income Details */}
@@ -2757,6 +2916,15 @@ ${qaPairs.join('\n\n')}`;
                      </div>
                   </div>
                )}
+               {hasAgricultureLand && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                      <button type="button" onClick={() => setAgriculturalIncomeText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                    </div>
+                    <textarea value={agriculturalIncomeText || `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`} onChange={(e) => setAgriculturalIncomeText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  </div>
+               )}
             </div>
 
             {/* 10. Other Source Income */}
@@ -2823,10 +2991,41 @@ ${qaPairs.join('\n\n')}`;
                         <input type="number" value={expectedSolarMonthlySaving} onChange={(e) => setExpectedSolarMonthlySaving(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                      </div>
                   </div>
-                  <div className="md:col-span-2 p-3 bg-white border border-orange-100 rounded-lg text-xs font-semibold text-orange-800">
-                    Generated: As informed by the applicant, machinery is presently operated through {powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹{monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. {expectedSolarCostReductionPct || 0}% operational cost after solar installation.
+                  <div className="md:col-span-2 p-3 bg-white border border-orange-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-bold text-orange-800">Generated Narrative (Editable)</span>
+                      <button type="button" onClick={() => setSolarSavingText('')} className="text-[9px] text-orange-600 hover:underline font-bold">Auto-Generate</button>
+                    </div>
+                    <textarea value={solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`} onChange={(e) => setSolarSavingText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-orange-900 focus:ring-0 resize-none" rows={2} />
                   </div>
                </div>
+            </div>
+
+            {/* 12. Address of additional business with or without income assessment */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+               <div className="flex justify-between items-center">
+                  <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
+                  <div className="flex items-center gap-2">
+                     <button type="button" onClick={() => setHasAdditionalBusiness(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasAdditionalBusiness ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
+                     <button type="button" onClick={() => setHasAdditionalBusiness(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasAdditionalBusiness ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
+                  </div>
+               </div>
+               
+               {hasAdditionalBusiness && (
+                  <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
+                     <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
+                        <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
+                     </div>
+                     <div>
+                        <div className="flex items-center justify-between mb-1">
+                           <label className="block text-[10px] uppercase font-bold text-slate-500">Income Assessment Details</label>
+                           <button type="button" onClick={() => setAdditionalBusinessIncomeAssessment(prev => (prev ? prev + ' ' : '') + 'As per verbal statement of applicants')} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Auto Remark: "As per verbal statement of applicants"</button>
+                        </div>
+                        <textarea value={additionalBusinessIncomeAssessment} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} placeholder="Enter income assessment details" />
+                     </div>
+                  </div>
+               )}
             </div>
 
             {/* RESIDENCE VISIT DETAILS SUB-HEADER */}
@@ -4449,6 +4648,44 @@ ${qaPairs.join('\n\n')}`;
           </div>
         </div>
       )}
+
+      {/* AI Chatbot Floating Widget */}
+      <div className="fixed bottom-6 left-6 z-50">
+        {isChatbotOpen ? (
+          <div className="bg-white rounded-2xl shadow-2xl border border-[#eb8a23] w-80 overflow-hidden flex flex-col">
+            <div className="bg-[#2d3e50] text-white p-3 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                 <Sparkles className="w-4 h-4 text-[#eb8a23]" />
+                 <span className="font-bold text-sm">AI Autofill Assistant</span>
+              </div>
+              <button onClick={() => setIsChatbotOpen(false)} className="text-slate-300 hover:text-white"><X className="w-4 h-4" /></button>
+            </div>
+            <div className="p-4 flex flex-col gap-3">
+              <p className="text-xs text-slate-600 font-semibold">Paste the Business Profile Summary & QnA below to autofill form fields:</p>
+              <textarea 
+                value={chatbotText} 
+                onChange={(e) => setChatbotText(e.target.value)}
+                className="w-full h-32 p-2 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" 
+                placeholder="Paste markdown content here..."
+              />
+              <button 
+                onClick={handleAutofillFromChatbot}
+                className="w-full bg-[#eb8a23] text-white font-bold py-2 rounded shadow hover:bg-[#d67b1a]"
+              >
+                Autofill Form
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button 
+            onClick={() => setIsChatbotOpen(true)}
+            className="bg-[#2d3e50] text-white p-4 rounded-full shadow-xl hover:scale-105 transition-transform flex items-center justify-center border-2 border-[#eb8a23]"
+          >
+            <Sparkles className="w-6 h-6 text-[#eb8a23]" />
+          </button>
+        )}
+      </div>
+
     </div>
   );
 };
