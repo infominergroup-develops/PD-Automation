@@ -2191,10 +2191,10 @@ ${qaPairs.join('\n\n')}`;
               )}
             </div>
 
-            {/* 9. Loan Amount & 10. Type of Loan */}
+            {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Loan Amount</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">9. Quotation Amount</label>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
@@ -3003,29 +3003,29 @@ ${qaPairs.join('\n\n')}`;
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <div className="flex justify-between items-center">
+               <div>
                   <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
-                  <div className="flex items-center gap-2">
-                     <button type="button" onClick={() => setHasAdditionalBusiness(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasAdditionalBusiness ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
-                     <button type="button" onClick={() => setHasAdditionalBusiness(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasAdditionalBusiness ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
-                  </div>
                </div>
                
-               {hasAdditionalBusiness && (
-                  <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
-                        <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
-                     </div>
-                     <div>
-                        <div className="flex items-center justify-between mb-1">
-                           <label className="block text-[10px] uppercase font-bold text-slate-500">Income Assessment Details</label>
-                           <button type="button" onClick={() => setAdditionalBusinessIncomeAssessment(prev => (prev ? prev + ' ' : '') + 'As per verbal statement of applicants')} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Auto Remark: "As per verbal statement of applicants"</button>
-                        </div>
-                        <textarea value={additionalBusinessIncomeAssessment} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} placeholder="Enter income assessment details" />
+               <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
+                  <div>
+                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
+                     <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
+                  </div>
+                  <div>
+                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Income Assessment Details</label>
+                     <div className="flex items-center gap-6">
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                           <input type="radio" name="incomeAssessment" value="With Income Assessment" checked={additionalBusinessIncomeAssessment === 'With Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
+                           With Income Assessment
+                        </label>
+                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                           <input type="radio" name="incomeAssessment" value="Without Income Assessment" checked={additionalBusinessIncomeAssessment === 'Without Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
+                           Without Income Assessment
+                        </label>
                      </div>
                   </div>
-               )}
+               </div>
             </div>
 
             {/* RESIDENCE VISIT DETAILS SUB-HEADER */}
@@ -3743,76 +3743,15 @@ ${qaPairs.join('\n\n')}`;
           </div>
 
           {/* EXIF GPS Photos */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#eb8a23]" />
                 EXIF GPS Geotagged Field Inspection Proofs
               </h3>
-              <label className="flex items-center gap-1.5 px-3.5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-lg text-xs font-bold transition shadow-sm cursor-pointer">
-                {isUploadingPhoto ? (
-                  <span className="animate-pulse">Uploading...</span>
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4 text-white" />
-                    Upload Photo
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
-                        setIsUploadingPhoto(true);
-
-                        let latToUse = parseFloat(exifGpsLat) || 26.9124;
-                        let lngToUse = parseFloat(exifGpsLng) || 75.7873;
-                        
-                        try {
-                          const gps = await exifr.gps(file);
-                          if (gps && gps.latitude && gps.longitude) {
-                            latToUse = gps.latitude;
-                            lngToUse = gps.longitude;
-                            setExifGpsLat(`${latToUse.toFixed(4)}° N`);
-                            setExifGpsLng(`${lngToUse.toFixed(4)}° E`);
-                          }
-                        } catch (exifErr) {
-                          console.error('EXIF extraction failed', exifErr);
-                        }
-
-                        const reader = new FileReader();
-                        reader.onloadend = async () => {
-                          try {
-                            const base64Data = reader.result as string;
-                            let res;
-                            try {
-                              res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
-                            } catch (apiErr) {
-                              res = { 
-                                id: Math.random().toString(), 
-                                url: base64Data, 
-                                caption: file.name,
-                                gps: { lat: latToUse, lng: lngToUse } 
-                              };
-                            }
-                            if (res) {
-                              setPhotos(prev => [...prev, { ...res, categoryTag: 'Field Proof' }]);
-                            }
-                          } catch (err) {
-                            console.error(err);
-                          } finally {
-                            setIsUploadingPhoto(false);
-                          }
-                        };
-                        reader.readAsDataURL(file);
-                      }} 
-                    />
-                  </>
-                )}
-              </label>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Latitude</label>
                 <input
@@ -3835,37 +3774,120 @@ ${qaPairs.join('\n\n')}`;
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {photos.length === 0 ? (
-                <div className="col-span-1 sm:col-span-2 p-8 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                  <Camera className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                  <p className="text-sm text-slate-500 font-bold">No photos uploaded yet</p>
-                  <p className="text-xs text-slate-400">Click upload to add field inspection proofs</p>
+            {['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map((categoryName) => (
+              <div key={categoryName} className="space-y-3">
+                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
+                  <h4 className="text-xs font-bold text-slate-700">{categoryName}</h4>
+                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded text-[10px] font-bold transition shadow-sm cursor-pointer">
+                    {isUploadingPhoto ? (
+                      <span className="animate-pulse">Uploading...</span>
+                    ) : (
+                      <>
+                        <Upload className="w-3 h-3 text-white" />
+                        Upload {categoryName}
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          multiple
+                          className="hidden" 
+                          onChange={async (e) => {
+                            const fileList = e.target.files;
+                            if (!fileList || fileList.length === 0) return;
+                            const files = Array.from(fileList) as File[];
+                            setIsUploadingPhoto(true);
+
+                            for (const file of files) {
+                              let latToUse = parseFloat(exifGpsLat) || 26.9124;
+                              let lngToUse = parseFloat(exifGpsLng) || 75.7873;
+                              
+                              try {
+                                const gps = await exifr.gps(file);
+                                if (gps && gps.latitude && gps.longitude) {
+                                  latToUse = gps.latitude;
+                                  lngToUse = gps.longitude;
+                                  setExifGpsLat(`${latToUse.toFixed(4)}° N`);
+                                  setExifGpsLng(`${lngToUse.toFixed(4)}° E`);
+                                }
+                              } catch (exifErr) {
+                                console.error('EXIF extraction failed', exifErr);
+                              }
+
+                              const reader = new FileReader();
+                              const readerPromise = new Promise((resolve) => {
+                                reader.onloadend = async () => {
+                                  try {
+                                    const base64Data = reader.result as string;
+                                    let res;
+                                    try {
+                                      res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
+                                    } catch (apiErr) {
+                                      res = { 
+                                        id: Math.random().toString(), 
+                                        url: base64Data, 
+                                        caption: file.name,
+                                        gpsCoordinates: { latitude: latToUse, longitude: lngToUse },
+                                        gps: { lat: latToUse, lng: lngToUse }
+                                      };
+                                    }
+                                    if (res) {
+                                      setPhotos(prev => [...prev, { ...res, categoryTag: categoryName }]);
+                                    }
+                                  } catch (err) {
+                                    console.error(err);
+                                  } finally {
+                                    resolve(true);
+                                  }
+                                };
+                              });
+                              reader.readAsDataURL(file);
+                              await readerPromise;
+                            }
+                            setIsUploadingPhoto(false);
+                          }} 
+                        />
+                      </>
+                    )}
+                  </label>
                 </div>
-              ) : (
-                photos.map((photo, idx) => (
-                  <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50">
-                    <img
-                      src={photo.url}
-                      alt={photo.caption}
-                      className="w-full h-40 object-cover"
-                    />
-                    <div className="p-3 flex items-center justify-between text-xs">
-                      <div>
-                        <div className="font-bold text-[#2d3e50] truncate max-w-[150px]">{photo.caption}</div>
-                        <div className="text-[10px] text-slate-500 flex items-center gap-1 mt-0.5">
-                          <MapPin className="w-3 h-3 text-rose-500" />
-                          GPS: {photo.gpsCoordinates?.latitude?.toFixed(4)}, {photo.gpsCoordinates?.longitude?.toFixed(4)}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {photos.filter(p => p.categoryTag === categoryName).length === 0 ? (
+                    <div className="col-span-full p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                      <p className="text-xs text-slate-500 font-bold">No {categoryName.toLowerCase()} uploaded yet</p>
+                    </div>
+                  ) : (
+                    photos.filter(p => p.categoryTag === categoryName).map((photo, idx) => (
+                      <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 relative group">
+                        <img
+                          src={photo.url}
+                          alt={photo.caption}
+                          className="w-full h-32 object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
+                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                        <div className="p-2 flex flex-col gap-1 text-[10px]">
+                          <div className="font-bold text-[#2d3e50] truncate">{photo.caption}</div>
+                          <div className="text-slate-500 flex items-center justify-between">
+                            <span className="flex items-center gap-1">
+                              <MapPin className="w-3 h-3 text-rose-500" />
+                              GPS: {photo.gpsCoordinates?.latitude?.toFixed(4) || photo.gps?.lat?.toFixed(4)}, {photo.gpsCoordinates?.longitude?.toFixed(4) || photo.gps?.lng?.toFixed(4)}
+                            </span>
+                            <span className="font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
+                              VERIFIED
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                        VERIFIED GPS
-                      </span>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
           {renderTabNavigationFooter()}
         </div>
