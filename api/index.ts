@@ -6,10 +6,10 @@ import path from "path";
 import { MongoClient, Db, ObjectId } from "mongodb";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
-import { INITIAL_CATEGORIES } from "../src/data/categoriesData";
-import { INITIAL_PRODUCTS } from "../src/data/productsData";
-import { runHtmlToolValidationSuite } from "../src/data/testSuitesData";
-import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, User } from "../src/types";
+import { INITIAL_CATEGORIES } from "../src/data/categoriesData.js";
+import { INITIAL_PRODUCTS } from "../src/data/productsData.js";
+import { runHtmlToolValidationSuite } from "../src/data/testSuitesData.js";
+import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, User } from "../src/types.js";
 
 console.log("Starting PD System Server init...");
 const app = express();
