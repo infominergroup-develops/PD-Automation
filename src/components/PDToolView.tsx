@@ -573,6 +573,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [businessAgeApprox, setBusinessAgeApprox] = useState(false);
   const [previousOccupation, setPreviousOccupation] = useState('');
   const [previousOccupationOther, setPreviousOccupationOther] = useState('');
+  const [reasonToLeave, setReasonToLeave] = useState('');
   const [externalStaffCount, setExternalStaffCount] = useState(0);
   const [businessManagedBy, setBusinessManagedBy] = useState<string[]>([]);
   const [businessManagedByOther, setBusinessManagedByOther] = useState('');
@@ -792,6 +793,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setFirmName(app.firmName || '');
     setConstitution(app.constitution || 'Proprietorship');
     setYearsInBusiness(app.yearsInBusiness || 0);
+    setBusinessAgeYears(app.businessAgeYears || '');
+    setBusinessAgeApprox(app.businessAgeApprox || false);
+    setPreviousOccupation(app.previousOccupation || '');
+    setPreviousOccupationOther(app.previousOccupationOther || '');
+    setReasonToLeave(app.reasonToLeave || '');
     setShopOwnership(app.shopOwnership || 'OWN');
     setMonthlyRent(app.monthlyRent || 0);
     setShopAreaSqFt(app.shopAreaSqFt || 0);
@@ -871,7 +877,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         resAddressLine1, resAddressLine2, resVillage, resCity, resDistrict, resState, resPin,
         busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin,
         personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName,
-        businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, externalStaffCount, businessManagedBy, businessManagedByOther,
+        businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
         premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
         businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
         investmentSource, investmentSourceOther, hasAgricultureLand, agriLandArea, agriLandUnit, agriLandOwnership, agriLandOwnershipOther,
@@ -1324,7 +1330,9 @@ ${qaPairs.join('\n\n')}`;
         }
         return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`;
       })(),
-      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} ${(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}`,
+      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? ` Left the last occupation due to: ${reasonToLeave}.` : ''}` : ''}`.trim(),
+      previousOccupation: previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `Business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `Salaried Employment (${previousOccupationOther})` : previousOccupation,
+      reasonToLeave: reasonToLeave,
       staffCount: staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`,
       businessPremiseOwnership: premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`),
       factoryInfrastructure: factoryInfrastructureText || (businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Standard fixtures and setup'),
@@ -2506,7 +2514,7 @@ ${qaPairs.join('\n\n')}`;
                       <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                    </div>
                 </div>
-                {businessAgeYears < 10 && (
+                {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
                      <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
@@ -2522,7 +2530,7 @@ ${qaPairs.join('\n\n')}`;
                      </select>
                   </div>
                 )}
-                {(businessAgeYears < 10 && (previousOccupation === 'Other' || previousOccupation === 'Business' || previousOccupation === 'Salaried Employment')) && (
+                {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
                        {previousOccupation === 'Business' ? 'What was it about?' : 
@@ -2536,12 +2544,18 @@ ${qaPairs.join('\n\n')}`;
                      } />
                   </div>
                 )}
+                {(businessAgeYears !== '' && businessAgeYears < 10) && (
+                  <div>
+                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
+                     <input type="text" value={reasonToLeave} onChange={(e) => setReasonToLeave(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
+                  </div>
+                )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''} ${(businessAgeYears < 10 && previousOccupation) ? `Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}`} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? ` Left the last occupation due to: ${reasonToLeave}.` : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </div>

@@ -59,6 +59,8 @@ export interface PDReportPrintData {
   // Business Visit
   briefBusinessProfile?: string;
   businessVintage?: string;
+  previousOccupation?: string;
+  reasonToLeave?: string;
   staffCount?: string;
   businessPremiseOwnership?: string;
   factoryInfrastructure?: string;
@@ -718,6 +720,18 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td style="width: 35%;" class="bold">Vintage of the business</td>
       <td>${data.businessVintage || 'Approximately 8 to 10 years'}</td>
     </tr>
+    ${data.previousOccupation ? `
+    <tr>
+      <td class="bold">Previous Occupation</td>
+      <td>${data.previousOccupation}</td>
+    </tr>
+    ` : ''}
+    ${data.reasonToLeave ? `
+    <tr>
+      <td class="bold">Reason to leave the last occupation</td>
+      <td>${data.reasonToLeave}</td>
+    </tr>
+    ` : ''}
     <tr>
       <td class="bold">Number of staff</td>
       <td>${data.staffCount || 'No external staff/labour is engaged. Business operations are managed by family members.'}</td>
@@ -1543,6 +1557,18 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td style="width:30%;">Vintage of the business</td>
       <td>${data.businessVintage || 'The applicant has been engaged in the business for the past approximately 15 years.'}</td>
     </tr>
+    ${data.previousOccupation ? `
+    <tr>
+      <td>Previous Occupation</td>
+      <td>${data.previousOccupation}</td>
+    </tr>
+    ` : ''}
+    ${data.reasonToLeave ? `
+    <tr>
+      <td>Reason to leave the last occupation</td>
+      <td>${data.reasonToLeave}</td>
+    </tr>
+    ` : ''}
     <tr>
       <td>Number of staffs</td>
       <td>${data.staffCount || 'No external staff/labour is engaged. Business operations are managed by family members.'}</td>
