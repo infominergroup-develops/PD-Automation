@@ -12,7 +12,8 @@ import {
   Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2, 
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight, 
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
-  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings
+  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
+  Loader2, Bot
 } from 'lucide-react';
 
 export interface ItemizedCalculationLine {
@@ -140,6 +141,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [isAppSearchOpen, setIsAppSearchOpen] = useState(false);
   const [isAppGalleryOpen, setIsAppGalleryOpen] = useState(false);
+  const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
+  const [rawWhatsappText, setRawWhatsappText] = useState('');
+  const [isExtractingWhatsapp, setIsExtractingWhatsapp] = useState(false);
+  const [pendingWhatsappPayload, setPendingWhatsappPayload] = useState<any>(null);
   const [selectedBankFilter, setSelectedBankFilter] = useState<string>('ALL');
   const [loadedToastMessage, setLoadedToastMessage] = useState<string | null>(null);
   const [activeAppNumber, setActiveAppNumber] = useState<string>('INF/2026/88492');
@@ -217,13 +222,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [solarSavingText, setSolarSavingText] = useState('');
   const [projectedIncomeText, setProjectedIncomeText] = useState('');
 
-  const handleAutofillFromChatbot = () => {
-    if (!chatbotText) return;
+  const parseMarkdownToFields = (markdownText: string) => {
+    if (!markdownText) return;
     
     const extractTableValue = (key: string) => {
        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
        const regex = new RegExp(`\\|\\s*\\*\\*${escapedKey}\\*\\*\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
-       const match = chatbotText.match(regex);
+       const match = markdownText.match(regex);
        if (match && match[1]) return match[1].replace(/\*\*/g, '').trim();
        return '';
     };
@@ -261,30 +266,30 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const parsedProjected = extractTableValue('Projected Income');
     if (parsedProjected) setProjectedIncomeText(parsedProjected);
 
-    const profileMatch = chatbotText.match(/### Business Profile\n([\s\S]*?)### Business Profile/);
+    const profileMatch = markdownText.match(/### Business Profile\n([\s\S]*?)### Business Profile/);
     if (profileMatch && profileMatch[1]) {
        setBriefBusinessProfile(profileMatch[1].trim());
     }
     
     // Parse Vintage
-    const vintageMatch = chatbotText.match(/vintage.*?(\d+)\s*years/i) || chatbotText.match(/(\d+)\s*years/i);
+    const vintageMatch = markdownText.match(/vintage.*?(\d+)\s*years/i) || markdownText.match(/(\d+)\s*years/i);
     if (vintageMatch && vintageMatch[1]) {
       setYearsInBusiness(parseInt(vintageMatch[1]));
     }
     
     // Parse Business Investment
-    const invMatch = chatbotText.match(/₹(\d+)\s*lakh/i) || chatbotText.match(/investment.*?₹(\d+)\s*lakh/i);
+    const invMatch = markdownText.match(/₹(\d+)\s*lakh/i) || markdownText.match(/investment.*?₹(\d+)\s*lakh/i);
     if (invMatch && invMatch[1]) {
       setInitialInvestment(parseInt(invMatch[1]) * 100000);
     }
     
     // Parse Agriculture
-    if (chatbotText.match(/Agricultural Income Details/i) && chatbotText.match(/bighas/i)) {
+    if (markdownText.match(/Agricultural Income Details/i) && markdownText.match(/bighas/i)) {
       setHasAgricultureLand(true);
-      const bighasMatch = chatbotText.match(/(\d+)\s*bighas/i);
+      const bighasMatch = markdownText.match(/(\d+)\s*bighas/i);
       if (bighasMatch && bighasMatch[1]) setAgriLandArea(parseInt(bighasMatch[1]));
       setAgriLandUnit('Bigha');
-      const agriIncMatch = chatbotText.match(/₹(\d+)\s*lakh per crop/i);
+      const agriIncMatch = markdownText.match(/₹(\d+)\s*lakh per crop/i);
       if (agriIncMatch && agriIncMatch[1]) {
         setAgriIncomeMin(parseInt(agriIncMatch[1]) * 100000);
         setAgriIncomeMax(parseInt(agriIncMatch[1]) * 100000);
@@ -292,13 +297,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
     
     // Parse Kirana store
-    if (chatbotText.match(/Kirana Store/i) || chatbotText.match(/Other Source Income/i)) {
+    if (markdownText.match(/Kirana Store/i) || markdownText.match(/Other Source Income/i)) {
       setHasOtherIncome(true);
       setOtherIncomeSources([{ id: Date.now(), source: 'Business', frequency: 'Monthly', amount: 1000 * 30, remarks: 'Kirana Store' }]);
     }
 
     // Solar saving
-    const solarMatch = chatbotText.match(/(\d+)–(\d+)\s*units.*?₹(\d+)/i) || chatbotText.match(/(\d+)\s*units.*?₹(\d+)/i);
+    const solarMatch = markdownText.match(/(\d+)–(\d+)\s*units.*?₹(\d+)/i) || markdownText.match(/(\d+)\s*units.*?₹(\d+)/i);
     if (solarMatch) {
        setPowerSource('Electricity');
        if (solarMatch.length === 4) {
@@ -307,7 +312,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
          setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30);
        }
     }
-    
+  };
+
+  const handleAutofillFromChatbot = () => {
+    if (!chatbotText) return;
+    parseMarkdownToFields(chatbotText);
     alert('Autofilled fields based on the pasted profile summary and QnA!');
     setIsChatbotOpen(false);
     setChatbotText('');
@@ -780,7 +789,22 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // 1-CLICK LOAD APPLICATION HANDLER
-  const handleLoadSampleApp = (app: any) => {
+  const handleLoadSampleApp = (dbApp: any) => {
+    let app = dbApp;
+    let isRecovered = false;
+    
+    // Attempt to recover offline draft if it exists
+    try {
+      const draftStr = localStorage.getItem(`offline_draft_${dbApp._id}`);
+      if (draftStr) {
+        const draftData = JSON.parse(draftStr);
+        app = { ...dbApp, ...draftData }; // Merge draft over DB
+        isRecovered = true;
+      }
+    } catch (e) {
+      console.error('Failed to parse offline draft', e);
+    }
+
     handleSelectCategory(app.categoryId);
     setApplicantName(app.applicantName || '');
     setMobileNumber(app.mobileNumber || '');
@@ -848,7 +872,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setActiveAppNumber(app.applicationNumber);
     setActiveAppId(app._id);
-    setLoadedToastMessage(`Application #${app.applicationNumber} loaded for ${app.applicantName} (${app.firmName}). All 5 sections updated.`);
+    
+    if (isRecovered) {
+      setLoadedToastMessage(`Application #${app.applicationNumber} recovered from unsaved offline draft for ${app.applicantName}.`);
+    } else {
+      setLoadedToastMessage(`Application #${app.applicationNumber} loaded for ${app.applicantName} (${app.firmName}). All 5 sections updated.`);
+    }
+
     setIsAppSearchOpen(false);
     setIsAppGalleryOpen(false);
     setAppSearchQuery('');
@@ -905,10 +935,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       const currentData = updateDataRef.current;
       const currentStr = JSON.stringify(currentData);
       
+      // Save local draft as a fallback instantly
+      localStorage.setItem(`offline_draft_${activeAppId}`, currentStr);
+      
       if (lastSavedStrRef.current !== currentStr) {
         api.updateApplicant(selectedClient.id, activeAppId, currentData)
           .then(() => {
             lastSavedStrRef.current = currentStr;
+            localStorage.removeItem(`offline_draft_${activeAppId}`); // clear on successful save
           })
           .catch(err => console.error('Failed to auto-save:', err));
       }
@@ -1330,7 +1364,7 @@ ${qaPairs.join('\n\n')}`;
         }
         return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`;
       })(),
-      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? ` Left the last occupation due to: ${reasonToLeave}.` : ''}` : ''}`.trim(),
+      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim(),
       previousOccupation: previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `Business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `Salaried Employment (${previousOccupationOther})` : previousOccupation,
       reasonToLeave: reasonToLeave,
       staffCount: staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`,
@@ -1413,6 +1447,103 @@ ${qaPairs.join('\n\n')}`;
     });
   };
 
+  const handleWhatsAppExtraction = async () => {
+    if (!rawWhatsappText.trim()) return;
+    setIsExtractingWhatsapp(true);
+    try {
+      const response = await fetch('/api/extract-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rawWhatsappText })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Failed to extract');
+      
+      const payload = data.data;
+      if (payload) {
+        setPendingWhatsappPayload(payload);
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert('Extraction failed: ' + err.message);
+    } finally {
+      setIsExtractingWhatsapp(false);
+    }
+  };
+
+  const handleApproveWhatsAppExtraction = () => {
+    const payload = pendingWhatsappPayload;
+    if (!payload) return;
+    
+    if (payload.generatedMarkdownProfile) {
+      parseMarkdownToFields(payload.generatedMarkdownProfile);
+    }
+    
+    // Map payload to existing state variables safely
+        if (payload.BorrowerAndLoanDetails) {
+          const bld = payload.BorrowerAndLoanDetails;
+          if (bld.applicantName) setApplicantName(bld.applicantName);
+          if (bld.mobileNumber) setMobileNumber(bld.mobileNumber);
+          if (bld.panNumber) setPanNumber(bld.panNumber);
+          if (bld.residenceAddress) setResidenceAddress(bld.residenceAddress);
+          if (bld.residenceOwnership) setResidenceOwnership(bld.residenceOwnership);
+          if (bld.yearsAtResidence) setYearsAtResidence(Number(bld.yearsAtResidence));
+          if (bld.dependentsCount) setDependentsCount(Number(bld.dependentsCount));
+          if (bld.businessRemark) setBusinessRemark(bld.businessRemark);
+          if (bld.caseInitiationDate) setCaseInitiationDate(bld.caseInitiationDate);
+          if (bld.visitDate) setVisitDate(bld.visitDate);
+          if (bld.reportDate) setReportDate(bld.reportDate);
+          if (bld.loanType) setLoanType(bld.loanType);
+          if (bld.otherLoanType) setOtherLoanType(bld.otherLoanType);
+          if (bld.powerSource) setPowerSource(bld.powerSource);
+          if (bld.otherPowerSource) setOtherPowerSource(bld.otherPowerSource);
+          if (bld.monthlyEnergyExpense) setMonthlyEnergyExpense(Number(bld.monthlyEnergyExpense));
+          if (bld.solarPurposes) setSolarPurposes(bld.solarPurposes);
+          
+          if (bld.residenceAddressDetails) {
+             const r = bld.residenceAddressDetails;
+             if (r.resAddressLine1) setResAddressLine1(r.resAddressLine1);
+             if (r.resAddressLine2) setResAddressLine2(r.resAddressLine2);
+             if (r.resVillage) setResVillage(r.resVillage);
+             if (r.resCity) setResCity(r.resCity);
+             if (r.resDistrict) setResDistrict(r.resDistrict);
+             if (r.resState) setResState(r.resState);
+             if (r.resPin) setResPin(r.resPin);
+          }
+          
+          if (bld.businessAddressDetails) {
+             const b = bld.businessAddressDetails;
+             if (b.busAddressLine1) setBusAddressLine1(b.busAddressLine1);
+             if (b.busAddressLine2) setBusAddressLine2(b.busAddressLine2);
+             if (b.busVillage) setBusVillage(b.busVillage);
+             if (b.busCity) setBusCity(b.busCity);
+             if (b.busDistrict) setBusDistrict(b.busDistrict);
+             if (b.busState) setBusState(b.busState);
+             if (b.busPin) setBusPin(b.busPin);
+          }
+
+          if (bld.personsMet) setPersonsMet(bld.personsMet);
+        }
+
+        if (payload.BusinessAndResidenceVerification) {
+          const brv = payload.BusinessAndResidenceVerification;
+          if (brv.businessAgeYears) setBusinessAgeYears(Number(brv.businessAgeYears));
+          if (brv.previousOccupation) setPreviousOccupation(brv.previousOccupation);
+          if (brv.reasonToLeave) setReasonToLeave(brv.reasonToLeave);
+          if (brv.externalStaffCount) setExternalStaffCount(Number(brv.externalStaffCount));
+          if (brv.businessManagedBy) setBusinessManagedBy(brv.businessManagedBy);
+          if (brv.premiseOwnership) setPremiseOwnership(brv.premiseOwnership);
+          if (brv.hasStock !== null) setHasStock(brv.hasStock);
+          if (brv.initialInvestment) setInitialInvestment(Number(brv.initialInvestment));
+          if (brv.monthlyHouseholdExpensesAmount) setMonthlyHouseholdExpensesAmount(Number(brv.monthlyHouseholdExpensesAmount));
+        }
+      
+      setIsWhatsAppModalOpen(false);
+      setRawWhatsappText('');
+      setPendingWhatsappPayload(null);
+      alert(`WhatsApp data mapped successfully! Confidence: ${payload._confidence_score || 'N/A'}`);
+  };
+
   const renderTabNavigationFooter = () => {
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
@@ -1484,10 +1615,40 @@ ${qaPairs.join('\n\n')}`;
     c.description.toLowerCase().includes(categorySearch.toLowerCase()) ||
     c.industryGroup.toLowerCase().includes(categorySearch.toLowerCase())
   );
+  const formProgress = useMemo(() => {
+    const fields = [
+      applicantName, mobileNumber, panNumber, residenceAddress, firmName, yearsInBusiness,
+      shopOwnership, appliedAmount, personsMet.length > 0, executiveName, 
+      briefBusinessProfile, previousOccupation, reasonToLeave, photos.length > 0
+    ];
+    let filled = 0;
+    fields.forEach(f => {
+      if (typeof f === 'string' && f.trim() !== '') filled++;
+      else if (typeof f === 'number' && f > 0) filled++;
+      else if (typeof f === 'boolean' && f) filled++;
+    });
+    return Math.round((filled / fields.length) * 100);
+  }, [
+    applicantName, mobileNumber, panNumber, residenceAddress, firmName, yearsInBusiness,
+    shopOwnership, appliedAmount, personsMet, executiveName,
+    briefBusinessProfile, previousOccupation, reasonToLeave, photos
+  ]);
 
   return (
     <div className="space-y-6 font-sans text-[#2d3e50]">
-      {/* Toast Notification when Application is Loaded */}
+      {/* Real-time Progress Bar */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between sticky top-4 z-40">
+        <div className="font-bold text-sm text-[#2d3e50] flex items-center gap-2">
+          <svg className="w-4 h-4 text-green-500" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"></path><polyline points="12 6 12 12 16 14"></polyline></svg>
+          Form Completion Progress
+        </div>
+        <div className="flex items-center gap-3 w-1/2">
+          <div className="flex-grow bg-slate-100 rounded-full h-2.5 overflow-hidden">
+            <div className="bg-green-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${formProgress}%` }}></div>
+          </div>
+          <span className="text-xs font-bold text-slate-600 w-8 text-right">{formProgress}%</span>
+        </div>
+      </div>
       {loadedToastMessage && (
         <div className="bg-emerald-600 text-white px-5 py-3 rounded-2xl shadow-lg flex items-center justify-between border border-emerald-500 animate-fadeIn">
           <div className="flex items-center gap-3">
@@ -1521,6 +1682,13 @@ ${qaPairs.join('\n\n')}`;
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setIsWhatsAppModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
+            >
+
+              AI Employee
+            </button>
             <button
               onClick={handleCreateNewApplicant}
               className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
@@ -1714,15 +1882,7 @@ ${qaPairs.join('\n\n')}`;
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Years in Business (Vintage)</label>
-                <input
-                  type="number"
-                  value={yearsInBusiness}
-                  onChange={(e) => setYearsInBusiness(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </div>
+
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
@@ -2424,6 +2584,7 @@ ${qaPairs.join('\n\n')}`;
                   <thead className="bg-slate-100 text-slate-700 font-bold uppercase">
                     <tr>
                       <th className="px-3 py-2 border-b border-slate-200">Name</th>
+                      <th className="px-3 py-2 border-b border-slate-200">Relation</th>
                       <th className="px-3 py-2 border-b border-slate-200">Age</th>
                       <th className="px-3 py-2 border-b border-slate-200">Profession</th>
                       <th className="px-3 py-2 border-b border-slate-200">Qualification</th>
@@ -2434,13 +2595,16 @@ ${qaPairs.join('\n\n')}`;
                   <tbody>
                     {familyMembers.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-3 py-4 text-center text-slate-500 italic bg-slate-50">No family members added.</td>
+                        <td colSpan={7} className="px-3 py-4 text-center text-slate-500 italic bg-slate-50">No family members added.</td>
                       </tr>
                     ) : (
                       familyMembers.map((member, idx) => (
                         <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-2 border-r border-slate-100">
                             <input type="text" value={member.name} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].name = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
+                          </td>
+                          <td className="p-2 border-r border-slate-100">
+                            <input type="text" value={member.relationship || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Relation" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             <input type="number" value={member.age} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].age = Number(e.target.value); setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
@@ -2547,7 +2711,18 @@ ${qaPairs.join('\n\n')}`;
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
-                     <input type="text" value={reasonToLeave} onChange={(e) => setReasonToLeave(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
+                     <select 
+                       value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')} 
+                       onChange={(e) => setReasonToLeave(e.target.value === 'Not informed' ? 'Not informed' : (e.target.value === 'Informed' ? ' ' : ''))} 
+                       className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
+                     >
+                        <option value="">Select...</option>
+                        <option value="Not informed">Not informed</option>
+                        <option value="Informed">Informed</option>
+                     </select>
+                     {(reasonToLeave !== '' && reasonToLeave !== 'Not informed') && (
+                       <input type="text" value={reasonToLeave.trim()} onChange={(e) => setReasonToLeave(e.target.value || ' ')} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
+                     )}
                   </div>
                 )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
@@ -2555,7 +2730,7 @@ ${qaPairs.join('\n\n')}`;
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? ` Left the last occupation due to: ${reasonToLeave}.` : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </div>
@@ -4350,6 +4525,12 @@ ${qaPairs.join('\n\n')}`;
               </div>
 
               <div className="prose prose-xs max-w-none text-slate-700 text-xs leading-relaxed space-y-3">
+                {briefBusinessProfile && (
+                  <div className="bg-white p-4 rounded-xl border border-slate-200 text-slate-800 whitespace-pre-wrap font-sans mb-4 shadow-sm">
+                    <strong className="text-[#2d3e50] block mb-2 text-sm">Detailed Business Profile & Summary:</strong>
+                    {briefBusinessProfile}
+                  </div>
+                )}
                 <p>
                   <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}) with an established business vintage of <strong>{yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>{dailyFootfall} customers</strong> with average ticket size of <strong>₹{avgTicketValue}</strong> across {workingDays} monthly working days.
                 </p>
@@ -4721,6 +4902,107 @@ ${qaPairs.join('\n\n')}`;
           </button>
         )}
       </div>
+
+      {/* WhatsApp Import Modal */}
+      {isWhatsAppModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn">
+            <div className="bg-[#2d3e50] p-4 border-b flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <Bot className="w-5 h-5 text-green-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-bold tracking-wide">AI Employee</h3>
+                  <p className="text-slate-400 text-[11px]">Auto-extract data using Gemini AI from field agent texts (Supports Hinglish)</p>
+                </div>
+              </div>
+              <button onClick={() => setIsWhatsAppModalOpen(false)} className="text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {pendingWhatsappPayload ? (
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {pendingWhatsappPayload.generatedMarkdownProfile && (
+                  <>
+                    <label className="block text-xs font-bold text-slate-700 mb-2">Generated Business Profile Narrative</label>
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-[11px] md:text-xs font-mono whitespace-pre-wrap overflow-x-auto text-slate-800 mb-4 leading-relaxed">
+                      {pendingWhatsappPayload.generatedMarkdownProfile}
+                    </div>
+                  </>
+                )}
+                <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-start gap-2">
+                  <div className="p-1 bg-yellow-100 text-yellow-600 rounded">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs text-yellow-800 font-medium leading-relaxed">
+                    Please review the extracted data above. If it looks correct, click Approve to auto-fill the form.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6">
+                <label className="block text-xs font-bold text-slate-700 mb-2">Paste Raw Message / Notes</label>
+                <textarea
+                  value={rawWhatsappText}
+                  onChange={(e) => setRawWhatsappText(e.target.value)}
+                  placeholder="e.g. Sharma ji ghar pe nhi mile. Bhai se baat hui... Ghar ki condition achi hai."
+                  className="w-full h-48 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-green-500/50 outline-none resize-none placeholder:text-slate-400"
+                />
+                
+                <div className="mt-4 bg-blue-50 border border-blue-100 p-3 rounded-lg flex items-start gap-2">
+                  <div className="p-1 bg-blue-100 text-blue-600 rounded">
+                    <Bot className="w-4 h-4" />
+                  </div>
+                  <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                    The AI Employee will analyze the text and automatically map findings into the relevant form fields. You can review and modify the data before saving.
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <div className="bg-slate-50 p-4 border-t flex justify-end gap-3">
+              <button 
+                onClick={() => {
+                  setIsWhatsAppModalOpen(false);
+                  setPendingWhatsappPayload(null);
+                }}
+                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition"
+              >
+                Cancel
+              </button>
+              
+              {pendingWhatsappPayload ? (
+                <button 
+                  onClick={handleApproveWhatsAppExtraction}
+                  className="px-6 py-2.5 bg-[#eb8a23] hover:bg-[#d67b1a] text-white rounded-xl text-xs font-bold transition shadow flex items-center gap-2"
+                >
+                  Approve & Auto-Fill
+                </button>
+              ) : (
+                <button 
+                  onClick={handleWhatsAppExtraction}
+                  disabled={!rawWhatsappText.trim() || isExtractingWhatsapp}
+                  className="px-6 py-2.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow flex items-center gap-2"
+                >
+                  {isExtractingWhatsapp ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Extracting Data...
+                    </>
+                  ) : (
+                    <>
+                      <Bot className="w-4 h-4" />
+                      Extract & Map
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

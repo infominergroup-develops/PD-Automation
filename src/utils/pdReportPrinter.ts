@@ -564,7 +564,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Name of applicant</td>
       <td>${data.applicantName}</td>
       <td class="bold">Contact Number</td>
-      <td>${data.applicantPhone || '9876543210'}</td>
+      <td>${data.applicantPhone || ''}</td>
     </tr>
     <tr>
       <td class="bold">Business firm name</td>
@@ -975,7 +975,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td class="bold">Comfortable Monthly EMI</td>
       <td colspan="3" class="bold">
-        Comfortable Monthly EMI Post all expenses (Business and Household): As per ${bankName} Policy Norms
+        Comfortable Monthly EMI Post all expenses As per Moneyboxx: As per ${bankName} Policy Norms
       </td>
     </tr>
   </table>
@@ -1794,7 +1794,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">Comfortable Monthly EMI Post all expenses (Business and Household):- 10,000</td>
+      <td class="text-left bold">Comfortable Monthly EMI Post all expenses As per Moneyboxx:- 10,000</td>
       <td colspan="2" class="bold">Approx - 10000/- per month</td>
     </tr>
   </table>

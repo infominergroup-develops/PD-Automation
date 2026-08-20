@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import path from "path";
+import fs from "fs";
 import { MongoClient, Db, ObjectId } from "mongodb";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
@@ -25,6 +26,12 @@ if (mongoUri) { // MongoDB Enabled
     clientPromise.then(() => {
       mongoDb = client.db("InfominerGroup_db");
       console.log("[PD System Server] Connected to MongoDB!");
+      
+      // API Key Status Checks
+      const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+      
+      console.log(`[PD System Server] Gemini API Key Status: ${hasGeminiKey ? 'CONNECTED (Present in .env)' : 'NOT CONNECTED (Missing)'}`);
+
     }).catch(err => {
       console.error("[PD System Server] MongoDB connection error:", err);
     });
@@ -651,7 +658,7 @@ Based on field inspection, cash flow adequacy, and satisfactory debt coverage, t
           }
         }
       });
-
+      
       const prompt = `You are a Senior Credit Manager at Axis Bank Infominer Micro Lending & MSME Credit Division.
 Write a formal, comprehensive, professional Personal Discussion (PD) Field Credit Report for the following applicant:
 
@@ -693,6 +700,76 @@ Style: Authoritative, objective, bank credit analyst tone. Focus on cash flow ad
     } catch (err: any) {
       console.error("Gemini AI Report Generation error:", err);
       res.status(500).json({ error: "Failed to generate AI report: " + err.message });
+    }
+  });
+
+  // WhatsApp Extraction Endpoint
+  app.post("/api/extract-whatsapp", async (req, res) => {
+    try {
+      const { text } = req.body;
+      if (!text) {
+        return res.status(400).json({ error: "No text provided" });
+      }
+
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "GEMINI_API_KEY not configured" });
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build'
+          }
+        }
+      });
+
+      const schemaPath = path.join(process.cwd(), "pd_inputs_schema.json");
+      let schemaString = "{}";
+      try {
+        schemaString = fs.readFileSync(schemaPath, 'utf8');
+      } catch (e) {
+        console.warn("Could not load pd_inputs_schema.json", e);
+      }
+
+      const prompt = `You are an expert data extractor for a micro-lending Personal Discussion (PD) report.
+The user will provide an extremely unstructured field investigation report via WhatsApp message. The text will vary a lot in language and format. It may be highly unstructured, written in Hindi, English, Hinglish, or a chaotic mix of these. It may contain severe typos, abbreviations, slang, incomplete sentences, or informal formatting.
+
+Your task is to carefully analyze this chaotic, unstructured text, identify the underlying facts, and extract all relevant information into a strictly valid JSON object that matches the following schema EXACTLY:
+${schemaString}
+
+Rules:
+1. Deeply understand the context to map the informal text to the formal JSON schema fields. Translate all extracted values into professional English.
+2. If a specific field is not mentioned or cannot be confidently inferred from the text, you MUST set its value to \`null\` or an empty string/array (according to the type). DO NOT invent, assume, or guess any information. It is better to return null than to hallucinate.
+3. The output MUST be a valid JSON object. Do not include markdown code blocks like \`\`\`json.
+4. Add an additional key "_confidence_score" at the root level of your JSON with a value from 0-100 indicating your confidence in the extraction based on the clarity of the text.
+5. In addition to the structured fields, generate a comprehensive professional narrative and Q&A table in Markdown format based on the text. Use the EXACT headings "### Business Profile" and "### Business Profile – Question & Answer". Store this ENTIRE Markdown string in the \`generatedMarkdownProfile\` field.
+
+WhatsApp Message:
+"${text}"`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json"
+        }
+      });
+
+      if (!response.text) {
+        throw new Error("No response text from Gemini");
+      }
+      const jsonResponse = JSON.parse(response.text);
+
+      res.json({
+        data: jsonResponse,
+        modelUsed: "gemini-3.6-flash"
+      });
+
+    } catch (err: any) {
+      console.error("WhatsApp AI Extraction error:", err);
+      res.status(500).json({ error: "Failed to extract WhatsApp data: " + err.message });
     }
   });
 
