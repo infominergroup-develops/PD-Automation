@@ -6,13 +6,31 @@
     "residenceAddress": "string",
     "residenceOwnership": "enum['OWN', 'RENTED', 'FAMILY']",
     "yearsAtResidence": "number",
-    "familyMembers": "array[object]",
+    "familyMembers": [
+      {
+        "name": "string",
+        "relationship": "string",
+        "age": "number",
+        "profession": "string",
+        "qualification": "string",
+        "isDependent": "boolean"
+      }
+    ],
     "businessRemark": "string",
     "dependentsCount": "number",
     "caseInitiationDate": "string(date)",
     "visitDate": "string(date)",
     "reportDate": "string(date)",
-    "coApplicants": "array[object]",
+    "coApplicants": [
+      {
+        "name": "string",
+        "relation": "string",
+        "otherRelation": "string",
+        "mobileNumber": "string",
+        "inBusiness": "boolean",
+        "businessRole": "string"
+      }
+    ],
     "hasFemaleCandidate": "boolean",
     "femaleCandidateName": "string",
     "femaleCandidateRelation": "string",
