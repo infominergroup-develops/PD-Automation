@@ -974,8 +974,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Comfortable Monthly EMI</td>
-      <td colspan="3" class="bold">
-        Comfortable Monthly EMI Post all expenses As per Moneyboxx: As per ${bankName} Policy Norms
+      <td colspan="2" class="bold">
+        Comfortable Monthly EMI Post all expenses (As per moneyboxx )
+      </td>
+      <td class="bold text-right">
+        As per ${bankName} (Approx ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')})
       </td>
     </tr>
   </table>
@@ -1794,8 +1797,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">Comfortable Monthly EMI Post all expenses As per Moneyboxx:- 10,000</td>
-      <td colspan="2" class="bold">Approx - 10000/- per month</td>
+      <td class="text-left bold">Comfortable Monthly EMI Post all expenses (As per moneyboxx )</td>
+      <td colspan="2" class="bold">As per ${bankName} (Approx ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')})</td>
     </tr>
   </table>
 
