@@ -15,7 +15,6 @@ export default function App() {
   const [isClientSelected, setIsClientSelected] = useState<boolean>(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [isCompanySelected, setIsCompanySelected] = useState<boolean>(false);
-  const [activeReportContext, setActiveReportContext] = useState<any>(null);
   const [currentView, setCurrentView] = useState<'pd-tool' | 'employee-management'>('pd-tool');
 
   useEffect(() => {
@@ -59,11 +58,6 @@ export default function App() {
     setIsCompanySelected(false);
     setIsClientSelected(false);
     window.history.pushState({ step: 'auth' }, '');
-  };
-
-  const handleSyncToAI = (reportData: any) => {
-    setActiveReportContext(reportData);
-    alert('AI Sync requested. Note: AI Report Generator module has been removed as per your request.');
   };
 
   // Step 1: If user is not logged in, present Auth Gate
@@ -126,7 +120,6 @@ export default function App() {
             currentUser={currentUser}
             selectedClient={selectedClient!}
             selectedCompany={selectedCompany!}
-            onSyncReportToAI={handleSyncToAI}
           />
         )}
       </main>

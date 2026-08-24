@@ -117,10 +117,9 @@ interface PDToolViewProps {
   currentUser?: EmployeeRecord | null;
   selectedClient?: ClientBank;
   selectedCompany: Company;
-  onSyncReportToAI: (formData: any) => void;
 }
 
-export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedClient, selectedCompany, onSyncReportToAI }) => {
+export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedClient, selectedCompany }) => {
   // Active Category Selection
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('kirana');
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -200,6 +199,16 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     };
   }, [selectedClient]);
 
+  // Set default category to Aata Chakki for Moneyboxx
+  useEffect(() => {
+    if (selectedClient?.name?.toLowerCase().includes('moneyboxx')) {
+      const aataCat = categoriesList.find(c => c.name.toLowerCase().includes('atta chakki') || c.name.toLowerCase().includes('aata chakki'));
+      if (aataCat) {
+        setSelectedCategoryId(aataCat.id);
+      }
+    }
+  }, [selectedClient, categoriesList]);
+
   // Form Section Tabs
   const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>(
     (localStorage.getItem('lastActiveTab') as any) || 'applicant'
@@ -207,6 +216,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [chatbotText, setChatbotText] = useState('');
+  const [pendingAutofillFields, setPendingAutofillFields] = useState<any>(null);
 
   // Editable QnA fields
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
@@ -222,104 +232,143 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [solarSavingText, setSolarSavingText] = useState('');
   const [projectedIncomeText, setProjectedIncomeText] = useState('');
 
-  const parseMarkdownToFields = (markdownText: string) => {
-    if (!markdownText) return;
+  const getParsedFieldsFromMarkdown = (markdownText: string) => {
+    if (!markdownText) return null;
     
     const extractTableValue = (key: string) => {
        const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-       const regex = new RegExp(`\\|\\s*\\*\\*${escapedKey}\\*\\*\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
-       const match = markdownText.match(regex);
-       if (match && match[1]) return match[1].replace(/\*\*/g, '').trim();
+       
+       // Try markdown table format: `| key | value |` or `| **key** | value |`
+       const tableRegex = new RegExp(`\\|\\s*(?:\\*\\*)?${escapedKey}(?:\\*\\*)?\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
+       let match = markdownText.match(tableRegex);
+       
+       if (!match) {
+         // Try key-value format: `key: value` or `key - value`
+         const kvRegex = new RegExp(`${escapedKey}\\s*[:\\-]\\s*(.+)`, 'i');
+         match = markdownText.match(kvRegex);
+       }
+       
+       if (match && match[1]) {
+           let val = match[1].replace(/\\*\\*/g, '').trim();
+           val = val.replace(/\\|$/, '').trim(); // clean up trailing pipe if any
+           return val;
+       }
        return '';
     };
 
+    const parsed: any = {};
+    
     const parsedVintage = extractTableValue('Vintage of the business');
-    if (parsedVintage) setBusinessVintageText(parsedVintage);
+    if (parsedVintage) parsed['Business Vintage'] = parsedVintage;
 
     const parsedStaff = extractTableValue('Number of Staffs');
-    if (parsedStaff) setStaffCountText(parsedStaff);
+    if (parsedStaff) parsed['Staff Count'] = parsedStaff;
 
     const parsedPremise = extractTableValue('Is office premise on rented / owned');
-    if (parsedPremise) setPremiseOwnershipText(parsedPremise);
+    if (parsedPremise) parsed['Premise Ownership'] = parsedPremise;
 
     const parsedAssets = extractTableValue('Details of Office / Factory Infrastructure (Assets)');
-    if (parsedAssets) setFactoryInfrastructureText(parsedAssets);
+    if (parsedAssets) parsed['Factory Infrastructure'] = parsedAssets;
 
     const parsedStock = extractTableValue('Stock details with estimated value');
-    if (parsedStock) setStockDetailsValueText(parsedStock);
+    if (parsedStock) parsed['Stock Details'] = parsedStock;
 
     const parsedAnalysis = extractTableValue('Fixed & Current Asset Analysis');
-    if (parsedAnalysis) setFixedAndCurrentAssetAnalysisText(parsedAnalysis);
+    if (parsedAnalysis) parsed['Asset Analysis'] = parsedAnalysis;
 
     const parsedCreation = extractTableValue('Asset Creation Through Business');
-    if (parsedCreation) setAssetCreationText(parsedCreation);
+    if (parsedCreation) parsed['Asset Creation'] = parsedCreation;
 
     const parsedInvest = extractTableValue('Business Investment');
-    if (parsedInvest) setBusinessInvestmentText(parsedInvest);
+    if (parsedInvest) parsed['Business Investment (Text)'] = parsedInvest;
 
     const parsedAgri = extractTableValue('Agricultural Income Details');
-    if (parsedAgri) setAgriculturalIncomeText(parsedAgri);
+    if (parsedAgri) parsed['Agricultural Income'] = parsedAgri;
 
     const parsedSolar = extractTableValue('Solar Saving Analysis');
-    if (parsedSolar) setSolarSavingText(parsedSolar);
+    if (parsedSolar) parsed['Solar Saving'] = parsedSolar;
 
     const parsedProjected = extractTableValue('Projected Income');
-    if (parsedProjected) setProjectedIncomeText(parsedProjected);
+    if (parsedProjected) parsed['Projected Income'] = parsedProjected;
 
-    const profileMatch = markdownText.match(/### Business Profile\n([\s\S]*?)### Business Profile/);
+    const profileMatch = markdownText.match(/### Business Profile\\n([\\s\\S]*?)### Business Profile/);
     if (profileMatch && profileMatch[1]) {
-       setBriefBusinessProfile(profileMatch[1].trim());
+       parsed['Brief Business Profile'] = profileMatch[1].trim();
     }
     
     // Parse Vintage
-    const vintageMatch = markdownText.match(/vintage.*?(\d+)\s*years/i) || markdownText.match(/(\d+)\s*years/i);
+    const vintageMatch = markdownText.match(/vintage.*?(\\d+)\\s*years/i) || markdownText.match(/(\\d+)\\s*years/i);
     if (vintageMatch && vintageMatch[1]) {
-      setYearsInBusiness(parseInt(vintageMatch[1]));
+      parsed['Years in Business'] = parseInt(vintageMatch[1]);
     }
     
     // Parse Business Investment
-    const invMatch = markdownText.match(/₹(\d+)\s*lakh/i) || markdownText.match(/investment.*?₹(\d+)\s*lakh/i);
+    const invMatch = markdownText.match(/₹(\\d+)\\s*lakh/i) || markdownText.match(/investment.*?₹(\\d+)\\s*lakh/i);
     if (invMatch && invMatch[1]) {
-      setInitialInvestment(parseInt(invMatch[1]) * 100000);
+      parsed['Initial Investment'] = parseInt(invMatch[1]) * 100000;
     }
     
     // Parse Agriculture
     if (markdownText.match(/Agricultural Income Details/i) && markdownText.match(/bighas/i)) {
-      setHasAgricultureLand(true);
-      const bighasMatch = markdownText.match(/(\d+)\s*bighas/i);
-      if (bighasMatch && bighasMatch[1]) setAgriLandArea(parseInt(bighasMatch[1]));
-      setAgriLandUnit('Bigha');
-      const agriIncMatch = markdownText.match(/₹(\d+)\s*lakh per crop/i);
+      parsed['Has Agriculture Land'] = true;
+      const bighasMatch = markdownText.match(/(\\d+)\\s*bighas/i);
+      if (bighasMatch && bighasMatch[1]) parsed['Agri Land Area'] = parseInt(bighasMatch[1]);
+      parsed['Agri Land Unit'] = 'Bigha';
+      const agriIncMatch = markdownText.match(/₹(\\d+)\\s*lakh per crop/i);
       if (agriIncMatch && agriIncMatch[1]) {
-        setAgriIncomeMin(parseInt(agriIncMatch[1]) * 100000);
-        setAgriIncomeMax(parseInt(agriIncMatch[1]) * 100000);
+        parsed['Agri Income Min'] = parseInt(agriIncMatch[1]) * 100000;
+        parsed['Agri Income Max'] = parseInt(agriIncMatch[1]) * 100000;
       }
     }
     
     // Parse Kirana store
     if (markdownText.match(/Kirana Store/i) || markdownText.match(/Other Source Income/i)) {
-      setHasOtherIncome(true);
-      setOtherIncomeSources([{ id: Date.now(), source: 'Business', frequency: 'Monthly', amount: 1000 * 30, remarks: 'Kirana Store' }]);
+      parsed['Has Other Income'] = true;
+      parsed['_otherIncomeSources'] = [{ id: Date.now(), source: 'Business', frequency: 'Monthly', amount: 1000 * 30, remarks: 'Kirana Store' }];
     }
 
     // Solar saving
-    const solarMatch = markdownText.match(/(\d+)–(\d+)\s*units.*?₹(\d+)/i) || markdownText.match(/(\d+)\s*units.*?₹(\d+)/i);
+    const solarMatch = markdownText.match(/(\\d+)–(\\d+)\\s*units.*?₹(\\d+)/i) || markdownText.match(/(\\d+)\\s*units.*?₹(\\d+)/i);
     if (solarMatch) {
-       setPowerSource('Electricity');
+       parsed['Power Source'] = 'Electricity';
        if (solarMatch.length === 4) {
-         setMonthlyEnergyExpense(parseInt(solarMatch[2]) * parseInt(solarMatch[3]) * 30);
+         parsed['Monthly Energy Expense'] = parseInt(solarMatch[2]) * parseInt(solarMatch[3]) * 30;
        } else if (solarMatch.length === 3) {
-         setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30);
+         parsed['Monthly Energy Expense'] = parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30;
        }
     }
+    return parsed;
   };
 
-  const handleAutofillFromChatbot = () => {
-    if (!chatbotText) return;
-    parseMarkdownToFields(chatbotText);
-    alert('Autofilled fields based on the pasted profile summary and QnA!');
-    setIsChatbotOpen(false);
-    setChatbotText('');
+  const applyParsedFields = (parsed: any) => {
+    if (parsed['Business Vintage'] !== undefined) setBusinessVintageText(parsed['Business Vintage']);
+    if (parsed['Staff Count'] !== undefined) setStaffCountText(parsed['Staff Count']);
+    if (parsed['Premise Ownership'] !== undefined) setPremiseOwnershipText(parsed['Premise Ownership']);
+    if (parsed['Factory Infrastructure'] !== undefined) setFactoryInfrastructureText(parsed['Factory Infrastructure']);
+    if (parsed['Stock Details'] !== undefined) setStockDetailsValueText(parsed['Stock Details']);
+    if (parsed['Asset Analysis'] !== undefined) setFixedAndCurrentAssetAnalysisText(parsed['Asset Analysis']);
+    if (parsed['Asset Creation'] !== undefined) setAssetCreationText(parsed['Asset Creation']);
+    if (parsed['Business Investment (Text)'] !== undefined) setBusinessInvestmentText(parsed['Business Investment (Text)']);
+    if (parsed['Agricultural Income'] !== undefined) setAgriculturalIncomeText(parsed['Agricultural Income']);
+    if (parsed['Solar Saving'] !== undefined) setSolarSavingText(parsed['Solar Saving']);
+    if (parsed['Projected Income'] !== undefined) setProjectedIncomeText(parsed['Projected Income']);
+    if (parsed['Brief Business Profile'] !== undefined) setBriefBusinessProfile(parsed['Brief Business Profile']);
+    if (parsed['Years in Business'] !== undefined) setYearsInBusiness(parsed['Years in Business']);
+    if (parsed['Initial Investment'] !== undefined) setInitialInvestment(parsed['Initial Investment']);
+    if (parsed['Has Agriculture Land'] !== undefined) setHasAgricultureLand(parsed['Has Agriculture Land']);
+    if (parsed['Agri Land Area'] !== undefined) setAgriLandArea(parsed['Agri Land Area']);
+    if (parsed['Agri Land Unit'] !== undefined) setAgriLandUnit(parsed['Agri Land Unit']);
+    if (parsed['Agri Income Min'] !== undefined) setAgriIncomeMin(parsed['Agri Income Min']);
+    if (parsed['Agri Income Max'] !== undefined) setAgriIncomeMax(parsed['Agri Income Max']);
+    if (parsed['Has Other Income'] !== undefined) setHasOtherIncome(parsed['Has Other Income']);
+    if (parsed['_otherIncomeSources'] !== undefined) setOtherIncomeSources(parsed['_otherIncomeSources']);
+    if (parsed['Power Source'] !== undefined) setPowerSource(parsed['Power Source']);
+    if (parsed['Monthly Energy Expense'] !== undefined) setMonthlyEnergyExpense(parsed['Monthly Energy Expense']);
+  };
+
+  const parseMarkdownToFields = (markdownText: string) => {
+    const parsed = getParsedFieldsFromMarkdown(markdownText);
+    if (parsed) applyParsedFields(parsed);
   };
 
   useEffect(() => {
@@ -673,6 +722,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Form Fields - Business
   const [firmName, setFirmName] = useState('');
+  const [noFormalBusinessName, setNoFormalBusinessName] = useState(false);
   const [constitution, setConstitution] = useState('Proprietorship');
   const [yearsInBusiness, setYearsInBusiness] = useState(0);
   const [shopOwnership, setShopOwnership] = useState<'OWN' | 'RENTED' | 'FAMILY'>('RENTED');
@@ -815,6 +865,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessRemark(app.businessRemark || '');
     setDependentsCount(app.dependentsCount || 0);
     setFirmName(app.firmName || '');
+    setNoFormalBusinessName(app.firmName === 'No formal business name');
     setConstitution(app.constitution || 'Proprietorship');
     setYearsInBusiness(app.yearsInBusiness || 0);
     setBusinessAgeYears(app.businessAgeYears || '');
@@ -1200,92 +1251,6 @@ ${qaPairs.join('\n\n')}`;
 
     return { score, flags, strengths, decision };
   }, [dscrRatio, foirPct, yearsInBusiness, totalProductContribPct]);
-
-
-  // Compile & Sync Report to AI Generator
-  const handleSyncToAIStudio = () => {
-    const compiledData = {
-      applicationNumber: `INF/${new Date().getFullYear()}/${Math.floor(10000 + Math.random() * 90000)}`,
-      applicantName,
-      categoryId: selectedCategoryId,
-      categoryName: currentCategory.name,
-      product: `${currentCategory.name} Facility`,
-      scheme: 'Infominer Micro Lending Express',
-      appliedAmount,
-      tenureMonths,
-      purpose: `Working capital & inventory expansion for ${firmName}`,
-      visitDate: new Date().toISOString().split('T')[0],
-      status: riskAssessment.decision === 'APPROVED' ? 'APPROVED' : 'IN_REVIEW',
-      assignedOfficer: 'Sandeep Kumar (Field Ops)',
-      assignedCreditManager: 'Vikram Malhotra (AVP Credit)',
-      agencyName: selectedCompany.name,
-      panNumber,
-      firmName,
-      constitution,
-      financials: {
-        statedMonthlyRevenue: statedMonthlySales,
-        crossCheckRevenue: crossCheckMonthlySales,
-        adoptedRevenue: adoptedMonthlySales,
-        rawMaterialCOGS: cogsAmount,
-        grossProfit,
-        grossMarginPct,
-        operatingExpenses: {
-          salaries: salariesExpense,
-          rent: rentEffective,
-          utilities: utilitiesExpense,
-          transport: transportExpense,
-          misc: miscExpense
-        },
-        totalOperatingExpenses,
-        netBusinessIncome,
-        netMarginPct: Math.round((netBusinessIncome / adoptedMonthlySales) * 100),
-        otherHouseholdIncome: { agriculture: 0, rental: otherIncome, coBorrower: 0, fdDividend: 0, animalHusbandry: 0, other: 0 },
-        totalOtherIncome: otherIncome,
-        totalFamilyIncome: netBusinessIncome + otherIncome,
-        householdExpenses: { food: 12000, rent: 0, education: 5000, medical: 3000, travel: 2000, other: 2000 },
-        totalHouseholdExpenses: householdExpenses,
-        surplusBeforeEmi: netFamilySurplusBeforeEmi + existingEmis,
-        existingEmisSum: existingEmis,
-        netMonthlySurplus: netFamilySurplusBeforeEmi,
-        proposedEmi,
-        postLoanNetSurplus: postLoanSurplus,
-        dscr: dscrRatio,
-        postLoanDscr: parseFloat((postLoanSurplus / proposedEmi).toFixed(2)),
-        foirPct,
-        emiCapacity: Math.round(netFamilySurplusBeforeEmi * 0.6)
-      },
-      riskResult: {
-        overallRiskLevel: riskAssessment.score >= 75 ? 'LOW' : riskAssessment.score >= 50 ? 'MEDIUM' : 'HIGH',
-        riskScore: riskAssessment.score,
-        financialHealthGrade: riskAssessment.score >= 80 ? 'A+' : riskAssessment.score >= 65 ? 'B' : 'C',
-        keyRiskFactors: riskAssessment.flags,
-        strengths: riskAssessment.strengths,
-        weaknesses: riskAssessment.flags,
-        anomaliesDetected: [],
-        mitigants: ['Verified daily customer footfall', 'Active lease with verified landlord', 'Regular supplier billing']
-      },
-      photos: photos.map(p => ({
-        id: p.id || Math.random().toString(),
-        name: p.caption || 'Field Photo',
-        dataUrl: p.url,
-        category: p.categoryTag || 'Field Proof',
-        mimeType: 'image/jpeg',
-        gps: { 
-          lat: p.gps?.lat || parseFloat(exifGpsLat) || 26.9124, 
-          lng: p.gps?.lng || parseFloat(exifGpsLng) || 75.7873, 
-          mapLink: `https://maps.google.com/?q=${p.gps?.lat || parseFloat(exifGpsLat) || 26.9124},${p.gps?.lng || parseFloat(exifGpsLng) || 75.7873}` 
-        }
-      })),
-      observations: {
-        footfall: dailyFootfall,
-        neighborFeedback,
-        landlordFeedback,
-        exifGps: `${exifGpsLat}, ${exifGpsLng}`
-      }
-    };
-
-    onSyncReportToAI(compiledData);
-  };
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
@@ -1683,13 +1648,6 @@ ${qaPairs.join('\n\n')}`;
 
           <div className="flex flex-wrap items-center gap-2">
             <button
-              onClick={() => setIsWhatsAppModalOpen(true)}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
-            >
-
-              AI Employee
-            </button>
-            <button
               onClick={handleCreateNewApplicant}
               className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-bold shadow-sm transition-all"
             >
@@ -1798,14 +1756,6 @@ ${qaPairs.join('\n\n')}`;
               Switch Category ({categoriesList.length})
             </button>
 
-
-            <button
-              onClick={handleSyncToAIStudio}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-lg text-xs font-bold transition shadow-sm"
-            >
-              <FileText className="w-4 h-4" />
-              Sync & AI Report
-            </button>
 
             <button
               onClick={handleDirectPrintReport}
@@ -2241,8 +2191,18 @@ ${qaPairs.join('\n\n')}`;
 
             {/* 5. Business Firm Name */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">5. Business Firm Name</label>
-              <input type="text" value={firmName} onChange={(e) => setFirmName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Business Name" />
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-bold text-slate-700">5. Business Firm Name</label>
+                <label className="flex items-center gap-1.5 text-xs text-slate-600 font-medium cursor-pointer">
+                  <input type="checkbox" checked={noFormalBusinessName} onChange={(e) => {
+                    setNoFormalBusinessName(e.target.checked);
+                    if (e.target.checked) setFirmName('No formal business name');
+                    else setFirmName('');
+                  }} className="rounded text-[#eb8a23] focus:ring-[#eb8a23]" />
+                  No formal business name
+                </label>
+              </div>
+              <input type="text" value={firmName} onChange={(e) => setFirmName(e.target.value)} disabled={noFormalBusinessName} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100 disabled:text-slate-500" placeholder="Business Name" />
             </div>
 
             {/* 6. Co-applicant Name with Relation & 7. Contact */}
@@ -2674,7 +2634,7 @@ ${qaPairs.join('\n\n')}`;
                 <div>
                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Business Age (Years)</label>
                    <div className="flex gap-2 items-center">
-                      <input type="number" value={businessAgeYears} onChange={(e) => setBusinessAgeYears(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
+                      <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
                       <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                    </div>
                 </div>
@@ -4304,8 +4264,9 @@ ${qaPairs.join('\n\n')}`;
                 <label className="block text-xs font-bold text-slate-700 mb-1">Stated Monthly Sales Turnover (₹)</label>
                 <input
                   type="number"
+                  min="0"
                   value={statedMonthlySales}
-                  onChange={(e) => setStatedMonthlySales(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setStatedMonthlySales(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
                 />
               </div>
@@ -4326,8 +4287,9 @@ ${qaPairs.join('\n\n')}`;
                 <label className="block text-xs font-bold text-slate-700 mb-1">Proposed Loan Amount (₹)</label>
                 <input
                   type="number"
+                  min="0"
                   value={appliedAmount}
-                  onChange={(e) => setAppliedAmount(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setAppliedAmount(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold text-[#eb8a23]"
                 />
               </div>
@@ -4336,8 +4298,9 @@ ${qaPairs.join('\n\n')}`;
                 <label className="block text-xs font-bold text-slate-700 mb-1">Staff Salaries (₹/mo)</label>
                 <input
                   type="number"
+                  min="0"
                   value={salariesExpense}
-                  onChange={(e) => setSalariesExpense(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setSalariesExpense(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
               </div>
@@ -4346,8 +4309,9 @@ ${qaPairs.join('\n\n')}`;
                 <label className="block text-xs font-bold text-slate-700 mb-1">Power & Utilities (₹/mo)</label>
                 <input
                   type="number"
+                  min="0"
                   value={utilitiesExpense}
-                  onChange={(e) => setUtilitiesExpense(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setUtilitiesExpense(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
               </div>
@@ -4356,8 +4320,9 @@ ${qaPairs.join('\n\n')}`;
                 <label className="block text-xs font-bold text-slate-700 mb-1">Household Expenses (₹/mo)</label>
                 <input
                   type="number"
+                  min="0"
                   value={householdExpenses}
-                  onChange={(e) => setHouseholdExpenses(Number(e.target.value))}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setHouseholdExpenses(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
               </div>
@@ -4877,21 +4842,62 @@ ${qaPairs.join('\n\n')}`;
               </div>
               <button onClick={() => setIsChatbotOpen(false)} className="text-slate-300 hover:text-white"><X className="w-4 h-4" /></button>
             </div>
-            <div className="p-4 flex flex-col gap-3">
-              <p className="text-xs text-slate-600 font-semibold">Paste the Business Profile Summary & QnA below to autofill form fields:</p>
-              <textarea 
-                value={chatbotText} 
-                onChange={(e) => setChatbotText(e.target.value)}
-                className="w-full h-32 p-2 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" 
-                placeholder="Paste markdown content here..."
-              />
-              <button 
-                onClick={handleAutofillFromChatbot}
-                className="w-full bg-[#eb8a23] text-white font-bold py-2 rounded shadow hover:bg-[#d67b1a]"
-              >
-                Autofill Form
-              </button>
-            </div>
+            {pendingAutofillFields ? (
+              <div className="p-4 flex flex-col gap-3">
+                <p className="text-xs text-slate-600 font-semibold">Please review the fields that will be filled:</p>
+                <div className="w-full h-48 overflow-y-auto border border-slate-200 rounded p-2 text-xs bg-slate-50 space-y-2">
+                  {Object.entries(pendingAutofillFields).filter(([k]) => !k.startsWith('_')).map(([key, value]) => (
+                    <div key={key} className="flex flex-col border-b border-slate-100 pb-1">
+                      <span className="font-bold text-slate-700">{key}</span>
+                      <span className="text-slate-600">{String(value as any)}</span>
+                    </div>
+                  ))}
+                  {Object.keys(pendingAutofillFields).filter(k => !k.startsWith('_')).length === 0 && (
+                    <div className="text-slate-500 italic">No fields extracted.</div>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => setPendingAutofillFields(null)}
+                    className="flex-1 bg-slate-200 text-slate-700 font-bold py-2 rounded shadow hover:bg-slate-300"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={() => {
+                      applyParsedFields(pendingAutofillFields);
+                      alert('Autofilled fields based on the pasted profile summary and QnA!');
+                      setIsChatbotOpen(false);
+                      setChatbotText('');
+                      setPendingAutofillFields(null);
+                    }}
+                    className="flex-1 bg-[#eb8a23] text-white font-bold py-2 rounded shadow hover:bg-[#d67b1a]"
+                  >
+                    Approve
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 flex flex-col gap-3">
+                <p className="text-xs text-slate-600 font-semibold">Paste the Business Profile Summary & QnA below to autofill form fields:</p>
+                <textarea 
+                  value={chatbotText} 
+                  onChange={(e) => setChatbotText(e.target.value)}
+                  className="w-full h-32 p-2 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" 
+                  placeholder="Paste markdown content here..."
+                />
+                <button 
+                  onClick={() => {
+                    if (!chatbotText) return;
+                    const parsed = getParsedFieldsFromMarkdown(chatbotText);
+                    setPendingAutofillFields(parsed);
+                  }}
+                  className="w-full bg-[#eb8a23] text-white font-bold py-2 rounded shadow hover:bg-[#d67b1a]"
+                >
+                  Analyze & Preview
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <button 
@@ -4903,106 +4909,7 @@ ${qaPairs.join('\n\n')}`;
         )}
       </div>
 
-      {/* WhatsApp Import Modal */}
-      {isWhatsAppModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-fadeIn">
-            <div className="bg-[#2d3e50] p-4 border-b flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-green-400" />
-                </div>
-                <div>
-                  <h3 className="text-white font-bold tracking-wide">AI Employee</h3>
-                  <p className="text-slate-400 text-[11px]">Auto-extract data using Gemini AI from field agent texts (Supports Hinglish)</p>
-                </div>
-              </div>
-              <button onClick={() => setIsWhatsAppModalOpen(false)} className="text-slate-400 hover:text-white">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {pendingWhatsappPayload ? (
-              <div className="p-6 max-h-[60vh] overflow-y-auto">
-                {pendingWhatsappPayload.generatedMarkdownProfile && (
-                  <>
-                    <label className="block text-xs font-bold text-slate-700 mb-2">Generated Business Profile Narrative</label>
-                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-[11px] md:text-xs font-mono whitespace-pre-wrap overflow-x-auto text-slate-800 mb-4 leading-relaxed">
-                      {pendingWhatsappPayload.generatedMarkdownProfile}
-                    </div>
-                  </>
-                )}
-                <div className="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-start gap-2">
-                  <div className="p-1 bg-yellow-100 text-yellow-600 rounded">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <p className="text-xs text-yellow-800 font-medium leading-relaxed">
-                    Please review the extracted data above. If it looks correct, click Approve to auto-fill the form.
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <div className="p-6">
-                <label className="block text-xs font-bold text-slate-700 mb-2">Paste Raw Message / Notes</label>
-                <textarea
-                  value={rawWhatsappText}
-                  onChange={(e) => setRawWhatsappText(e.target.value)}
-                  placeholder="e.g. Sharma ji ghar pe nhi mile. Bhai se baat hui... Ghar ki condition achi hai."
-                  className="w-full h-48 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-green-500/50 outline-none resize-none placeholder:text-slate-400"
-                />
-                
-                <div className="mt-4 bg-blue-50 border border-blue-100 p-3 rounded-lg flex items-start gap-2">
-                  <div className="p-1 bg-blue-100 text-blue-600 rounded">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <p className="text-xs text-blue-800 font-medium leading-relaxed">
-                    The AI Employee will analyze the text and automatically map findings into the relevant form fields. You can review and modify the data before saving.
-                  </p>
-                </div>
-              </div>
-            )}
-            
-            <div className="bg-slate-50 p-4 border-t flex justify-end gap-3">
-              <button 
-                onClick={() => {
-                  setIsWhatsAppModalOpen(false);
-                  setPendingWhatsappPayload(null);
-                }}
-                className="px-5 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl transition"
-              >
-                Cancel
-              </button>
-              
-              {pendingWhatsappPayload ? (
-                <button 
-                  onClick={handleApproveWhatsAppExtraction}
-                  className="px-6 py-2.5 bg-[#eb8a23] hover:bg-[#d67b1a] text-white rounded-xl text-xs font-bold transition shadow flex items-center gap-2"
-                >
-                  Approve & Auto-Fill
-                </button>
-              ) : (
-                <button 
-                  onClick={handleWhatsAppExtraction}
-                  disabled={!rawWhatsappText.trim() || isExtractingWhatsapp}
-                  className="px-6 py-2.5 bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow flex items-center gap-2"
-                >
-                  {isExtractingWhatsapp ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Extracting Data...
-                    </>
-                  ) : (
-                    <>
-                      <Bot className="w-4 h-4" />
-                      Extract & Map
-                    </>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+
 
     </div>
   );

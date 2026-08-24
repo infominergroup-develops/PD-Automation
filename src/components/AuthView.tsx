@@ -223,7 +223,6 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
 
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 font-medium">
             <span>System Version 3.2 Enterprise</span>
-            <span className="text-[#384c5e] font-bold">Axis Bank Micro Lending</span>
           </div>
         </div>
 
