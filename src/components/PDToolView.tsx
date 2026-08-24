@@ -341,11 +341,40 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   const applyParsedFields = (parsed: any) => {
-    if (parsed['Business Vintage'] !== undefined) setBusinessVintageText(parsed['Business Vintage']);
-    if (parsed['Staff Count'] !== undefined) setStaffCountText(parsed['Staff Count']);
-    if (parsed['Premise Ownership'] !== undefined) setPremiseOwnershipText(parsed['Premise Ownership']);
+    if (parsed['Business Vintage'] !== undefined) {
+      setBusinessVintageText(parsed['Business Vintage']);
+      const match = parsed['Business Vintage'].match(/(\\d+)/);
+      if (match && match[1]) {
+        setYearsInBusiness(Number(match[1]));
+        setBusinessAgeYears(Number(match[1]));
+      }
+    }
+    
+    if (parsed['Staff Count'] !== undefined) {
+      setStaffCountText(parsed['Staff Count']);
+      const match = parsed['Staff Count'].match(/(\\d+)/);
+      if (match && match[1]) setExternalStaffCount(Number(match[1]));
+    }
+    
+    if (parsed['Premise Ownership'] !== undefined) {
+      setPremiseOwnershipText(parsed['Premise Ownership']);
+      const txt = parsed['Premise Ownership'].toLowerCase();
+      if (txt.includes('own')) setShopOwnership('OWN');
+      else if (txt.includes('rent')) setShopOwnership('RENTED');
+      else if (txt.includes('family')) setShopOwnership('FAMILY');
+    }
+    
     if (parsed['Factory Infrastructure'] !== undefined) setFactoryInfrastructureText(parsed['Factory Infrastructure']);
-    if (parsed['Stock Details'] !== undefined) setStockDetailsValueText(parsed['Stock Details']);
+    
+    if (parsed['Stock Details'] !== undefined) {
+      setStockDetailsValueText(parsed['Stock Details']);
+      const match = parsed['Stock Details'].match(/₹?([\\d,]+)/);
+      if (match && match[1]) {
+        const val = Number(match[1].replace(/,/g, ''));
+        if (!isNaN(val) && val > 0) setInventoryValue(val);
+      }
+    }
+    
     if (parsed['Asset Analysis'] !== undefined) setFixedAndCurrentAssetAnalysisText(parsed['Asset Analysis']);
     if (parsed['Asset Creation'] !== undefined) setAssetCreationText(parsed['Asset Creation']);
     if (parsed['Business Investment (Text)'] !== undefined) setBusinessInvestmentText(parsed['Business Investment (Text)']);
@@ -353,7 +382,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (parsed['Solar Saving'] !== undefined) setSolarSavingText(parsed['Solar Saving']);
     if (parsed['Projected Income'] !== undefined) setProjectedIncomeText(parsed['Projected Income']);
     if (parsed['Brief Business Profile'] !== undefined) setBriefBusinessProfile(parsed['Brief Business Profile']);
-    if (parsed['Years in Business'] !== undefined) setYearsInBusiness(parsed['Years in Business']);
+    if (parsed['Years in Business'] !== undefined) {
+      setYearsInBusiness(parsed['Years in Business']);
+      setBusinessAgeYears(parsed['Years in Business']);
+    }
     if (parsed['Initial Investment'] !== undefined) setInitialInvestment(parsed['Initial Investment']);
     if (parsed['Has Agriculture Land'] !== undefined) setHasAgricultureLand(parsed['Has Agriculture Land']);
     if (parsed['Agri Land Area'] !== undefined) setAgriLandArea(parsed['Agri Land Area']);
