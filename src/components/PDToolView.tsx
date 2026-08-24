@@ -19,6 +19,7 @@ import {
 export interface ItemizedCalculationLine {
   id: string;
   particulars: string;
+  businessNotes?: string;
   monthlyAmount: number;
 }
 
@@ -377,9 +378,69 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     
     if (parsed['Asset Analysis'] !== undefined) setFixedAndCurrentAssetAnalysisText(parsed['Asset Analysis']);
     if (parsed['Asset Creation'] !== undefined) setAssetCreationText(parsed['Asset Creation']);
-    if (parsed['Business Investment (Text)'] !== undefined) setBusinessInvestmentText(parsed['Business Investment (Text)']);
-    if (parsed['Agricultural Income'] !== undefined) setAgriculturalIncomeText(parsed['Agricultural Income']);
-    if (parsed['Solar Saving'] !== undefined) setSolarSavingText(parsed['Solar Saving']);
+    if (parsed['Business Investment (Text)'] !== undefined) {
+      setBusinessInvestmentText(parsed['Business Investment (Text)']);
+      if (parsed['Initial Investment'] === undefined) {
+        const invMatch = parsed['Business Investment (Text)'].match(/₹?([\\d,]+)\\s*lakh/i);
+        if (invMatch && invMatch[1]) {
+           const val = Number(invMatch[1].replace(/,/g, ''));
+           if (!isNaN(val)) setInitialInvestment(val * 100000);
+        } else {
+           const rawMatch = parsed['Business Investment (Text)'].match(/₹?([\\d,]+)/);
+           if (rawMatch && rawMatch[1]) {
+             const val = Number(rawMatch[1].replace(/,/g, ''));
+             if (!isNaN(val) && val > 0) setInitialInvestment(val);
+           }
+        }
+      }
+    }
+
+    if (parsed['Agricultural Income'] !== undefined) {
+      setAgriculturalIncomeText(parsed['Agricultural Income']);
+      if (parsed['Has Agriculture Land'] === undefined) {
+        const text = parsed['Agricultural Income'].toLowerCase();
+        if (text.includes('bigha') || text.includes('acre')) {
+          setHasAgricultureLand(true);
+          if (text.includes('bigha')) setAgriLandUnit('Bigha');
+          else if (text.includes('acre')) setAgriLandUnit('Acre');
+          
+          const areaMatch = text.match(/(\\d+)\\s*(bigha|acre)/i);
+          if (areaMatch && areaMatch[1]) setAgriLandArea(Number(areaMatch[1]));
+        }
+        
+        const amtMatch = parsed['Agricultural Income'].match(/₹?([\\d,]+)\\s*lakh/i);
+        if (amtMatch && amtMatch[1]) {
+          const val = Number(amtMatch[1].replace(/,/g, '')) * 100000;
+          setAgriIncomeMin(val);
+          setAgriIncomeMax(val);
+        } else {
+          const rawMatch = parsed['Agricultural Income'].match(/₹?([\\d,]+)/);
+          if (rawMatch && rawMatch[1]) {
+            const val = Number(rawMatch[1].replace(/,/g, ''));
+            if (!isNaN(val) && val > 0) {
+              setAgriIncomeMin(val);
+              setAgriIncomeMax(val);
+            }
+          }
+        }
+      }
+    }
+
+    if (parsed['Solar Saving'] !== undefined) {
+      setSolarSavingText(parsed['Solar Saving']);
+      if (parsed['Monthly Energy Expense'] === undefined) {
+         const solarMatch = parsed['Solar Saving'].match(/(\\d+)–(\\d+)\\s*units.*?₹?([\\d,]+)/i) || parsed['Solar Saving'].match(/(\\d+)\\s*units.*?₹?([\\d,]+)/i);
+         if (solarMatch) {
+            setPowerSource('Electricity');
+            if (solarMatch.length === 4) {
+              setMonthlyEnergyExpense(parseInt(solarMatch[2]) * parseInt(solarMatch[3].replace(/,/g, '')) * 30);
+            } else if (solarMatch.length === 3) {
+              setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2].replace(/,/g, '')) * 30);
+            }
+         }
+      }
+    }
+
     if (parsed['Projected Income'] !== undefined) setProjectedIncomeText(parsed['Projected Income']);
     if (parsed['Brief Business Profile'] !== undefined) setBriefBusinessProfile(parsed['Brief Business Profile']);
     if (parsed['Years in Business'] !== undefined) {
@@ -448,9 +509,16 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedCategoryId]);
 
   // Product Mapping State
-  const [productsList, setProductsList] = useState<CategoryProduct[]>(() => {
-    return allProducts.filter(p => p.categoryId === 'kirana');
-  });
+  const [productsList, setProductsList] = useState<CategoryProduct[]>([{
+       id: `custom-${Date.now()}`,
+       categoryId: 'custom',
+       productName: '',
+       productCategory: 'Custom',
+       revenueContributionPct: 0,
+       price: '',
+       quantity: '',
+       total: 0
+  } as any]);
 
   // Itemized Income and Expenditure Lines (Price x Quantity x Days Format)
   const [incomeLines, setIncomeLines] = useState<ItemizedCalculationLine[]>(() => {
@@ -605,7 +673,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [mobileNumber, setMobileNumber] = useState('');
   const [panNumber, setPanNumber] = useState('');
   const [residenceAddress, setResidenceAddress] = useState('');
-  const [residenceOwnership, setResidenceOwnership] = useState<'OWN' | 'RENTED' | 'FAMILY'>('OWN');
+  const [residenceOwnership, setResidenceOwnership] = useState<string>('');
   const [yearsAtResidence, setYearsAtResidence] = useState(0);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [businessRemark, setBusinessRemark] = useState('');
@@ -755,9 +823,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Form Fields - Business
   const [firmName, setFirmName] = useState('');
   const [noFormalBusinessName, setNoFormalBusinessName] = useState(false);
-  const [constitution, setConstitution] = useState('Proprietorship');
+  const [constitution, setConstitution] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState(0);
-  const [shopOwnership, setShopOwnership] = useState<'OWN' | 'RENTED' | 'FAMILY'>('RENTED');
+  const [shopOwnership, setShopOwnership] = useState<string>('');
   const [monthlyRent, setMonthlyRent] = useState(0);
   const [shopAreaSqFt, setShopAreaSqFt] = useState(0);
   const [inventoryValue, setInventoryValue] = useState(0);
@@ -765,14 +833,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Form Fields - Field Investigation
   const [dailyFootfall, setDailyFootfall] = useState(0);
   const [avgTicketValue, setAvgTicketValue] = useState(0);
-  const [workingDays, setWorkingDays] = useState(26);
+  const [workingDays, setWorkingDays] = useState(0);
 
-  // Sync field investigation inputs with Waterfall Engine Itemized Lines
+  // Auto-calculate Stated Monthly Sales Turnover from Itemized Income
   useEffect(() => {
-    const newLines = getCategoryDefaultItemizedLines(selectedCategoryId, dailyFootfall, avgTicketValue, workingDays, categoriesList);
-    setIncomeLines(newLines.income);
-    setExpenseLines(newLines.expense);
-  }, [dailyFootfall, avgTicketValue, workingDays, selectedCategoryId, categoriesList]);
+    if (itemizedMonthlyIncomeTotal > 0) {
+      setStatedMonthlySales(itemizedMonthlyIncomeTotal);
+    }
+  }, [itemizedMonthlyIncomeTotal]);
   const [neighborName, setNeighborName] = useState('');
   const [neighborFeedback, setNeighborFeedback] = useState('');
   const [landlordFeedback, setLandlordFeedback] = useState('');
@@ -794,6 +862,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [otherIncome, setOtherIncome] = useState(0);
   const [householdExpenses, setHouseholdExpenses] = useState(0);
   const [existingEmis, setExistingEmis] = useState(0);
+  const [existingEmiNotes, setExistingEmiNotes] = useState('');
+  const [householdExpensesNotes, setHouseholdExpensesNotes] = useState('');
+  const [comfortableEmiNotes, setComfortableEmiNotes] = useState('');
   const [solarPurposeUsage, setSolarPurposeUsage] = useState('');
   const [riskFactor, setRiskFactor] = useState('');
 
@@ -815,7 +886,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       categoryId: 'kirana',
       product: selectedClient.defaultScheme,
       appliedAmount: 0,
-      tenureMonths: 24,
+      tenureMonths: 0,
       purpose: '',
       status: 'DRAFT',
       firmName: '',
@@ -823,17 +894,17 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       panNumber: '',
       aadhaarNumber: '',
       residenceAddress: '',
-      residenceOwnership: 'OWN',
+      residenceOwnership: '',
       dependentsCount: 0,
-      constitution: 'Proprietorship',
+      constitution: '',
       yearsInBusiness: 0,
-      shopOwnership: 'RENTED',
+      shopOwnership: '',
       monthlyRent: 0,
       shopAreaSqFt: 0,
       inventoryValue: 0,
       dailyFootfall: 0,
       avgTicketValue: 0,
-      workingDays: 26,
+      workingDays: 0,
       aataChakkiData: {
         machines: [],
         attaChakki: { size: '', capacity: '', wheatKg: '', charge: '' },
@@ -845,7 +916,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       },
       neighborFeedback: '',
       landlordFeedback: '',
-      interestRatePct: 24,
+      interestRatePct: 0,
       statedMonthlySales: 0,
       cogsMarginPct: 0,
       salariesExpense: 0,
@@ -1034,6 +1105,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     return () => clearInterval(interval);
   }, [activeAppId, selectedClient?.id]);
 
+  const lastAataIncomeRef = useRef(0);
+  const lastAataExpenseRef = useRef(0);
+
   // Auto-Calculation and Generation for Aata Chakki Business Profile
   useEffect(() => {
     if (!currentCategory?.name?.toLowerCase().includes('atta chakki') && !currentCategory?.name?.toLowerCase().includes('aata chakki')) return;
@@ -1111,22 +1185,22 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const monthlyExpense = dailyExpense * workingDays;
 
     // Only update lines if there's actual income/expense data to avoid overriding default template immediately on load
-    if (dailyTotalIncome > 0) {
+    if (dailyTotalIncome > 0 && lastAataIncomeRef.current !== monthlyIncome) {
+      lastAataIncomeRef.current = monthlyIncome;
       setIncomeLines(prev => {
         const hasAataLine = prev.find(l => l.particulars.includes('Aata Chakki Daily Collection') || l.particulars.includes('Aata Chakki / Milling Income') || l.particulars.includes('Milling Income'));
         if (hasAataLine) {
-          if (hasAataLine.monthlyAmount === monthlyIncome) return prev; // Avoid unnecessary re-renders
           return prev.map(l => (l.particulars.includes('Aata Chakki') || l.particulars.includes('Milling Income')) ? { ...l, monthlyAmount: monthlyIncome, particulars: 'Aata Chakki / Milling Income' } : l);
         }
         return [...prev, { id: 'auto-income-aata', particulars: 'Aata Chakki / Milling Income', monthlyAmount: monthlyIncome }];
       });
     }
 
-    if (consumption > 0 && rate > 0) {
+    if (consumption > 0 && rate > 0 && lastAataExpenseRef.current !== monthlyExpense) {
+      lastAataExpenseRef.current = monthlyExpense;
       setExpenseLines(prev => {
         const hasPowerLine = prev.find(l => l.particulars.includes('Fuel / Electricity') || l.particulars.includes('Power / Fuel Expense') || l.particulars.includes('Power Expense'));
         if (hasPowerLine) {
-          if (hasPowerLine.monthlyAmount === monthlyExpense) return prev; // Avoid unnecessary re-renders
           return prev.map(l => (l.particulars.includes('Fuel / Electricity') || l.particulars.includes('Power') || l.particulars.includes('Expense')) ? { ...l, monthlyAmount: monthlyExpense, particulars: 'Power / Fuel Expense' } : l);
         }
         return [...prev, { id: 'auto-expense-power', particulars: 'Power / Fuel Expense', monthlyAmount: monthlyExpense }];
@@ -1308,116 +1382,81 @@ ${qaPairs.join('\n\n')}`;
       applicantPhone: mobileNumber,
       coApplicants,
       femaleCandidateDetails: hasFemaleCandidate 
-        ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || '[Name]'}, ${femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.`
-        : "We need to collect KYC documents and live photograph of the female candidate.",
-      firmName,
-      loanAmount: appliedAmount,
-      loanType: loanType === 'Other' ? (otherLoanType || 'Other') : loanType,
-      loanPurpose: solarPurposeUsage || `Operational enhancement & working capital expansion for ${firmName}.`,
+        ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || 'NIL'}, ${femaleCandidateRelation === 'Other' ? (femaleCandidateOtherRelation || 'NIL') : femaleCandidateRelation.toLowerCase()} of the applicant.`
+        : "NIL",
+      firmName: firmName || 'NIL',
+      loanAmount: appliedAmount || 0,
+      loanType: loanType === 'Other' ? (otherLoanType || 'NIL') : loanType,
+      loanPurpose: solarPurposeUsage || 'NIL',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
-      metPersonName: `${applicantName} (Self) & Spouse`,
-      metPersonIdProof: panNumber ? `PAN: ${panNumber}` : 'PAN Card / Aadhaar',
-      executiveName: 'Mr. Sumit (Infominer Field Inspector)',
+      metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
+      metPersonIdProof: panNumber ? `PAN: ${panNumber}` : 'NIL',
+      executiveName: 'NIL',
       familyMembers: familyMembers,
 
-      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea} sq.ft Approx - Family residing since birth` : 'Rented Premises',
-      houseDetails: `This house has ${houseRooms} rooms and is a ${houseStructureType} structure, comprising a ${houseFloorPosition} floor.`,
-      monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses,
+      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : 'NIL'),
+      houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'NIL'} rooms and is a ${houseStructureType || 'NIL'} structure, comprising a ${houseFloorPosition || 'NIL'} floor.` : 'NIL',
+      monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
       residenceGpsCoords: formattedGps,
-      residenceStatus: residenceStatus || 'Recommended',
-      residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'Not mentioned',
-      residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback.toLowerCase()} regarding their behaviour.` : 'Not conducted',
+      residenceStatus: residenceStatus || 'NIL',
+      residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'NIL',
+      residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'NIL'} regarding their behaviour.` : 'NIL',
 
-      briefBusinessProfile: briefBusinessProfile || (() => {
-        if (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) {
-          const machinesInfo = [];
-          let dailyTotalIncome = 0;
-          if (aataChakkiData.machines.includes('Atta Chakki') && Number(aataChakkiData.attaChakki.wheatKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.attaChakki.size || 'Standard'}-inch Atta Chakki (${aataChakkiData.attaChakki.wheatKg} kg wheat/day @ ₹${aataChakkiData.attaChakki.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.attaChakki.wheatKg) || 0) * (Number(aataChakkiData.attaChakki.charge) || 0);
-          }
-          if (aataChakkiData.machines.includes('Kohlu') && Number(aataChakkiData.kohlu.mustardKg) > 0) {
-            machinesInfo.push(`Kohlu - ${aataChakkiData.kohlu.boltDetails || 'Standard'} (${aataChakkiData.kohlu.mustardKg} kg mustard/day @ ₹${aataChakkiData.kohlu.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.kohlu.mustardKg) || 0) * (Number(aataChakkiData.kohlu.charge) || 0) + (Number(aataChakkiData.kohlu.khaliKg) || 0) * (Number(aataChakkiData.kohlu.khaliRate) || 0);
-          }
-          if (aataChakkiData.machines.includes('Dhan Polisher') && Number(aataChakkiData.dhanPolisher.paddyKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.dhanPolisher.size || 'Standard'}-inch Dhan Polisher (${aataChakkiData.dhanPolisher.paddyKg} kg paddy/day)`);
-            dailyTotalIncome += (Number(aataChakkiData.dhanPolisher.paddyKg) || 0) * (Number(aataChakkiData.dhanPolisher.charge) || 0) + (Number(aataChakkiData.dhanPolisher.bhusiKg) || 0) * (Number(aataChakkiData.dhanPolisher.bhusiRate) || 0) + (Number(aataChakkiData.dhanPolisher.ricePolishKg) || 0) * (Number(aataChakkiData.dhanPolisher.ricePolishRate) || 0);
-          }
-          if (aataChakkiData.machines.includes('Masala Grinding Machine') && Number(aataChakkiData.masalaMachine.masalaKg) > 0) {
-            machinesInfo.push(`${aataChakkiData.masalaMachine.size || 'Standard'} Masala Machine (${aataChakkiData.masalaMachine.masalaKg} kg masala/day @ ₹${aataChakkiData.masalaMachine.charge || 0}/kg)`);
-            dailyTotalIncome += (Number(aataChakkiData.masalaMachine.masalaKg) || 0) * (Number(aataChakkiData.masalaMachine.charge) || 0);
-          }
-          
-          let engineInfo = 'standard power configuration';
-          if (Number(aataChakkiData.powerDetails.consumption) > 0) {
-            engineInfo = aataChakkiData.powerSource === 'Diesel' ? `Diesel Engine consuming ${aataChakkiData.powerDetails.consumption} litres/day @ ₹${aataChakkiData.powerDetails.rate || 0}/litre` : `Electric Motor consuming ${aataChakkiData.powerDetails.consumption} units/day @ ₹${aataChakkiData.powerDetails.rate || 0}/unit`;
-          }
-          
-          return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, operates <strong>${firmName}</strong>, a milling and processing unit established ${yearsInBusiness} years ago. 
-          <br/><br/><strong>Machinery & Operations:</strong> The unit is equipped with ${machinesInfo.length > 0 ? machinesInfo.join(' + ') : 'essential processing machinery'}. It is powered by a ${engineInfo}.
-          <br/><br/><strong>Income Estimation:</strong> The facility generates a daily processing revenue of approximately <strong>₹${dailyTotalIncome.toLocaleString('en-IN')}</strong> resulting in a robust monthly turnover of ₹${(dailyTotalIncome * workingDays).toLocaleString('en-IN')} across ${workingDays} working days. The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} premises covering ${shopAreaSqFt || 200} sq.ft, demonstrating steady community demand.`;
-        }
-        return `<strong>Background & Setup:</strong> The applicant, ${applicantName}, is the proprietor of <strong>${firmName}</strong> and has been successfully operating this business for approximately <strong>${yearsInBusiness} years</strong>. The enterprise is engaged in the retail trade of ${currentCategory.name.toLowerCase()} products, catering to the local community's daily needs.<br/><br/><strong>Operations & Infrastructure:</strong> The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} commercial premises covering an estimated area of ${shopAreaSqFt || 200} sq.ft. The shop is well-equipped with necessary fixtures such as display racks, storage shelves, and a billing counter. Currently, the business is primarily managed by the applicant along with family members, demonstrating self-reliance and minimal external labor dependency.<br/><br/><strong>Sales & Market Reach:</strong> Based on field observations, the business attracts a steady daily footfall of approximately <strong>${dailyFootfall} walk-in customers</strong>. With an average ticket size (per customer transaction) of <strong>₹${avgTicketValue}</strong> and operating for ${workingDays} days a month, the business demonstrates robust and consistent daily cash flow. The total estimated business premises value at the time of visit was estimated to be around <strong>₹${inventoryValue.toLocaleString('en-IN')}</strong>, reflecting adequate working capital circulation.`;
-      })(),
-      businessVintage: businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim(),
-      previousOccupation: previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `Business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `Salaried Employment (${previousOccupationOther})` : previousOccupation,
-      reasonToLeave: reasonToLeave,
-      staffCount: staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`,
-      businessPremiseOwnership: premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`),
-      factoryInfrastructure: factoryInfrastructureText || (businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Standard fixtures and setup'),
-      stockDetailsValue: stockDetailsValueText || (hasStock && stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.'),
-      fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`,
-      assetCreationThroughBusiness: assetCreationText || `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`,
-      initialBusinessInvestment: businessInvestmentText || `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`,
-      agriculturalIncomeDetails: agriculturalIncomeText || (hasAgricultureLand ? `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.` : 'Applicant owns agricultural land with yearly supplementary crop income.'),
-      otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'Not applicable / Rental Income',
-      operationalSavingAnalysis: solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`,
+      briefBusinessProfile: briefBusinessProfile || 'NIL',
+      businessVintage: businessVintageText || 'NIL',
+      previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'NIL') : (previousOccupation || 'NIL'),
+      reasonToLeave: reasonToLeave || 'NIL',
+      staffCount: staffCountText || 'NIL',
+      businessPremiseOwnership: premiseOwnershipText || 'NIL',
+      factoryInfrastructure: factoryInfrastructureText || 'NIL',
+      stockDetailsValue: stockDetailsValueText || 'NIL',
+      fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || 'NIL',
+      assetCreationThroughBusiness: assetCreationText || 'NIL',
+      initialBusinessInvestment: businessInvestmentText || 'NIL',
+      agriculturalIncomeDetails: agriculturalIncomeText || 'NIL',
+      otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'NIL',
+      operationalSavingAnalysis: solarSavingText || 'NIL',
 
-      prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [
-        { name: 'Local Retail Walk-in Customers', phone: 'Multiple', remark: 'Satisfactory daily cash & digital UPI sales' }
-      ],
-      prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [
-        { name: 'Regional Wholesale Stock Supplier', phone: '9811002233', remark: 'Regular stock supplier with favorable credit terms' }
-      ],
-      bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [
-        { bankName: selectedClient?.name || 'UCO Bank', branchName: 'Main Branch', accountType: 'Saving / Current Account', ccOdLimit: 'NA', accountNo: '**********9522', remark: 'Active operating account belonging to applicant' }
-      ],
-      existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [
-        { typeOfLoan: 'NA', financerName: 'NA', loanAmountLakhs: '0', emiRs: `${existingEmis}`, tenureYearsMonths: 'NA', balanceTenure: 'NA', remark: existingEmis > 0 ? `Active monthly EMI of ₹${existingEmis}` : 'No existing loan obligation' }
-      ],
-      currentObligationSummary: currentObligation || (existingEmis > 0 ? `Monthly EMI of ₹${existingEmis}` : 'No existing obligation'),
+      prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
+      prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [],
+      bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
+      existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
+      currentObligationSummary: currentObligation || 'NIL',
       businessGpsCoords: formattedGps,
-      businessLocationRemarks: businessLongitudeRemarks,
-      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'NA'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
-      businessNeighborName: businessNeighbourName || 'Not mentioned',
-      businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Neighbour verification confirmed applicant business presence and stable local reputation.',
-      businessStatus: businessStatus || 'Recommended',
+      businessLocationRemarks: businessLongitudeRemarks || 'NIL',
+      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'NIL'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'NIL',
+      businessNeighborName: businessNeighbourName || 'NIL',
+      businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'NIL',
+      businessStatus: businessStatus || 'NIL',
 
       itemizedSales: incomeLines.map(l => ({
         particulars: l.particulars,
-        businessNotes: `Monthly Estimate`,
+        businessNotes: l.businessNotes || `Monthly Estimate`,
         monthly: l.monthlyAmount,
         yearly: l.monthlyAmount * 12,
       })),
       itemizedExpenses: expenseLines.map(l => ({
         particulars: l.particulars,
-        businessNotes: `Monthly Estimate`,
+        businessNotes: l.businessNotes || `Monthly Estimate`,
         monthly: l.monthlyAmount,
         yearly: l.monthlyAmount * 12,
       })),
 
       totalSalesMonthly: adoptedMonthlySales,
       totalSalesYearly: adoptedMonthlySales * 12,
+      workingDays: workingDays,
       totalExpensesMonthly: totalOperatingExpenses,
       totalExpensesYearly: totalOperatingExpenses * 12,
       netProfitMonthly: netBusinessIncome,
       netProfitYearly: netBusinessIncome * 12,
       existingEmiMonthly: existingEmis,
       existingEmiYearly: existingEmis * 12,
+      existingEmiNotes: existingEmiNotes,
       householdExpensesMonthly: householdExpenses,
       householdExpensesYearly: householdExpenses * 12,
+      householdExpensesNotes: householdExpensesNotes,
+      comfortableEmiNotes: comfortableEmiNotes,
       netDisposalIncomeMonthly: postLoanSurplus,
       netDisposalIncomeYearly: postLoanSurplus * 12,
 
@@ -1857,6 +1896,7 @@ ${qaPairs.join('\n\n')}`;
                   onChange={(e) => setConstitution(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 >
+                  <option value="">Select Constitution</option>
                   <option value="Proprietorship">Sole Proprietorship</option>
                   <option value="Partnership">Registered Partnership</option>
                   <option value="Pvt Ltd">Private Limited Company</option>
@@ -1873,6 +1913,7 @@ ${qaPairs.join('\n\n')}`;
                   onChange={(e) => setShopOwnership(e.target.value as any)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 >
+                  <option value="">Select Ownership</option>
                   <option value="RENTED">Rented Premises</option>
                   <option value="OWN">Self Owned Premises</option>
                   <option value="FAMILY">Family / Ancestral Owned</option>
@@ -2101,10 +2142,11 @@ ${qaPairs.join('\n\n')}`;
               </div>
             </div>
 
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto border border-slate-200 rounded">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider">
                   <tr>
+                    <th className="p-3 w-8 text-center"></th>
                     <th className="p-3">Product / Service Name</th>
                     <th className="p-3">Category</th>
                     <th className="p-3 text-center">Price (₹)</th>
@@ -2112,7 +2154,7 @@ ${qaPairs.join('\n\n')}`;
                     <th className="p-3 text-right">Total (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-slate-100 font-medium bg-white">
                   {productsList.map((prod, idx) => {
                     const currentPrice = prod.price || 0;
                     const currentQty = prod.quantity || 0;
@@ -2120,6 +2162,18 @@ ${qaPairs.join('\n\n')}`;
 
                     return (
                       <tr key={prod.id || idx} className="hover:bg-slate-50/80">
+                        <td className="p-3 text-center">
+                          <button
+                            onClick={() => {
+                              const updated = productsList.filter((_, i) => i !== idx);
+                              setProductsList(updated);
+                            }}
+                            className="text-red-400 hover:text-red-600 font-bold text-lg leading-none"
+                            title="Remove Product"
+                          >
+                            ×
+                          </button>
+                        </td>
                         <td className="p-3 font-bold text-[#2d3e50]">
                           <input
                             type="text"
@@ -2176,8 +2230,34 @@ ${qaPairs.join('\n\n')}`;
                       </tr>
                     );
                   })}
+                  {productsList.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="p-6 text-center text-slate-400 italic font-medium">
+                        No products added. Click "+ Add Product Row" to begin.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
+              <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-start">
+                <button
+                  onClick={() => {
+                    setProductsList([...productsList, {
+                      id: `custom-${Date.now()}`,
+                      categoryId: selectedCategoryId,
+                      productName: '',
+                      productCategory: 'Custom',
+                      revenueContributionPct: 0,
+                      price: '' as any,
+                      quantity: '' as any,
+                      total: 0
+                    }]);
+                  }}
+                  className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded hover:bg-slate-100 transition flex items-center gap-1 shadow-sm"
+                >
+                  <span className="text-lg leading-none">+</span> Add Product Row
+                </button>
+              </div>
             </div>
           </div>
           {renderTabNavigationFooter()}
@@ -4151,6 +4231,7 @@ ${qaPairs.join('\n\n')}`;
                   <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
                     <tr>
                       <th className="p-2.5">Item / Particulars</th>
+                      <th className="p-2.5">Business Notes</th>
                       <th className="p-2.5 text-right">Monthly Total (₹)</th>
                       <th className="p-2.5 text-right">Yearly Total (₹)</th>
                       <th className="p-2.5 text-center">Action</th>
@@ -4167,6 +4248,15 @@ ${qaPairs.join('\n\n')}`;
                               value={line.particulars}
                               onChange={(e) => handleUpdateIncomeLine(line.id, 'particulars', e.target.value)}
                               className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={line.businessNotes || ''}
+                              onChange={(e) => handleUpdateIncomeLine(line.id, 'businessNotes', e.target.value)}
+                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                              placeholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
                             />
                           </td>
                           <td className="p-2 text-right">
@@ -4231,6 +4321,7 @@ ${qaPairs.join('\n\n')}`;
                   <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
                     <tr>
                       <th className="p-2.5">Expenditure / Cost Line</th>
+                      <th className="p-2.5">Business Notes</th>
                       <th className="p-2.5 text-right">Monthly Total (₹)</th>
                       <th className="p-2.5 text-right">Yearly Total (₹)</th>
                       <th className="p-2.5 text-center">Action</th>
@@ -4247,6 +4338,15 @@ ${qaPairs.join('\n\n')}`;
                               value={line.particulars}
                               onChange={(e) => handleUpdateExpenseLine(line.id, 'particulars', e.target.value)}
                               className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
+                            />
+                          </td>
+                          <td className="p-2">
+                            <input
+                              type="text"
+                              value={line.businessNotes || ''}
+                              onChange={(e) => handleUpdateExpenseLine(line.id, 'businessNotes', e.target.value)}
+                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                              placeholder="e.g. Estimated based on usage"
                             />
                           </td>
                           <td className="p-2 text-right">
@@ -4350,12 +4450,43 @@ ${qaPairs.join('\n\n')}`;
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Household Expenses (₹/mo)</label>
+                <div className="space-y-2">
+                  <input
+                    type="number"
+                    min="0"
+                    value={householdExpenses}
+                    onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setHouseholdExpenses(v); }}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
+                  />
+                  <input
+                    type="text"
+                    value={householdExpensesNotes}
+                    onChange={(e) => setHouseholdExpensesNotes(e.target.value)}
+                    placeholder="e.g. 1 earning member..."
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Existing EMI Notes (Report Override)</label>
                 <input
-                  type="number"
-                  min="0"
-                  value={householdExpenses}
-                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setHouseholdExpenses(v); }}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
+                  type="text"
+                  value={existingEmiNotes}
+                  onChange={(e) => setExistingEmiNotes(e.target.value)}
+                  placeholder="e.g. As per applicant no any existing obligation"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Comfortable EMI Notes (Report Override)</label>
+                <input
+                  type="text"
+                  value={comfortableEmiNotes}
+                  onChange={(e) => setComfortableEmiNotes(e.target.value)}
+                  placeholder="e.g. Post all expenses As per Moneyboxx"
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
               </div>
             </div>

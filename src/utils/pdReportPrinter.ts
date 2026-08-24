@@ -109,6 +109,7 @@ export interface PDReportPrintData {
   }>;
   totalSalesMonthly?: number;
   totalSalesYearly?: number;
+  workingDays?: number;
 
   itemizedExpenses?: Array<{
     particulars: string;
@@ -123,11 +124,14 @@ export interface PDReportPrintData {
   netProfitYearly?: number;
   existingEmiMonthly?: number;
   existingEmiYearly?: number;
+  existingEmiNotes?: string;
   householdExpensesMonthly?: number;
   householdExpensesYearly?: number;
+  householdExpensesNotes?: string;
   netDisposalIncomeMonthly?: number;
   netDisposalIncomeYearly?: number;
   comfortableMonthlyEmi?: string;
+  comfortableEmiNotes?: string;
 
   // Financial Ratios
   dscrRatio?: number;
@@ -1735,7 +1739,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="sec-title text-center">
       <td style="width:25%;">Particulars</td>
-      <td style="width:45%;">Business Notes<br/><span style="font-weight:normal;">Income assement considered for 28 working days</span></td>
+      <td style="width:45%;">Business Notes<br/><span style="font-weight:normal;">Income assessment considered for ${data.workingDays || 28} working days</span></td>
       <td colspan="2">(Period)</td>
     </tr>
     <tr class="sec-title text-center">
@@ -1779,13 +1783,13 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">No any existing obligation</td>
+      <td class="text-left">${data.existingEmiNotes || 'As per applicant no any existing obligation'}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td class="text-left">The applicant’s family has earning member in same business, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.</td>
+      <td class="text-left">${data.householdExpensesNotes || `The applicant's family has 1 earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`}</td>
       <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>
@@ -1797,8 +1801,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">Comfortable Monthly EMI Post all expenses (As per moneyboxx )</td>
-      <td colspan="2" class="bold">As per ${bankName} (Approx ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')})</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || `Comfortable Monthly EMI Post all expenses (Business and Household):- As per ${bankName} Limited`}</td>
+      <td colspan="2" class="bold">As per ${bankName} Limited</td>
     </tr>
   </table>
 
