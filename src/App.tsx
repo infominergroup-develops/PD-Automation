@@ -112,7 +112,7 @@ export default function App() {
         onNavigate={setCurrentView}
       />
 
-      <main className="max-w-7xl mx-auto px-4 py-6">
+      <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {currentView === 'employee-management' ? (
           <EmployeeManagementView currentRole={currentUser.role} currentUserId={currentUser.id} />
         ) : (
