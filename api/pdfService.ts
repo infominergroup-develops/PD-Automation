@@ -1,7 +1,13 @@
 import { createRequire } from 'module';
 import { logger } from './logger.js';
 
-const require = createRequire(import.meta.url);
+let req: any;
+if (typeof require !== 'undefined') {
+  req = require;
+} else {
+  // @ts-ignore
+  req = createRequire(typeof __filename !== 'undefined' ? __filename : (typeof import.meta !== 'undefined' ? import.meta.url : 'file://'));
+}
 
 type PdfParseFunction = (dataBuffer: Buffer, options?: any) => Promise<{
   numpages: number;
@@ -16,7 +22,7 @@ let pdfParseFn: PdfParseFunction | null = null;
 
 function getPdfParse(): PdfParseFunction {
   if (!pdfParseFn) {
-    const mod = require('pdf-parse');
+    const mod = req('pdf-parse');
     pdfParseFn = typeof mod === 'function' ? mod : mod.default || mod;
   }
   return pdfParseFn!;
