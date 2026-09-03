@@ -1485,7 +1485,7 @@ ${qaPairs.join('\n\n')}`;
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
       metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
-      metPersonIdProof: panNumber ? `PAN: ${panNumber}` : 'NIL',
+      metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'NIL') : (identityProof || 'NIL'),
       executiveName: executiveName || 'NIL',
       familyMembers: familyMembers,
 
