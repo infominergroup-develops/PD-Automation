@@ -1,32 +1,5 @@
-import { createRequire } from 'module';
 import { logger } from './logger.js';
-
-let req: any;
-if (typeof require !== 'undefined') {
-  req = require;
-} else {
-  // @ts-ignore
-  req = createRequire(typeof __filename !== 'undefined' ? __filename : (typeof import.meta !== 'undefined' ? import.meta.url : 'file://'));
-}
-
-type PdfParseFunction = (dataBuffer: Buffer, options?: any) => Promise<{
-  numpages: number;
-  numrender: number;
-  info: any;
-  metadata: any;
-  text: string;
-  version: string;
-}>;
-
-let pdfParseFn: PdfParseFunction | null = null;
-
-function getPdfParse(): PdfParseFunction {
-  if (!pdfParseFn) {
-    const mod = req('pdf-parse');
-    pdfParseFn = typeof mod === 'function' ? mod : mod.default || mod;
-  }
-  return pdfParseFn!;
-}
+import pdfParse from 'pdf-parse';
 
 export class PdfService {
   /**
@@ -34,8 +7,7 @@ export class PdfService {
    */
   public async extractText(pdfBuffer: Buffer): Promise<string> {
     try {
-      const parse = getPdfParse();
-      const data = await parse(pdfBuffer);
+      const data = await pdfParse(pdfBuffer);
       if (!data || !data.text) {
         throw new Error('PDF parsing resulted in empty text stream');
       }
