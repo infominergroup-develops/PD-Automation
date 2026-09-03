@@ -17,6 +17,38 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
   const [isAiPowered, setIsAiPowered] = useState(false);
   const [modelName, setModelName] = useState('');
 
+  // Credit Report Extraction State
+  const [creditReportType, setCreditReportType] = useState('NONE');
+  const [creditReportFile, setCreditReportFile] = useState<File | null>(null);
+  const [parsedCreditReport, setParsedCreditReport] = useState<any>(null);
+  const [isParsing, setIsParsing] = useState(false);
+
+  const handleParseCreditReport = async () => {
+    if (!creditReportFile) return;
+    setIsParsing(true);
+    try {
+      const formData = new FormData();
+      formData.append('report', creditReportFile);
+      formData.append('reportType', creditReportType);
+      
+      const res = await fetch('/api/parse-credit-report', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (data.success) {
+        setParsedCreditReport(data.data);
+      } else {
+        alert('Error parsing report: ' + data.error);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse report');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
   const handleGenerateAiReport = async () => {
     setIsGenerating(true);
     try {
@@ -96,7 +128,10 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
       postLoanSurplus: fin.postLoanNetSurplus || 77340,
 
       // AI Summary Text
-      aiExecutiveSummary: aiReportText || `Field verification and financial appraisal completed for ${applicantName} (${firmName}). Applicant shows strong monthly operating surplus and clean local standing.`
+      aiExecutiveSummary: aiReportText || `Field verification and financial appraisal completed for ${applicantName} (${firmName}). Applicant shows strong monthly operating surplus and clean local standing.`,
+      
+      // Parsed Credit Report
+      parsedCreditReport: parsedCreditReport
     });
   };
 
@@ -174,6 +209,41 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
             className="w-full bg-slate-50 border border-slate-200 text-xs text-slate-800 rounded p-2 mt-1 focus:outline-none focus:border-blue-600"
           />
         </div>
+      </div>
+
+      {/* Credit Report Extraction UI */}
+      <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
+        <h3 className="text-sm font-bold text-slate-800">Credit Report Extraction</h3>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-xs">
+            <input type="radio" value="NONE" checked={creditReportType === 'NONE'} onChange={() => setCreditReportType('NONE')} /> None
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="radio" value="CRIF" checked={creditReportType === 'CRIF'} onChange={() => setCreditReportType('CRIF')} /> CRIF
+          </label>
+          <label className="flex items-center gap-2 text-xs">
+            <input type="radio" value="CIBIL" checked={creditReportType === 'CIBIL'} onChange={() => setCreditReportType('CIBIL')} /> CIBIL
+          </label>
+        </div>
+        
+        {creditReportType !== 'NONE' && (
+          <div className="flex items-center gap-4">
+            <input type="file" accept=".pdf" onChange={(e) => setCreditReportFile(e.target.files?.[0] || null)} className="text-xs" />
+            <button 
+              onClick={handleParseCreditReport} 
+              disabled={isParsing || !creditReportFile}
+              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-semibold disabled:opacity-50 transition"
+            >
+              {isParsing ? 'Extracting...' : 'Extract Data'}
+            </button>
+          </div>
+        )}
+        {parsedCreditReport && (
+          <div className="text-xs text-green-600 font-semibold flex items-center gap-1 mt-2">
+            <CheckCircle className="w-4 h-4" />
+            Successfully extracted data. It will be included in the PDF report.
+          </div>
+        )}
       </div>
 
       {/* Generated Report Output Canvas */}

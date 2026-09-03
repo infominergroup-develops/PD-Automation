@@ -11,7 +11,11 @@ import { INITIAL_CATEGORIES } from "../src/data/categoriesData.js";
 import { INITIAL_PRODUCTS } from "../src/data/productsData.js";
 import { runHtmlToolValidationSuite } from "../src/data/testSuitesData.js";
 import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, User } from "../src/types.js";
+import multer from "multer";
+import { pdfService } from "./pdfService.js";
+import { ParserFactory } from "./parsers/ParserFactory.js";
 
+const upload = multer({ storage: multer.memoryStorage() });
 console.log("Starting PD System Server init...");
 const app = express();
 
@@ -770,6 +774,31 @@ WhatsApp Message:
     } catch (err: any) {
       console.error("WhatsApp AI Extraction error:", err);
       res.status(500).json({ error: "Failed to extract WhatsApp data: " + err.message });
+    }
+  });
+
+  // Credit Report Parsing Endpoint
+  app.post("/api/parse-credit-report", upload.single("report"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      
+      const { reportType } = req.body;
+      const text = await pdfService.extractText(req.file.buffer);
+      const provider = (reportType && reportType !== 'AUTO') ? reportType : pdfService.detectProvider(text);
+      
+      const parser = ParserFactory.getParser(provider);
+      const parsedData = await parser.parse(text);
+      
+      res.json({
+        success: true,
+        provider,
+        data: parsedData
+      });
+    } catch (err: any) {
+      console.error("Credit Report Parsing error:", err);
+      res.status(500).json({ error: "Failed to parse credit report: " + err.message });
     }
   });
 

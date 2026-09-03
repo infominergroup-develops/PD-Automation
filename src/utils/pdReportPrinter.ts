@@ -41,13 +41,12 @@ export interface PDReportPrintData {
   purpose?: string;
   appliedAmount?: number | string;
   familyMembers?: Array<{
-    srNo: number;
     name: string;
-    age: string;
-    relation: string;
-    qualification: string;
-    occupation: string;
-    dependent: string;
+    age: number | string;
+    relationship: string;
+    qualification?: string;
+    profession?: string;
+    isDependent: boolean;
   }>;
   monthlyHouseholdExpenses?: number;
   residenceElectricityDetails?: string;
@@ -158,6 +157,9 @@ export interface PDReportPrintData {
     category: string;
     gps?: { lat: number; lng: number; mapLink?: string };
   }>;
+
+  // Parsed Credit Report Data
+  parsedCreditReport?: any;
 }
 
 export function generateStandardPDReportHTML(data: PDReportPrintData): string {
@@ -165,19 +167,14 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
-  const appNo = data.applicationNumber || 'INF/2026/88492';
-  const caseStatus = data.statusOfCase || 'Recommended';
+  const appNo = data.applicationNumber || 'null';
+  const caseStatus = data.statusOfCase || 'null';
 
-  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
-    { srNo: 1, name: data.applicantName, age: '43 Yrs', relation: 'Self', qualification: '10th Pass', occupation: 'Self-employed Business', dependent: 'No' },
-    { srNo: 2, name: ((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Spouse', age: '38 Yrs', relation: 'Spouse', qualification: '10th Pass', occupation: 'Housewife', dependent: 'Yes' },
-    { srNo: 3, name: 'Child 1', age: '18 Yrs', relation: 'Son', qualification: '12th Student', occupation: 'Student', dependent: 'Yes' },
-    { srNo: 4, name: 'Child 2', age: '15 Yrs', relation: 'Daughter', qualification: '10th Student', occupation: 'Student', dependent: 'Yes' }
-  ];
+  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
   // Income Assessment Default Calculations
   const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
-    { particulars: `${data.firmName || 'Primary Business'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 275000, yearly: (data.totalSalesMonthly || 275000) * 12 }
+    { particulars: `${data.firmName || 'null'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 275000, yearly: (data.totalSalesMonthly || 275000) * 12 }
   ];
 
   const totalSalesM = data.totalSalesMonthly || salesItems.reduce((acc, i) => acc + i.monthly, 0);
@@ -211,7 +208,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${data.companyHeader?.name || 'Standard'} PD Report - ${appNo} - ${data.applicantName}</title>
+  <title>${data.companyHeader?.name || 'null'} PD Report - ${appNo} - ${data.applicantName}</title>
   <style>
     @page {
       size: A4;
@@ -459,7 +456,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <!-- Floating Print Control Header for Web Preview -->
   <div class="no-print" style="position: sticky; top: 0; background-color: #384c5e; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 2px solid #eb8a23; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
     <div>
-      <strong style="font-size: 11pt; font-family: sans-serif;">${data.companyHeader?.name || 'Company'} Standard Personal Discussion Report</strong>
+      <strong style="font-size: 11pt; font-family: sans-serif;">${data.companyHeader?.name || 'null'} Standard Personal Discussion Report</strong>
       <span style="font-size: 9pt; opacity: 0.8; margin-left: 10px;">App #${appNo} • ${data.applicantName}</span>
     </div>
     <button onclick="window.print()" style="background-color: #eb8a23; color: #fff; border: none; padding: 6px 16px; font-weight: bold; font-size: 10pt; border-radius: 4px; cursor: pointer; transition: 0.2s;">
@@ -481,7 +478,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       </svg>
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
-    <div class="cover-subtitle">${data.companyHeader?.name || 'Company Name'}</div>
+    <div class="cover-subtitle">${data.companyHeader?.name || 'null'}</div>
     
     <div class="cover-details">
       <table>
@@ -491,7 +488,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
         </tr>
         <tr>
           <td class="bold">Business / Firm</td>
-          <td>${data.firmName || 'Not Provided'}</td>
+          <td>${data.firmName || 'null'}</td>
         </tr>
         <tr>
           <td class="bold">Application ID</td>
@@ -519,10 +516,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <!-- SECTION 1: OFFICIAL COMPANY HEADER & CASE PROFILE -->
   <div class="hdr-main">
-    <div class="hdr-title">${data.companyHeader?.name || 'Agency Services'}</div>
-    <div class="hdr-sub">CIN : ${data.companyHeader?.cin || 'U67100UP2020PTC131346'}</div>
-    <div class="hdr-desc"><strong>(${data.companyHeader?.designation || 'Chartered Accountant'})</strong></div>
-    <div class="hdr-desc">${data.companyHeader?.address || 'Office No 410, Shree Siddhi Vinayak Trade Center - Agra- 282004'}</div>
+    <div class="hdr-title">${data.companyHeader?.name || 'null'}</div>
+    <div class="hdr-sub">CIN : ${data.companyHeader?.cin || 'null'}</div>
+    <div class="hdr-desc"><strong>(${data.companyHeader?.designation || 'null'})</strong></div>
+    <div class="hdr-desc">${data.companyHeader?.address || 'null'}</div>
   </div>
 
   <table class="report-table">
@@ -572,14 +569,14 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Business firm name</td>
-      <td colspan="3">${data.firmName || 'NA'}</td>
+      <td colspan="3">${data.firmName || 'null'}</td>
     </tr>
     ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, i: number) => `
     <tr>
       <td class="bold">Co-applicant ${i + 1} Name with relation</td>
       <td>${c.name} (${c.relation})</td>
       <td class="bold">Contact Number</td>
-      <td>${c.mobileNumber || 'NA'}</td>
+      <td>${c.mobileNumber || 'null'}</td>
     </tr>
     `).join('') : `
     <tr>
@@ -591,35 +588,35 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     `}
     <tr>
       <td class="bold">Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Loan Amount (as mention in application form)</td>
       <td>${data.loanAmount ? `₹${Number(data.loanAmount).toLocaleString('en-IN')}` : 'Not provided'}</td>
       <td class="bold">Type of Loan (as mention in application form)</td>
-      <td>${data.loanType || 'Commercial MSME Express Loan'}</td>
+      <td>${data.loanType || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || `The applicant currently operates the business to generate daily income. Proposed facility of ₹${Number(data.loanAmount || 350000).toLocaleString('en-IN')} will be utilized for inventory stock expansion and operational equipment to lower cost and increase savings.`}</td>
+      <td colspan="3">${data.loanPurpose || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the residence</td>
-      <td colspan="3">${data.residenceAddress || 'Dumari, Parora Garhpura Begusarai 848204 Br'}</td>
+      <td colspan="3">${data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the business (applicant)</td>
-      <td colspan="3">${data.businessAddress || data.residenceAddress || 'Dumari, Parora Garhpura Begusarai 848204 Br'}</td>
+      <td colspan="3">${data.businessAddress || data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Met person during visit time</td>
-      <td>${data.metPersonName || `${data.applicantName} (Self) & ${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Mrs. Rubi Devi'} (Wife)`}</td>
+      <td>${data.metPersonName || 'null'}</td>
       <td class="bold">Met person identity proof</td>
-      <td>${data.metPersonIdProof || 'PAN Card / Aadhaar Card'}</td>
+      <td>${data.metPersonIdProof || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Executive Name</td>
-      <td colspan="3">${data.executiveName || 'Mr. Sumit (Field Inspector)'}</td>
+      <td colspan="3">${data.executiveName || 'null'}</td>
     </tr>
   </table>
 
@@ -630,26 +627,26 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td style="width: 25%;" class="bold">Met person during visit time</td>
-      <td colspan="3">${data.metPersonName || `${data.applicantName} (Self) & Spouse`}</td>
+      <td colspan="3">${data.metPersonName || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the meeting</td>
-      <td colspan="3">${data.residenceAddress || 'Dumari, Parora Garhpura Begusarai 848204 Br'}</td>
+      <td colspan="3">${data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Locating Premises Type</td>
-      <td colspan="3">${data.locatingPremisesType || 'The residence premises are located in a well-connected village / urban residential locality.'}</td>
+      <td colspan="3">${data.locatingPremisesType || 'null'}</td>
     </tr>
     <tr>
       <td colspan="4" class="sec-head">Residential Details</td>
     </tr>
     <tr>
       <td class="bold">Ownership (If rented then rent amount)</td>
-      <td colspan="3">${data.residenceOwnership || 'Owned Premises on the name of applicant - Area 1000-1200 sq. feet Approx - Value Rs. 45-50 Lakh Approx - Family residing since birth.'}</td>
+      <td colspan="3">${data.residenceOwnership || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">House Details</td>
-      <td colspan="3">${data.houseDetails || 'This house has six rooms and is a single-story structure, comprising a ground floor.'}</td>
+      <td colspan="3">${data.houseDetails || 'null'}</td>
     </tr>
     <tr>
       <td colspan="4" class="sec-head">Family Background of the Applicant</td>
@@ -666,15 +663,15 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
             <td style="border: 1px solid #000; width: 16%;">Occupation</td>
             <td style="border: 1px solid #000; width: 12%;">Dependents (Yes/No)</td>
           </tr>
-          ${familyList.map(f => `
+          ${familyList.map((f, index) => `
             <tr>
-              <td style="border: 1px solid #000;" class="text-center">${f.srNo}</td>
-              <td style="border: 1px solid #000;">${f.name}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.age}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.relation}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.qualification}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.occupation}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.dependent}</td>
+              <td style="border: 1px solid #000;" class="text-center">${index + 1}</td>
+              <td style="border: 1px solid #000;">${f.name || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.age || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.isDependent ? 'Yes' : 'No'}</td>
             </tr>
           `).join('')}
         </table>
@@ -684,21 +681,21 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Monthly Household Expenses</td>
       <td>₹${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
       <td class="bold">Electricity Connection Details</td>
-      <td>${data.residenceElectricityDetails || 'Installed and active residential electricity meter'}</td>
+      <td>${data.residenceElectricityDetails || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbor Name</td>
-      <td colspan="3">${data.residenceNeighborName || 'Not Provided'}</td>
+      <td colspan="3">${data.residenceNeighborName || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbor Feedback</td>
-      <td colspan="3">${data.residenceNeighborFeedback || 'Not Provided'}</td>
+      <td colspan="3">${data.residenceNeighborFeedback || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Latitude & Longitude of premises</td>
-      <td>${data.residenceGpsCoords || '25.66933°, 86.131778°'}</td>
+      <td>${data.residenceGpsCoords || 'null'}</td>
       <td class="bold">Residence Status</td>
-      <td class="bold" style="color: #065f46;">${data.residenceStatus || 'Recommended'}</td>
+      <td class="bold" style="color: #065f46;">${data.residenceStatus || 'null'}</td>
     </tr>
   </table>
 
@@ -715,14 +712,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
-        ${data.briefBusinessProfile || `${data.applicantName} has been engaged in the ${data.firmName || 'commercial retail / trading'} business for the past approximately ${data.businessVintage || '8-10 years'}. Prior to starting this business, the applicant was engaged in agricultural and local trading activities.<br/><br/>
-        The business setup comprises retail display racks, counters, processing equipment, and storage stock. The applicant personally manages the day-to-day operations of the business and caters to daily walk-in customers from nearby villages and surrounding localities.<br/><br/>
-        The entire business setup is operated smoothly with regular footfall. The applicant stated that he is applying for the proposed credit facility to expand working capital stock, lower unit procurement costs, and improve overall profitability.`}
+        ${data.briefBusinessProfile || 'null'}
       </td>
     </tr>
     <tr>
       <td style="width: 35%;" class="bold">Vintage of the business</td>
-      <td>${data.businessVintage || 'Approximately 8 to 10 years'}</td>
+      <td>${data.businessVintage || 'null'}</td>
     </tr>
     ${data.previousOccupation ? `
     <tr>
@@ -738,43 +733,43 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     ` : ''}
     <tr>
       <td class="bold">Number of staff</td>
-      <td>${data.staffCount || 'No external staff/labour is engaged. Business operations are managed by family members.'}</td>
+      <td>${data.staffCount || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Is office premise on rented / owned</td>
-      <td>${data.businessPremiseOwnership || 'Business is being operated from self-owned / leased premises.'}</td>
+      <td>${data.businessPremiseOwnership || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Details of Office / Factory infrastructure (Assets)</td>
-      <td>${data.factoryInfrastructure || 'Business setup comprises display racks, stock storage, processing machinery, weighing scales, counter and necessary retail fixtures.'}</td>
+      <td>${data.factoryInfrastructure || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Stock details with estimated value</td>
-      <td>${data.stockDetailsValue || `Sufficient inventory stock of daily-use goods and raw material found available at premises during verification. Estimated stock value: ₹${Number(data.loanAmount || 450000).toLocaleString('en-IN')}.`}</td>
+      <td>${data.stockDetailsValue || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Fixed & Current Asset Analysis</td>
-      <td>${data.fixedAndCurrentAssetAnalysis || 'Fixed assets comprise shop furniture, display racks, and processing equipment. Current assets include working capital inventory and receivables.'}</td>
+      <td>${data.fixedAndCurrentAssetAnalysis || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Asset Creation Through Business</td>
-      <td>${data.assetCreationThroughBusiness || 'As informed by applicant, income generated from business has been utilized for house construction and reinvestment into stock inventory.'}</td>
+      <td>${data.assetCreationThroughBusiness || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Business Investment</td>
-      <td>${data.initialBusinessInvestment || 'As informed by applicant, business was initially started with an approximate capital investment of ₹1 Lakh to ₹3 Lakhs.'}</td>
+      <td>${data.initialBusinessInvestment || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Agricultural Income Details</td>
-      <td>${data.agriculturalIncomeDetails || 'The applicant owns agricultural land where seasonal crops are cultivated, generating supplementary annual family income of ₹1.5 - 2 Lakhs.'}</td>
+      <td>${data.agriculturalIncomeDetails || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Other source income</td>
-      <td>${data.otherSourceIncomeDetails || 'Not applicable / Rental Income'}</td>
+      <td>${data.otherSourceIncomeDetails || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Operational / Saving analysis</td>
-      <td>${data.operationalSavingAnalysis || 'With proposed working capital expansion, procurement cost per unit is projected to reduce by 8-12%, bolstering net monthly disposable surplus.'}</td>
+      <td>${data.operationalSavingAnalysis || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" style="text-align: center; font-style: italic; font-weight: bold; padding: 10px; background-color: #f8fafc;">
@@ -813,6 +808,92 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
         <td>${s.remark}</td>
       </tr>
     `).join('')}
+
+    ${data.parsedCreditReport ? `
+    <tr>
+      <td colspan="3" class="sec-head">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'null'})</td>
+    </tr>
+    <tr>
+      <td class="bold">Report Date</td>
+      <td colspan="2">${data.parsedCreditReport.reportDate || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Total Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Active Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Total Current Balance</td>
+      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Total Overdue Amount</td>
+      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Credit Score</td>
+      <td colspan="2">${data.parsedCreditReport.creditScore || 'null'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Risk Indicators</td>
+      <td colspan="2">
+        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
+      </td>
+    </tr>
+    ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
+    <tr>
+      <td colspan="3" style="padding: 0;">
+        <table style="width: 100%; border-collapse: collapse; border: none; font-size: 8px;">
+          <tr style="background-color: #2d3e50; color: #ffffff; font-weight: bold; text-align: left; text-transform: uppercase;">
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">#</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Borrower</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Facility Type</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Lending Inst.</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Category</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Status</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Disbursed Date</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Disbursed Amt</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Current Balance</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Overdue Amt</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">EMI</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Tenure</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">ROI</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Last Paid</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">As On</td>
+          </tr>
+          ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
+            const isOverdue = (acc.overdueAmount || 0) > 0;
+            const bgClass = isOverdue ? '#fef2f2' : (index % 2 === 1 ? '#fcfcfd' : '#ffffff');
+            const isActive = acc.status === 'Active';
+            
+            return `
+              <tr style="background-color: ${bgClass};">
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #94a3b8; font-weight: bold;">${index + 1}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #1e293b;">${acc.applicantName || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.accountType || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.creditGrantor || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569; font-weight: bold; font-size: 6px;">${acc.lenderType || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-weight: bold; color: ${isActive ? '#16a34a' : (acc.status === 'Closed' ? '#64748b' : '#2d3e50')};">${acc.status || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.disbursedDate || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: #1e293b;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: ${isOverdue ? '#dc2626' : '#1e293b'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.interestRate ? acc.interestRate + '%' : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.lastPaymentDate || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.asOnDate || '—'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </table>
+      </td>
+    </tr>
+    ` : ''}
+    ` : ''}
 
     <tr>
       <td colspan="3" class="sec-head">Banking Details and Limit OD and CC limit with bank</td>
@@ -878,27 +959,27 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Latitude & Longitude of business premises</td>
-      <td colspan="2">${data.businessGpsCoords || '25.669427°, 86.131675°'}</td>
+      <td colspan="2">${data.businessGpsCoords || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Remarks</td>
-      <td colspan="2">${data.businessLocationRemarks || 'Location was physically verified; GPS coordinates confirmed on Google Maps.'}</td>
+      <td colspan="2">${data.businessLocationRemarks || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Electricity Connection Details</td>
-      <td colspan="2">${data.businessElectricityDetails || 'Commercial / Residential electricity meter verified in working condition.'}</td>
+      <td colspan="2">${data.businessElectricityDetails || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbour Name</td>
-      <td colspan="2">${data.businessNeighborName || 'Not Provided'}</td>
+      <td colspan="2">${data.businessNeighborName || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbour Feedback</td>
-      <td colspan="2">${data.businessNeighborFeedback || 'Not Provided'}</td>
+      <td colspan="2">${data.businessNeighborFeedback || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Business Status</td>
-      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || 'Recommended'}</td>
+      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || 'null'}</td>
     </tr>
   </table>
 
@@ -1014,7 +1095,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <strong>(Sign of Agency authorized signatory)</strong>
     </div>
     <div style="text-align: right;">
-      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Authorized Signatory'}</strong>
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'null'}</strong>
     </div>
   </div>
 
@@ -1028,8 +1109,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </div>
 
     <div style="font-size: 9pt; line-height: 1.5; color: #1e293b; text-align: justify; margin-bottom: 12px;">
-      ${data.aiExecutiveSummary || `<strong>Executive Overview:</strong> Infominer Services Private Limited conducted an end-to-end Personal Discussion (PD) and field verification for applicant <strong>${data.applicantName}</strong> (${data.firmName || 'Proprietorship Firm'}), applying for a micro-lending facility of <strong>₹${Number(data.loanAmount || 350000).toLocaleString('en-IN')}</strong> under <strong>${data.clientBankName || 'the Bank'}</strong>.<br/><br/>
-      <strong>Key On-Ground Observations:</strong> Physical inspection confirmed an active business vintage of approximately ${data.businessVintage || '8-10 years'} at the verified premises. Customer footfall, inventory stock depth, and market reputation were cross-verified through adjoining shopkeepers and neighborhood feedback, confirming high stability and zero adverse antecedents.`}
+      ${data.aiExecutiveSummary || 'null'}
     </div>
 
     <!-- Financial Metrics Summary Table -->
@@ -1114,7 +1194,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <div class="hdr-main" style="margin-bottom: 10px;">
     <div class="hdr-title">ANNEXURE - VERIFIED KYC & FIELD VISIT PHOTOGRAPHS</div>
-    <div class="hdr-sub">Application ID: ${appNo} • ${data.applicantName} (${data.firmName || 'Proprietorship'})</div>
+    <div class="hdr-sub">Application ID: ${appNo} • ${data.applicantName} (${data.firmName || 'null'})</div>
   </div>
 
   <table class="report-table">
@@ -1132,7 +1212,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
                 <div class="photo-card">
                   <img src="${p.dataUrl}" alt="${p.name}" />
                   <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-                  <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'N/A'}, ${p.gps?.lng || 'N/A'} • Verified Stamp</div>
+                  <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'null'}, ${p.gps?.lng || 'null'} • Verified Stamp</div>
                 </div>
               `).join('')
                 : `<div style="padding: 20px; border: 1px dashed #ccc; width: 100%; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`
@@ -1154,13 +1234,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-  const appNo = data.applicationNumber || 'INF/2026/88492';
-  const caseStatus = data.statusOfCase || 'Recommended';
+  const appNo = data.applicationNumber || 'null';
+  const caseStatus = data.statusOfCase || 'null';
 
-  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
-    { srNo: 1, name: data.applicantName, age: '45 Yrs', relation: 'Self', qualification: 'Uneducated', occupation: 'Self-employed', dependent: 'No' },
-    { srNo: 2, name: ((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Spouse', age: '50 Yrs', relation: 'Spouse', qualification: 'Uneducated', occupation: 'Same business', dependent: 'No' }
-  ];
+  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
   const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
     { particulars: 'Flour Chakki Income', businessNotes: '06 Quintals × 100 Kg × ₹2.50 × 28 Days', monthly: 42000, yearly: 504000 }
@@ -1345,7 +1422,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         </tr>
         <tr>
           <td class="bold">Business / Firm</td>
-          <td>${data.firmName || 'Not Provided'}</td>
+          <td>${data.firmName || 'null'}</td>
         </tr>
         <tr>
           <td class="bold">Application ID</td>
@@ -1375,10 +1452,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <table>
     <tr>
       <td colspan="4" class="text-center bold" style="border: 2px solid #000; padding: 8px;">
-        ${data.companyHeader?.name || 'Infominer Services Private Limited'}<br/>
-        CIN : ${data.companyHeader?.cin || 'U67100UP2020PTC131346'}<br/>
-        (${data.companyHeader?.designation || 'Chartered Accountant'})<br/>
-        ${data.companyHeader?.address || 'Office No 410, Shree Siddhi Vinayak Trade Center - Agra- 282004'}
+        ${data.companyHeader?.name || 'null'}<br/>
+        CIN : ${data.companyHeader?.cin || 'null'}<br/>
+        (${data.companyHeader?.designation || 'null'})<br/>
+        ${data.companyHeader?.address || 'null'}
       </td>
     </tr>
     <tr>
@@ -1417,19 +1494,19 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Contact Number</td>
-      <td colspan="3">${data.applicantPhone || '9005644814'}</td>
+      <td colspan="3">${data.applicantPhone || 'null'}</td>
     </tr>
     <tr>
       <td>Business firm name</td>
-      <td colspan="3">${data.firmName || 'No formal business name'}</td>
+      <td colspan="3">${data.firmName || 'null'}</td>
     </tr>
     <tr>
       <td>Co-applicant Name with relation</td>
-      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Ms. Jamuna devi (Daughter)'}</td>
+      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'null'}</td>
     </tr>
     <tr>
       <td>Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'null'}</td>
     </tr>
     <tr>
       <td>Loan Amount (as mention in application form)</td>
@@ -1437,19 +1514,19 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Type of Loan (as mention in application form)</td>
-      <td colspan="3">${data.loanType || 'Commercial Solar Loan'}</td>
+      <td colspan="3">${data.loanType || 'null'}</td>
     </tr>
     <tr>
       <td>Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || 'The applicant currently operates the business using a diesel engine, which incurs an approximate monthly expense. Therefore, the applicant is planning to install a solar setup to reduce operational costs and improve savings.'}</td>
+      <td colspan="3">${data.loanPurpose || 'null'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>
-      <td colspan="3">${data.residenceAddress || 'Post Khundra Gram Khundra Katra Shahjahanpur Miranpur Katra Khundra Shahjahanpur 242301'}</td>
+      <td colspan="3">${data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td>Address of the business (applicant)</td>
-      <td colspan="3"><strong>${data.businessAddress || 'Post Khundra Gram Khundra Katra Shahjahanpur Miranpur Katra Khundra Shahjahanpur 242301'}</strong></td>
+      <td colspan="3"><strong>${data.businessAddress || 'null'}</strong></td>
     </tr>
     <tr>
       <td>Met person during visit time.</td>
@@ -1457,11 +1534,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Met person identity proof</td>
-      <td colspan="3">${data.metPersonIdProof || 'PAN Card'}</td>
+      <td colspan="3">${data.metPersonIdProof || 'null'}</td>
     </tr>
     <tr>
       <td>Executive Name</td>
-      <td colspan="3">${data.executiveName || 'Mr. Shivam'}</td>
+      <td colspan="3">${data.executiveName || 'null'}</td>
     </tr>
   </table>
 
@@ -1479,22 +1556,22 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2">Address of the meeting</td>
-      <td colspan="5">${data.residenceAddress || 'Post Khundra Gram Khundra Katra Shahjahanpur'}</td>
+      <td colspan="5">${data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2">Locating Premises Type</td>
-      <td colspan="5">${data.locatingPremisesType || 'The residence premises are located in a village area'}</td>
+      <td colspan="5">${data.locatingPremisesType || 'null'}</td>
     </tr>
     <tr>
       <td colspan="7" class="sec-title">Residential Details</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Ownership (If rented then rent amount)</td>
-      <td colspan="5">${data.residenceOwnership || 'Owned Premises on the name of applicant'}</td>
+      <td colspan="5">${data.residenceOwnership || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">House Details</td>
-      <td colspan="5">${data.houseDetails || 'This house has two rooms and is a single-story structure, comprising a ground floor'}</td>
+      <td colspan="5">${data.houseDetails || 'null'}</td>
     </tr>
     <tr>
       <td colspan="7" class="sec-title">Family Background of the Applicant</td>
@@ -1508,40 +1585,40 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Occupation</td>
       <td class="bold">Dependents ( Yes/ No )</td>
     </tr>
-    ${familyList.map(f => `
-      <tr class="text-center">
-        <td>${f.srNo}</td>
-        <td>${f.name}</td>
-        <td>${f.age}</td>
-        <td>${f.relation}</td>
-        <td>${f.qualification}</td>
-        <td>${f.occupation}</td>
-        <td>${f.dependent}</td>
-      </tr>
-    `).join('')}
+    ${familyList.map((f, index) => `
+            <tr>
+              <td style="border: 1px solid #000;" class="text-center">${index + 1}</td>
+              <td style="border: 1px solid #000;">${f.name || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.age || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.isDependent ? 'Yes' : 'No'}</td>
+            </tr>
+          `).join('')}
     <tr>
       <td colspan="2" class="bold">Monthly Household Expenses</td>
       <td colspan="5">Rs. ${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${data.residenceElectricityDetails || 'Electricity bill was not provided at the time of visit'}</td>
+      <td colspan="5">${data.residenceElectricityDetails || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Name</td>
-      <td colspan="5">${data.residenceNeighborName || 'Not Provided'}</td>
+      <td colspan="5">${data.residenceNeighborName || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.residenceNeighborFeedback || 'Not Provided'}</td>
+      <td colspan="5">${data.residenceNeighborFeedback || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${data.businessGpsCoords || '27.94418, 79.63275'}</td>
+      <td colspan="5">${data.businessGpsCoords || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Residence Status</td>
-      <td colspan="5">${data.residenceStatus || 'Recommended'}</td>
+      <td colspan="5">${data.residenceStatus || 'null'}</td>
     </tr>
   </table>
 
@@ -1557,12 +1634,12 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
-        ${data.briefBusinessProfile || `${data.applicantName} has been engaged in the business for the past approximately 15 years.`}
+        ${data.briefBusinessProfile || 'null'}
       </td>
     </tr>
     <tr>
       <td style="width:30%;">Vintage of the business</td>
-      <td>${data.businessVintage || 'The applicant has been engaged in the business for the past approximately 15 years.'}</td>
+      <td>${data.businessVintage || 'null'}</td>
     </tr>
     ${data.previousOccupation ? `
     <tr>
@@ -1578,43 +1655,43 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     ` : ''}
     <tr>
       <td>Number of staffs</td>
-      <td>${data.staffCount || 'No external staff/labour is engaged. Business operations are managed by family members.'}</td>
+      <td>${data.staffCount || 'null'}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
-      <td>${data.businessPremiseOwnership || 'Business is being operated from self-owned premises.'}</td>
+      <td>${data.businessPremiseOwnership || 'null'}</td>
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${data.factoryInfrastructure || 'The business setup comprises machinery and engines.'}</td>
+      <td>${data.factoryInfrastructure || 'null'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${data.stockDetailsValue || 'Limited quantity of raw material was found available at premises during verification.'}</td>
+      <td>${data.stockDetailsValue || 'null'}</td>
     </tr>
     <tr>
       <td>Fixed & Current Asset Analysis</td>
-      <td>${data.fixedAndCurrentAssetAnalysis || 'The fixed assets comprise machinery. Current assets mainly comprise working capital.'}</td>
+      <td>${data.fixedAndCurrentAssetAnalysis || 'null'}</td>
     </tr>
     <tr>
       <td>Asset Creation Through Business</td>
-      <td>${data.assetCreationThroughBusiness || 'The applicant informed that the property where solar installation is proposed has been created/purchased through savings generated from the same business.'}</td>
+      <td>${data.assetCreationThroughBusiness || 'null'}</td>
     </tr>
     <tr>
       <td>Business Investment</td>
-      <td>${data.initialBusinessInvestment || 'As informed by the applicant, the business was initially started with an approximate investment of around ₹3 lakhs.'}</td>
+      <td>${data.initialBusinessInvestment || 'null'}</td>
     </tr>
     <tr>
       <td>Agricultural Income Details</td>
-      <td>${data.agriculturalIncomeDetails || 'The applicant owns agricultural land where crops are cultivated.'}</td>
+      <td>${data.agriculturalIncomeDetails || 'null'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${data.otherSourceIncomeDetails || 'Apart from the primary business, the applicant owns cows providing an additional source of income.'}</td>
+      <td>${data.otherSourceIncomeDetails || 'null'}</td>
     </tr>
     <tr>
       <td>Solar saving analysis</td>
-      <td>${data.operationalSavingAnalysis || 'As informed by the applicant, machinery is presently operated through diesel engine setup. Applicant expects reduction in approx. 60% operational cost after solar installation.'}</td>
+      <td>${data.operationalSavingAnalysis || 'null'}</td>
     </tr>
   </table>
 
@@ -1654,6 +1731,92 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         <td colspan="2">${s.remark}</td>
       </tr>
     `).join('')}
+
+    ${data.parsedCreditReport ? `
+    <tr>
+      <td colspan="7" class="sec-title bg-light">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'null'})</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Report Date</td>
+      <td colspan="4">${data.parsedCreditReport.reportDate || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Total Accounts</td>
+      <td colspan="4">${data.parsedCreditReport.totalAccounts || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Active Accounts</td>
+      <td colspan="4">${data.parsedCreditReport.activeAccounts || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Total Current Balance</td>
+      <td colspan="4">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Total Overdue Amount</td>
+      <td colspan="4" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Credit Score</td>
+      <td colspan="4">${data.parsedCreditReport.creditScore || 'null'}</td>
+    </tr>
+    <tr>
+      <td colspan="3" class="bold">Risk Indicators</td>
+      <td colspan="4">
+        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
+      </td>
+    </tr>
+    ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
+    <tr>
+      <td colspan="7" style="padding: 0;">
+        <table style="width: 100%; border-collapse: collapse; border: none; font-size: 8px;">
+          <tr style="background-color: #2d3e50; color: #ffffff; font-weight: bold; text-align: left; text-transform: uppercase;">
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">#</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Borrower</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Facility Type</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Lending Inst.</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Category</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Status</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Disbursed Date</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Disbursed Amt</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Current Balance</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Overdue Amt</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">EMI</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Tenure</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">ROI</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">Last Paid</td>
+            <td style="border: 1px solid #e2e8f0; padding: 4px;">As On</td>
+          </tr>
+          ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
+            const isOverdue = (acc.overdueAmount || 0) > 0;
+            const bgClass = isOverdue ? '#fef2f2' : (index % 2 === 1 ? '#fcfcfd' : '#ffffff');
+            const isActive = acc.status === 'Active';
+            
+            return `
+              <tr style="background-color: ${bgClass};">
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #94a3b8; font-weight: bold;">${index + 1}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #1e293b;">${acc.applicantName || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.accountType || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.creditGrantor || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569; font-weight: bold; font-size: 6px;">${acc.lenderType || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-weight: bold; color: ${isActive ? '#16a34a' : (acc.status === 'Closed' ? '#64748b' : '#2d3e50')};">${acc.status || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.disbursedDate || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: #1e293b;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: ${isOverdue ? '#dc2626' : '#1e293b'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.interestRate ? acc.interestRate + '%' : '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.lastPaymentDate || '—'}</td>
+                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.asOnDate || '—'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </table>
+      </td>
+    </tr>
+    ` : ''}
+    ` : ''}
 
     <tr>
       <td colspan="7" class="sec-title bg-light">Banking Details and Limit OD and CC limit with bank</td>
@@ -1702,31 +1865,31 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     `).join('')}
     <tr>
       <td colspan="2" class="bold">Current Obligation</td>
-      <td colspan="5">${data.currentObligationSummary || 'No any existing obligation'}</td>
+      <td colspan="5">${data.currentObligationSummary || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${data.businessGpsCoords || '27.94255, 79.63139'}</td>
+      <td colspan="5">${data.businessGpsCoords || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Remarks</td>
-      <td colspan="5">${data.businessLocationRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.'}</td>
+      <td colspan="5">${data.businessLocationRemarks || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${data.businessElectricityDetails || 'Not available'}</td>
+      <td colspan="5">${data.businessElectricityDetails || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
-      <td colspan="5">${data.businessNeighborName || 'Not Provided'}</td>
+      <td colspan="5">${data.businessNeighborName || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.businessNeighborFeedback || 'Not Provided'}</td>
+      <td colspan="5">${data.businessNeighborFeedback || 'null'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
-      <td colspan="5">${data.businessStatus || 'Recommended'}</td>
+      <td colspan="5">${data.businessStatus || 'null'}</td>
     </tr>
   </table>
 
@@ -1783,13 +1946,13 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || 'As per applicant no any existing obligation'}</td>
+      <td class="text-left">${data.existingEmiNotes || 'null'}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td class="text-left">${data.householdExpensesNotes || `The applicant's family has 1 earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`}</td>
+      <td class="text-left">${data.householdExpensesNotes || 'null'}</td>
       <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>
@@ -1801,7 +1964,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">${data.comfortableEmiNotes || `Comfortable Monthly EMI Post all expenses (Business and Household):- As per ${bankName} Limited`}</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || 'null'}</td>
       <td colspan="2" class="bold">As per ${bankName} Limited</td>
     </tr>
   </table>
@@ -1810,9 +1973,9 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
     <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Detailed Summary</h3>
     <p style="text-align: justify; font-size: 9.5pt; line-height: 1.6;">
-      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'the business'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
+      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'null'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
       <br/><br/>
-      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'Business Expansion / Solar Upgrade'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
+      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'null'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
       <br/><br/>
       <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')}.
     </p>
@@ -1823,8 +1986,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <div style="width: 65%;">
       <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Risk Assessment</h3>
       <p style="font-size: 9.5pt; line-height: 1.5;">
-        <strong>CIBIL Score:</strong> ${data.cibilScore || 'N/A'}<br/>
-        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'Standard business risks apply. Cash flows are stable and vintage provides comfort.'}
+        <strong>CIBIL Score:</strong> ${data.cibilScore || 'null'}<br/>
+        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'null'}
       </p>
     </div>
     <div style="width: 30%; text-align: center;">
@@ -1874,7 +2037,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <strong style="text-decoration: underline;">(Sign of Agency authorized signatory)</strong>
     </div>
     <div style="text-align: right;">
-      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Authorized Signatory'}</strong>
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'null'}</strong>
     </div>
   </div>
 
@@ -1894,7 +2057,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
             <div class="photo-card">
               <img src="${p.dataUrl}" alt="${p.name}" />
               <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'N/A'}, ${p.gps?.lng || 'N/A'} • Verified Stamp</div>
+              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'null'}, ${p.gps?.lng || 'null'} • Verified Stamp</div>
             </div>
           `).join('')
             : `<div style="grid-column: span 2; padding: 20px; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`

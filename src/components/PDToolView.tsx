@@ -15,6 +15,16 @@ import {
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
   Loader2, Bot
 } from 'lucide-react';
+import { 
+  extractTextFromPdfFile, 
+  parseCrifApplicant, 
+  parseCrifSummary, 
+  parseCrifAccounts, 
+  parseCibilApplicant, 
+  parseCibilSummary, 
+  parseCibilAccounts 
+} from '../services/clientPdfExtractor';
+import { AccountDetailsTable } from './AccountDetailsTable';
 
 export interface ItemizedCalculationLine {
   id: string;
@@ -154,6 +164,79 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  
+  // Credit Report Extraction State
+  const [creditReportType, setCreditReportType] = useState('NONE');
+  const [creditReportFiles, setCreditReportFiles] = useState<File[]>([]);
+  const [parsedCreditReport, setParsedCreditReport] = useState<any>(null);
+  const [isParsingCreditReport, setIsParsingCreditReport] = useState(false);
+
+  const handleParseCreditReport = async () => {
+    if (creditReportFiles.length === 0) return;
+    setIsParsingCreditReport(true);
+    try {
+      let combinedAccounts: any[] = [];
+      let totalAccounts = 0;
+      let activeAccounts = 0;
+      let totalCurrentBalance = 0;
+      let totalAmountOverdue = 0;
+      
+      let primaryApplicantInfo = null;
+      let provider = 'CRIF';
+      let flags: string[] = [];
+
+      for (const file of creditReportFiles) {
+        const text = await extractTextFromPdfFile(file);
+        const isCibil = creditReportType === 'CIBIL' || (creditReportType !== 'CRIF' && text.includes('CIBIL'));
+        provider = isCibil ? 'CIBIL' : 'CRIF';
+        
+        let applicantInfo, summary, accounts;
+        if (provider === 'CIBIL') {
+          applicantInfo = parseCibilApplicant(text);
+          summary = parseCibilSummary(text);
+          accounts = parseCibilAccounts(text, applicantInfo.name);
+        } else {
+          applicantInfo = parseCrifApplicant(text);
+          summary = parseCrifSummary(text);
+          accounts = parseCrifAccounts(text, applicantInfo.name);
+        }
+
+        if (!primaryApplicantInfo) primaryApplicantInfo = applicantInfo;
+        
+        totalAccounts += summary.totalAccounts || 0;
+        activeAccounts += summary.activeAccounts || 0;
+        totalCurrentBalance += summary.totalCurrentBalance || 0;
+        totalAmountOverdue += summary.totalAmountOverdue || 0;
+        
+        if (summary.totalAmountOverdue > 0) {
+          flags.push(`File ${file.name} - Overdue: ₹${summary.totalAmountOverdue.toLocaleString('en-IN')}`);
+        }
+        if (summary.overdueAccounts > 0) {
+          flags.push(`File ${file.name} - ${summary.overdueAccounts} account(s) overdue`);
+        }
+        
+        combinedAccounts = [...combinedAccounts, ...accounts];
+      }
+
+      setParsedCreditReport({
+        reportProvider: provider + (creditReportFiles.length > 1 ? ' (Combined)' : ''),
+        reportDate: primaryApplicantInfo?.reportDate,
+        creditScore: primaryApplicantInfo?.score,
+        totalAccounts: totalAccounts,
+        activeAccounts: activeAccounts,
+        totalCurrentBalance: totalCurrentBalance,
+        totalOverdueAmount: totalAmountOverdue,
+        flags: flags,
+        accounts: combinedAccounts
+      });
+      
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse report. Make sure you uploaded valid PDFs.');
+    } finally {
+      setIsParsingCreditReport(false);
+    }
+  };
   
   const [applicantsList, setApplicantsList] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
@@ -1365,6 +1448,17 @@ ${qaPairs.join('\n\n')}`;
     const finalResidenceAddress = compositeAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
+    const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'NIL';
+    const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'NIL';
+    const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`) || 'NIL';
+    const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'NIL';
+    const fbStockDetails = stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.';
+    const fbAssetAnalysis = `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`;
+    const fbAssetCreation = `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`;
+    const fbBusinessInvestment = `Started with an initial investment of approx ₹${initialInvestment || 1} Lakhs.`;
+    const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
+    const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
+
     openStandardPDReportPrintWindow({
       companyHeader: {
         name: selectedCompany.name,
@@ -1404,19 +1498,19 @@ ${qaPairs.join('\n\n')}`;
       residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'NIL'} regarding their behaviour.` : 'NIL',
 
       briefBusinessProfile: briefBusinessProfile || 'NIL',
-      businessVintage: businessVintageText || 'NIL',
+      businessVintage: businessVintageText || fbBusinessVintage,
       previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'NIL') : (previousOccupation || 'NIL'),
       reasonToLeave: reasonToLeave || 'NIL',
-      staffCount: staffCountText || 'NIL',
-      businessPremiseOwnership: premiseOwnershipText || 'NIL',
-      factoryInfrastructure: factoryInfrastructureText || 'NIL',
-      stockDetailsValue: stockDetailsValueText || 'NIL',
-      fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || 'NIL',
-      assetCreationThroughBusiness: assetCreationText || 'NIL',
-      initialBusinessInvestment: businessInvestmentText || 'NIL',
-      agriculturalIncomeDetails: agriculturalIncomeText || 'NIL',
+      staffCount: staffCountText || fbStaffCount,
+      businessPremiseOwnership: premiseOwnershipText || fbPremiseOwnership,
+      factoryInfrastructure: factoryInfrastructureText || fbFactoryInfra,
+      stockDetailsValue: stockDetailsValueText || fbStockDetails,
+      fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || fbAssetAnalysis,
+      assetCreationThroughBusiness: assetCreationText || fbAssetCreation,
+      initialBusinessInvestment: businessInvestmentText || fbBusinessInvestment,
+      agriculturalIncomeDetails: agriculturalIncomeText || fbAgriIncome,
       otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'NIL',
-      operationalSavingAnalysis: solarSavingText || 'NIL',
+      operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
       prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
       prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [],
@@ -1479,7 +1573,8 @@ ${qaPairs.join('\n\n')}`;
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`
+      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`,
+      parsedCreditReport: parsedCreditReport
     });
   };
 
@@ -1839,6 +1934,111 @@ ${qaPairs.join('\n\n')}`;
         </div>
       </div>
 
+      {/* Credit Report Extraction UI - Global Level */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm mb-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-[#eb8a23]" />
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Credit Report Extraction</h3>
+            </div>
+            <p className="text-[10px] text-slate-500 font-medium">Include CRIF/CIBIL data in the final report</p>
+          </div>
+          
+          <div className="flex flex-wrap items-center gap-6">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
+                <input type="radio" value="NONE" checked={creditReportType === 'NONE'} onChange={() => setCreditReportType('NONE')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                None
+              </label>
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
+                <input type="radio" value="CRIF" checked={creditReportType === 'CRIF'} onChange={() => setCreditReportType('CRIF')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                CRIF
+              </label>
+              <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
+                <input type="radio" value="CIBIL" checked={creditReportType === 'CIBIL'} onChange={() => setCreditReportType('CIBIL')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                CIBIL
+              </label>
+            </div>
+            
+            {creditReportType !== 'NONE' && (
+              <div className="flex items-center gap-3">
+                <input 
+                  type="file" 
+                  multiple
+                  accept=".pdf" 
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setCreditReportFiles(Array.from(e.target.files));
+                    }
+                  }} 
+                  className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" 
+                />
+                <button 
+                  onClick={handleParseCreditReport} 
+                  disabled={isParsingCreditReport || creditReportFiles.length === 0}
+                  className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold disabled:opacity-50 transition shadow-sm"
+                >
+                  {isParsingCreditReport ? 'Extracting...' : 'Extract Data'}
+                </button>
+              </div>
+            )}
+            
+            {parsedCreditReport && (
+              <div className="w-full mt-4 bg-slate-50 border border-emerald-200 rounded-lg p-3">
+                <div className="text-xs text-emerald-700 font-bold flex items-center gap-1.5 mb-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Successfully extracted {parsedCreditReport.reportProvider} Data
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Report Date</span>
+                    <span className="font-semibold text-slate-800">{parsedCreditReport.reportDate || 'N/A'}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Credit Score</span>
+                    <span className="font-semibold text-slate-800">{parsedCreditReport.creditScore || 'N/A'}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Total Accounts</span>
+                    <span className="font-semibold text-slate-800">{parsedCreditReport.totalAccounts || '0'}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Active Accounts</span>
+                    <span className="font-semibold text-slate-800">{parsedCreditReport.activeAccounts || '0'}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Current Balance</span>
+                    <span className="font-semibold text-slate-800">₹{parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || '0'}</span>
+                  </div>
+                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Overdue Amount</span>
+                    <span className={`font-semibold ${parsedCreditReport.totalOverdueAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      ₹{parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || '0'}
+                    </span>
+                  </div>
+                </div>
+                {parsedCreditReport.flags && parsedCreditReport.flags.length > 0 && (
+                  <div className="mt-2 bg-red-50 p-2 rounded border border-red-100 text-[10px]">
+                    <span className="font-bold text-red-800 uppercase block mb-1">Risk Indicators</span>
+                    <ul className="list-disc list-inside text-red-700 space-y-0.5">
+                      {parsedCreditReport.flags.map((flag: string, i: number) => (
+                        <li key={i}>{flag}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {parsedCreditReport.accounts && parsedCreditReport.accounts.length > 0 && (
+                  <div className="mt-4">
+                    <AccountDetailsTable accounts={parsedCreditReport.accounts} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Navigation Module Tabs */}
       <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
         {[
@@ -1917,6 +2117,7 @@ ${qaPairs.join('\n\n')}`;
                   <option value="RENTED">Rented Premises</option>
                   <option value="OWN">Self Owned Premises</option>
                   <option value="FAMILY">Family / Ancestral Owned</option>
+                  <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
                 </select>
               </div>
 
@@ -2288,6 +2489,8 @@ ${qaPairs.join('\n\n')}`;
                 <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </div>
             </div>
+
+
 
             {/* 3. Name of Applicant & 4. Contact Number */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3982,7 +4185,10 @@ ${qaPairs.join('\n\n')}`;
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Neighbor / Market Reference Feedback</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label className="block text-xs font-bold text-slate-700">Neighbor / Market Reference Feedback</label>
+                  <button type="button" onClick={() => setNeighborFeedback("Neighbour verification was conducted, wherein neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive regarding their behaviour.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
+                </div>
                 <textarea
                   value={neighborFeedback}
                   onChange={(e) => setNeighborFeedback(e.target.value)}
@@ -4571,6 +4777,8 @@ ${qaPairs.join('\n\n')}`;
                 </div>
               </div>
             </div>
+
+
 
             {/* Decision Recommendation Banner */}
             <div className={`p-5 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${
