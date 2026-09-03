@@ -46,6 +46,7 @@ export interface PDReportPrintData {
     relationship: string;
     qualification?: string;
     profession?: string;
+    occupation?: string;
     isDependent: boolean;
   }>;
   monthlyHouseholdExpenses?: number;
