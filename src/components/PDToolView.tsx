@@ -1486,7 +1486,7 @@ ${qaPairs.join('\n\n')}`;
       businessAddress: finalBusinessAddress,
       metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
       metPersonIdProof: panNumber ? `PAN: ${panNumber}` : 'NIL',
-      executiveName: 'NIL',
+      executiveName: executiveName || 'NIL',
       familyMembers: familyMembers,
 
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : 'NIL'),

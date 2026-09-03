@@ -197,7 +197,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
 
-  const hhExpM = data.householdExpensesMonthly || 18000;
+  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
 
   const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
@@ -1255,7 +1255,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = data.netProfitYearly || (netProfM * 12);
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const hhExpM = data.householdExpensesMonthly || 15000;
+  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
   const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
   const netDisposalY = data.netDisposalIncomeYearly || (netDisposalM * 12);
