@@ -30,6 +30,10 @@ export interface ItemizedCalculationLine {
   id: string;
   particulars: string;
   businessNotes?: string;
+  quantity?: number;
+  price?: number;
+  workingDays?: number;
+  unit?: string;
   monthlyAmount: number;
 }
 
@@ -625,7 +629,27 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Income
   const handleUpdateIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setIncomeLines(prev => prev.map(line => line.id === id ? { ...line, [field]: value } : line));
+    setIncomeLines(prev => prev.map(line => {
+      if (line.id === id) {
+        const newLine = { ...line, [field]: value };
+        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+          const q = newLine.quantity;
+          const p = newLine.price;
+          const w = newLine.workingDays;
+          const u = newLine.unit;
+
+          if (!q || !p || !w || !u) {
+            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+            newLine.monthlyAmount = 0;
+          } else {
+            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+          }
+        }
+        return newLine;
+      }
+      return line;
+    }));
   };
 
   const handleAddIncomeLine = () => {
@@ -643,7 +667,27 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Expenditure
   const handleUpdateExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setExpenseLines(prev => prev.map(line => line.id === id ? { ...line, [field]: value } : line));
+    setExpenseLines(prev => prev.map(line => {
+      if (line.id === id) {
+        const newLine = { ...line, [field]: value };
+        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+          const q = newLine.quantity;
+          const p = newLine.price;
+          const w = newLine.workingDays;
+          const u = newLine.unit;
+
+          if (!q || !p || !w || !u) {
+            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+            newLine.monthlyAmount = 0;
+          } else {
+            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+          }
+        }
+        return newLine;
+      }
+      return line;
+    }));
   };
 
   const handleAddExpenseLine = () => {
@@ -1481,7 +1525,7 @@ ${qaPairs.join('\n\n')}`;
       firmName: firmName || 'NIL',
       loanAmount: appliedAmount || 0,
       loanType: loanType === 'Other' ? (otherLoanType || 'NIL') : loanType,
-      loanPurpose: solarPurposeUsage || 'NIL',
+      loanPurpose: solarPurposeGeneratedText || 'NIL',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
       metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
@@ -1581,7 +1625,7 @@ ${qaPairs.join('\n\n')}`;
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>${dailyFootfall} customers</strong> with average ticket size of <strong>₹${avgTicketValue}</strong> across ${workingDays} monthly working days.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹${statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹${crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`,
+      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}) with an established business vintage of <strong>${yearsInBusiness} years</strong>.<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${postLoanSurplus.toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.<br/><br/><strong>Community Verification:</strong> Local market and neighbor reference checks confirm positive reputation and stable operating history.`,
       parsedCreditReport: parsedCreditReport
     });
   };
@@ -1686,8 +1730,8 @@ ${qaPairs.join('\n\n')}`;
   const renderTabNavigationFooter = () => {
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
-      { id: 'profile', label: '2. Business Profile & Products' },
-      { id: 'verification', label: '3. Business & Residence Verification' },
+      { id: 'verification', label: '2. Business & Residence Verification' },
+      { id: 'profile', label: '3. Business Profile & Products' },
       { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
       { id: 'field', label: '5. Field Verification' },
       { id: 'financials', label: '6. Financial Analysis' },
@@ -2051,8 +2095,8 @@ ${qaPairs.join('\n\n')}`;
       <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
         {[
           { id: 'applicant', label: '1. Applicant & Household', icon: User },
-          { id: 'profile', label: '2. Business Profile & Products', icon: Store },
-          { id: 'verification', label: '3. Business & Residence Verification', icon: Store },
+          { id: 'verification', label: '2. Business & Residence Verification', icon: Store },
+          { id: 'profile', label: '3. Business Profile & Products', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
           { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
           { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
@@ -4146,83 +4190,14 @@ ${qaPairs.join('\n\n')}`;
 
       {activeTab === 'field' && (
         <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-              <Camera className="w-4 h-4 text-[#eb8a23]" />
-              On-Site Footfall Observation & Field Verification
-            </h3>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Observed Customers / Day</label>
-                <input
-                  type="number"
-                  value={dailyFootfall}
-                  onChange={(e) => setDailyFootfall(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Avg Ticket Size (₹/customer)</label>
-                <input
-                  type="number"
-                  value={avgTicketValue}
-                  onChange={(e) => setAvgTicketValue(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Working Days / Month</label>
-                <input
-                  type="number"
-                  value={workingDays}
-                  onChange={(e) => setWorkingDays(Number(e.target.value))}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-bold"
-                />
-              </div>
-            </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center justify-between">
-              <span className="font-bold text-slate-600">Automated Field Cross-Check Monthly Revenue Formula:</span>
-              <span className="font-black text-[#eb8a23] text-sm">
-                {dailyFootfall} cust × ₹{avgTicketValue} × {workingDays} days = ₹{crossCheckMonthlySales.toLocaleString('en-IN')} / mo
-              </span>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-bold text-slate-700">Neighbor / Market Reference Feedback</label>
-                  <button type="button" onClick={() => setNeighborFeedback("Neighbour verification was conducted, wherein neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive regarding their behaviour.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
-                </div>
-                <textarea
-                  value={neighborFeedback}
-                  onChange={(e) => setNeighborFeedback(e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Landlord / Premises Verification Comments</label>
-                <textarea
-                  value={landlordFeedback}
-                  onChange={(e) => setLandlordFeedback(e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* EXIF GPS Photos */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#eb8a23]" />
-                EXIF GPS Geotagged Field Inspection Proofs
+                GPS Geotagged Field Inspection Proofs
               </h3>
             </div>
 
@@ -4446,8 +4421,12 @@ ${qaPairs.join('\n\n')}`;
                     <tr>
                       <th className="p-2.5">Item / Particulars</th>
                       <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5 text-right">Monthly Total (₹)</th>
-                      <th className="p-2.5 text-right">Yearly Total (₹)</th>
+                      <th className="p-2.5">Unit</th>
+                      <th className="p-2.5 text-right">Qty</th>
+                      <th className="p-2.5 text-right">Price (₹)</th>
+                      <th className="p-2.5 text-right">Days/Mo</th>
+                      <th className="p-2.5 text-right">Monthly (₹)</th>
+                      <th className="p-2.5 text-right">Yearly (₹)</th>
                       <th className="p-2.5 text-center">Action</th>
                     </tr>
                   </thead>
@@ -4473,15 +4452,55 @@ ${qaPairs.join('\n\n')}`;
                               placeholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
                             />
                           </td>
+                          <td className="p-2">
+                            <select
+                              value={line.unit || ''}
+                              onChange={(e) => handleUpdateIncomeLine(line.id, 'unit', e.target.value)}
+                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                            >
+                              <option value="">Select...</option>
+                              <option value="Litre">Litre</option>
+                              <option value="Kg">Kg</option>
+                              <option value="Piece">Piece</option>
+                              <option value="Box">Box</option>
+                              <option value="Dozen">Dozen</option>
+                              <option value="Quintal">Quintal</option>
+                              <option value="Ton">Ton</option>
+                            </select>
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.quantity || ''}
+                              onChange={(e) => handleUpdateIncomeLine(line.id, 'quantity', Number(e.target.value))}
+                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.price || ''}
+                              onChange={(e) => handleUpdateIncomeLine(line.id, 'price', Number(e.target.value))}
+                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.workingDays || ''}
+                              onChange={(e) => handleUpdateIncomeLine(line.id, 'workingDays', Number(e.target.value))}
+                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
                           <td className="p-2 text-right">
                             <input
                               type="number"
                               value={line.monthlyAmount || 0}
                               onChange={(e) => handleUpdateIncomeLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-28 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-emerald-700"
+                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-emerald-700"
                             />
                           </td>
-                          <td className="p-2 text-right font-bold text-slate-600">
+                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
                             ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
                           </td>
                           <td className="p-2 text-center">
@@ -4536,8 +4555,12 @@ ${qaPairs.join('\n\n')}`;
                     <tr>
                       <th className="p-2.5">Expenditure / Cost Line</th>
                       <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5 text-right">Monthly Total (₹)</th>
-                      <th className="p-2.5 text-right">Yearly Total (₹)</th>
+                      <th className="p-2.5">Unit</th>
+                      <th className="p-2.5 text-right">Qty</th>
+                      <th className="p-2.5 text-right">Price (₹)</th>
+                      <th className="p-2.5 text-right">Days/Mo</th>
+                      <th className="p-2.5 text-right">Monthly (₹)</th>
+                      <th className="p-2.5 text-right">Yearly (₹)</th>
                       <th className="p-2.5 text-center">Action</th>
                     </tr>
                   </thead>
@@ -4563,15 +4586,55 @@ ${qaPairs.join('\n\n')}`;
                               placeholder="e.g. Estimated based on usage"
                             />
                           </td>
+                          <td className="p-2">
+                            <select
+                              value={line.unit || ''}
+                              onChange={(e) => handleUpdateExpenseLine(line.id, 'unit', e.target.value)}
+                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                            >
+                              <option value="">Select...</option>
+                              <option value="Litre">Litre</option>
+                              <option value="Kg">Kg</option>
+                              <option value="Piece">Piece</option>
+                              <option value="Box">Box</option>
+                              <option value="Dozen">Dozen</option>
+                              <option value="Quintal">Quintal</option>
+                              <option value="Ton">Ton</option>
+                            </select>
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.quantity || ''}
+                              onChange={(e) => handleUpdateExpenseLine(line.id, 'quantity', Number(e.target.value))}
+                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.price || ''}
+                              onChange={(e) => handleUpdateExpenseLine(line.id, 'price', Number(e.target.value))}
+                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
+                          <td className="p-2 text-right">
+                            <input
+                              type="number"
+                              value={line.workingDays || ''}
+                              onChange={(e) => handleUpdateExpenseLine(line.id, 'workingDays', Number(e.target.value))}
+                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                            />
+                          </td>
                           <td className="p-2 text-right">
                             <input
                               type="number"
                               value={line.monthlyAmount || 0}
                               onChange={(e) => handleUpdateExpenseLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-28 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-rose-700"
+                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-rose-700"
                             />
                           </td>
-                          <td className="p-2 text-right font-bold text-slate-600">
+                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
                             ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
                           </td>
                           <td className="p-2 text-center">
@@ -4876,10 +4939,10 @@ ${qaPairs.join('\n\n')}`;
                   </div>
                 )}
                 <p>
-                  <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}) with an established business vintage of <strong>{yearsInBusiness} years</strong>. On-site field verification confirmed average daily footfall of <strong>{dailyFootfall} customers</strong> with average ticket size of <strong>₹{avgTicketValue}</strong> across {workingDays} monthly working days.
+                  <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}) with an established business vintage of <strong>{yearsInBusiness} years</strong>.
                 </p>
                 <p>
-                  <strong>Sales & Cash Flow Waterfall:</strong> Stated monthly sales turnover of <strong>₹{statedMonthlySales.toLocaleString('en-IN')}</strong> is cross-checked against footfall observation (₹{crossCheckMonthlySales.toLocaleString('en-IN')}), adopting a conservative monthly turnover of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.
+                  <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.
                 </p>
                 <p>
                   <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {tenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), fully satisfying institutional credit guidelines.
