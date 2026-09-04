@@ -2184,6 +2184,17 @@ ${qaPairs.join('\n\n')}`;
                   placeholder="Enter business remarks..."
                 />
               </div>
+
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary (Executive Appraisal)</label>
+                <textarea
+                  value={briefBusinessProfile}
+                  onChange={(e) => setBriefBusinessProfile(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  placeholder="Enter detailed business profile and executive summary..."
+                />
+              </div>
             </div>
           </div>
 
