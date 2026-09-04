@@ -26,6 +26,7 @@ export interface PDReportPrintData {
   loanPurpose?: string;
   residenceAddress?: string;
   businessAddress?: string;
+  meetingAddress?: string;
   metPersonName?: string;
   metPersonIdProof?: string;
   executiveName?: string;
@@ -632,7 +633,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Address of the meeting</td>
-      <td colspan="3">${data.residenceAddress || 'null'}</td>
+      <td colspan="3">${data.meetingAddress || data.residenceAddress || 'null'}</td>
     </tr>
     <tr>
       <td class="bold">Locating Premises Type</td>

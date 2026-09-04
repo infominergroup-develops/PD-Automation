@@ -831,20 +831,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     powerDetails: { consumption: '', rate: '' }
   });
   const [otherSolarPurpose, setOtherSolarPurpose] = useState('');
-  const [resAddressLine1, setResAddressLine1] = useState('');
-  const [resAddressLine2, setResAddressLine2] = useState('');
-  const [resVillage, setResVillage] = useState('');
-  const [resCity, setResCity] = useState('');
-  const [resDistrict, setResDistrict] = useState('');
-  const [resState, setResState] = useState('');
-  const [resPin, setResPin] = useState('');
-  const [busAddressLine1, setBusAddressLine1] = useState('');
-  const [busAddressLine2, setBusAddressLine2] = useState('');
-  const [busVillage, setBusVillage] = useState('');
-  const [busCity, setBusCity] = useState('');
-  const [busDistrict, setBusDistrict] = useState('');
-  const [busState, setBusState] = useState('');
-  const [busPin, setBusPin] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
   const [personsMet, setPersonsMet] = useState<string[]>([]);
   const [personsMetOtherName, setPersonsMetOtherName] = useState('');
   const [personsMetOtherRelation, setPersonsMetOtherRelation] = useState('');
@@ -892,13 +879,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [expectedSolarCostReductionPct, setExpectedSolarCostReductionPct] = useState<number | ''>('');
   const [expectedSolarMonthlySaving, setExpectedSolarMonthlySaving] = useState<number | ''>('');
   const [meetingAddressSource, setMeetingAddressSource] = useState<'RESIDENCE' | 'BUSINESS' | 'OTHER'>('RESIDENCE');
-  const [meetAddressLine1, setMeetAddressLine1] = useState('');
-  const [meetAddressLine2, setMeetAddressLine2] = useState('');
-  const [meetVillage, setMeetVillage] = useState('');
-  const [meetCity, setMeetCity] = useState('');
-  const [meetDistrict, setMeetDistrict] = useState('');
-  const [meetState, setMeetState] = useState('');
-  const [meetPin, setMeetPin] = useState('');
+  const [meetingAddress, setMeetingAddress] = useState('');
   const [locatingPremisesType, setLocatingPremisesType] = useState('');
   const [locatingPremisesTypeOther, setLocatingPremisesTypeOther] = useState('');
   const [propertyOwnership, setPropertyOwnership] = useState('');
@@ -1185,16 +1166,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         caseInitiationDate, visitDate, reportDate, coApplicants,
         hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
         powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
-        resAddressLine1, resAddressLine2, resVillage, resCity, resDistrict, resState, resPin,
-        busAddressLine1, busAddressLine2, busVillage, busCity, busDistrict, busState, busPin,
+        businessAddress,
         personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName,
         businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
         premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
         businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
         investmentSource, investmentSourceOther, hasAgricultureLand, agriLandArea, agriLandUnit, agriLandOwnership, agriLandOwnershipOther,
         agriCrops, agriCropsOther, agriIncomeMin, agriIncomeMax, agriOwnershipDoc, hasOtherIncome, otherIncomeSources,
-        expectedSolarCostReductionPct, expectedSolarMonthlySaving, meetingAddressSource, meetAddressLine1, meetAddressLine2, meetVillage,
-        meetCity, meetDistrict, meetState, meetPin, locatingPremisesType, locatingPremisesTypeOther, propertyOwnership, propertyOwnershipOther,
+        expectedSolarCostReductionPct, expectedSolarMonthlySaving, meetingAddressSource, meetingAddress,
+        locatingPremisesType, locatingPremisesTypeOther, propertyOwnership, propertyOwnershipOther,
         propertyRentAmount, propertyOwnerName, propertyArea, propertyValue, propertyOwnershipDoc, houseFloors, houseRooms, houseStructureType,
         houseStructureTypeOther, houseFloorPosition, houseFloorPositionOther, houseAdditionalDetails, monthlyHouseholdExpensesAmount,
         hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
@@ -1487,9 +1467,9 @@ ${qaPairs.join('\n\n')}`;
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
-    const compositeAddress = [meetAddressLine1, meetAddressLine2, meetVillage, meetCity, meetDistrict, meetState, meetPin].filter(Boolean).join(', ');
-    const finalBusinessAddress = compositeAddress || 'Not provided';
-    const finalResidenceAddress = compositeAddress || 'Not provided';
+    const finalBusinessAddress = businessAddress || 'Not provided';
+    const finalResidenceAddress = residenceAddress || 'Not provided';
+    const finalMeetingAddress = meetingAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
     const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'NIL';
@@ -1528,6 +1508,8 @@ ${qaPairs.join('\n\n')}`;
       loanPurpose: solarPurposeGeneratedText || 'NIL',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
+      meetingAddress: finalMeetingAddress,
+      locatingPremisesType: locatingPremisesType === 'Other' ? locatingPremisesTypeOther : locatingPremisesType,
       metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
       metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'NIL') : (identityProof || 'NIL'),
       executiveName: executiveName || 'NIL',
@@ -1685,24 +1667,11 @@ ${qaPairs.join('\n\n')}`;
           
           if (bld.residenceAddressDetails) {
              const r = bld.residenceAddressDetails;
-             if (r.resAddressLine1) setResAddressLine1(r.resAddressLine1);
-             if (r.resAddressLine2) setResAddressLine2(r.resAddressLine2);
-             if (r.resVillage) setResVillage(r.resVillage);
-             if (r.resCity) setResCity(r.resCity);
-             if (r.resDistrict) setResDistrict(r.resDistrict);
-             if (r.resState) setResState(r.resState);
-             if (r.resPin) setResPin(r.resPin);
+             if (r.residenceAddress) setResidenceAddress(r.residenceAddress);
           }
-          
           if (bld.businessAddressDetails) {
              const b = bld.businessAddressDetails;
-             if (b.busAddressLine1) setBusAddressLine1(b.busAddressLine1);
-             if (b.busAddressLine2) setBusAddressLine2(b.busAddressLine2);
-             if (b.busVillage) setBusVillage(b.busVillage);
-             if (b.busCity) setBusCity(b.busCity);
-             if (b.busDistrict) setBusDistrict(b.busDistrict);
-             if (b.busState) setBusState(b.busState);
-             if (b.busPin) setBusPin(b.busPin);
+             if (b.businessAddress) setBusinessAddress(b.businessAddress);
           }
 
           if (bld.personsMet) setPersonsMet(bld.personsMet);
@@ -2793,21 +2762,8 @@ ${qaPairs.join('\n\n')}`;
             {/* 12. Address of Residence */}
             <div className="space-y-3">
               <label className="block text-xs font-bold text-slate-700">12. Address of the Residence</label>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="text" value={resAddressLine1} onChange={(e) => setResAddressLine1(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2" placeholder="Address Line 1" />
-                <input type="text" value={resAddressLine2} onChange={(e) => setResAddressLine2(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2" placeholder="Address Line 2" />
-                <input type="text" value={resVillage} onChange={(e) => setResVillage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Village / Locality" />
-                <input type="text" value={resCity} onChange={(e) => setResCity(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="City" />
-                <input type="text" value={resDistrict} onChange={(e) => setResDistrict(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="District" />
-                <select value={resState} onChange={(e) => setResState(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  <option value="">Select State</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  {/* Additional states can be loaded via a constants file */}
-                </select>
-                <input type="text" maxLength={6} pattern="\d{6}" value={resPin} onChange={(e) => setResPin(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="PIN Code (6 digits)" />
+              <div className="grid grid-cols-1 gap-3">
+                <textarea value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete residence address" rows={2} />
               </div>
             </div>
 
@@ -2816,29 +2772,11 @@ ${qaPairs.join('\n\n')}`;
               <div className="flex justify-between items-center">
                 <label className="block text-xs font-bold text-slate-700">13. Address of the Business (Applicant)</label>
                 <button type="button" onClick={() => {
-                  setBusAddressLine1(resAddressLine1);
-                  setBusAddressLine2(resAddressLine2);
-                  setBusVillage(resVillage);
-                  setBusCity(resCity);
-                  setBusDistrict(resDistrict);
-                  setBusState(resState);
-                  setBusPin(resPin);
+                  setBusinessAddress(residenceAddress);
                 }} className="text-[10px] bg-slate-100 text-slate-700 px-3 py-1.5 rounded font-bold hover:bg-slate-200 border border-slate-300">Same as Residence Address</button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input type="text" value={busAddressLine1} onChange={(e) => setBusAddressLine1(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2" placeholder="Address Line 1" />
-                <input type="text" value={busAddressLine2} onChange={(e) => setBusAddressLine2(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2" placeholder="Address Line 2" />
-                <input type="text" value={busVillage} onChange={(e) => setBusVillage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Village / Locality" />
-                <input type="text" value={busCity} onChange={(e) => setBusCity(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="City" />
-                <input type="text" value={busDistrict} onChange={(e) => setBusDistrict(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="District" />
-                <select value={busState} onChange={(e) => setBusState(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  <option value="">Select State</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                </select>
-                <input type="text" maxLength={6} pattern="\d{6}" value={busPin} onChange={(e) => setBusPin(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="PIN Code (6 digits)" />
+              <div className="grid grid-cols-1 gap-3">
+                <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
               </div>
             </div>
 
@@ -3579,36 +3517,20 @@ ${qaPairs.join('\n\n')}`;
                 <div className="flex gap-2">
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('RESIDENCE');
-                    setMeetAddressLine1(resAddressLine1); setMeetAddressLine2(resAddressLine2);
-                    setMeetVillage(resVillage); setMeetCity(resCity); setMeetDistrict(resDistrict);
-                    setMeetState(resState); setMeetPin(resPin);
+                    setMeetingAddress(residenceAddress);
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'RESIDENCE' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Use Residence Address</button>
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('BUSINESS');
-                    setMeetAddressLine1(busAddressLine1); setMeetAddressLine2(busAddressLine2);
-                    setMeetVillage(busVillage); setMeetCity(busCity); setMeetDistrict(busDistrict);
-                    setMeetState(busState); setMeetPin(busPin);
+                    setMeetingAddress(businessAddress);
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'BUSINESS' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Use Business Address</button>
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('OTHER');
-                    setMeetAddressLine1(''); setMeetAddressLine2(''); setMeetVillage(''); setMeetCity(''); setMeetDistrict(''); setMeetState(''); setMeetPin('');
+                    setMeetingAddress('');
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'OTHER' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Different Address</button>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 opacity-90">
-                <input type="text" value={meetAddressLine1} onChange={(e) => setMeetAddressLine1(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2 disabled:bg-slate-100" placeholder="Address Line 1" />
-                <input type="text" value={meetAddressLine2} onChange={(e) => setMeetAddressLine2(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold md:col-span-2 disabled:bg-slate-100" placeholder="Address Line 2" />
-                <input type="text" value={meetVillage} onChange={(e) => setMeetVillage(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="Village / Locality" />
-                <input type="text" value={meetCity} onChange={(e) => setMeetCity(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="City" />
-                <input type="text" value={meetDistrict} onChange={(e) => setMeetDistrict(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="District" />
-                <select value={meetState} onChange={(e) => setMeetState(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100">
-                  <option value="">Select State</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                </select>
-                <input type="text" maxLength={6} value={meetPin} onChange={(e) => setMeetPin(e.target.value.replace(/\D/g, ''))} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="PIN Code" />
+              <div className="grid grid-cols-1 gap-3 opacity-90">
+                <textarea value={meetingAddress} onChange={(e) => setMeetingAddress(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="Enter complete meeting address" rows={2} />
               </div>
             </div>
 
@@ -5356,3 +5278,4 @@ ${qaPairs.join('\n\n')}`;
     </div>
   );
 };
+export default PDToolView;
