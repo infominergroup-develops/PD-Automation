@@ -1,5 +1,5 @@
 import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, HTMLToolValidationRun, RiskAssessmentResult, User, UserRole } from '../types';
-import { ClientBank } from '../data/clientBanksData';
+import { ClientBank, CLIENT_BANKS } from '../data/clientBanksData';
 
 export interface EmployeeRecord extends User {
   designation: string;
@@ -65,12 +65,9 @@ export const api = {
     return true;
   },
 
-  // Clients (MongoDB)
+  // Clients
   getClients: async (): Promise<ClientBank[]> => {
-    const data = await handleResponse<{ clients: ClientBank[] }>(
-      await fetch(`${BASE_URL}/api/clients`)
-    );
-    return data.clients;
+    return CLIENT_BANKS;
   },
 
   saveClient: async (clientData: Partial<ClientBank>): Promise<ClientBank> => {

@@ -2849,7 +2849,7 @@ ${qaPairs.join('\n\n')}`;
                 <h4 className="text-sm font-bold text-slate-800">16. Spouse and Dependencies Details</h4>
                 <button
                   type="button"
-                  onClick={() => setFamilyMembers([...familyMembers, { id: Date.now().toString(), name: '', age: 0, profession: '', qualification: '', isDependent: false, relationship: '', education: '', occupation: '', isEarning: false, monthlyIncome: 0 }])}
+                  onClick={() => setFamilyMembers([...familyMembers, { id: Date.now().toString(), name: '', age: 0, profession: '', qualification: '', isDependent: true, relationship: '', education: '', occupation: '', isEarning: false, monthlyIncome: 0 }])}
                   className="flex items-center gap-1 px-3 py-1.5 bg-[#eb8a23] text-white text-xs font-bold rounded hover:bg-[#d17a1f]"
                 >
                   <Plus className="w-3 h-3" /> Add Member
