@@ -673,7 +673,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
               <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.isDependent ? 'Yes' : 'No'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.isDependent !== false ? 'Yes' : 'No'}</td>
             </tr>
           `).join('')}
         </table>
@@ -1595,7 +1595,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
               <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.isDependent ? 'Yes' : 'No'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.isDependent !== false ? 'Yes' : 'No'}</td>
             </tr>
           `).join('')}
     <tr>
