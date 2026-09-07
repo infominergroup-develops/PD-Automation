@@ -980,6 +980,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [solarPurposeUsage, setSolarPurposeUsage] = useState('');
   const [riskFactor, setRiskFactor] = useState('');
 
+  // Total Existing EMIs
+  const existingEmis = useMemo(() => {
+    return existingLoans.reduce((sum, loan) => sum + (Number(loan.emi) || 0), 0);
+  }, [existingLoans]);
+
+  const generatedExistingEmiNotes = useMemo(() => {
+    const validLoans = existingLoans.filter(l => l.typeOfLoan !== 'NA' && l.typeOfLoan.trim() !== '');
+    if (validLoans.length > 0) {
+      return `Existing obligations include ${validLoans.map(l => `${l.typeOfLoan} from ${l.financerName || 'Unknown'} (EMI: ₹${l.emi || 0})`).join(', ')}.`;
+    }
+    return 'As per applicant no any existing obligation.';
+  }, [existingLoans]);
+
   const handleDeleteApplication = (appNumber: string) => {
     if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appNumber}?`)) {
       setApplicantsList(prev => prev.filter(a => a.applicationNumber !== appNumber));
@@ -1389,19 +1402,6 @@ ${qaPairs.join('\n\n')}`;
   const netBusinessIncome = useMemo(() => {
     return grossProfit - totalOperatingExpenses;
   }, [grossProfit, totalOperatingExpenses]);
-
-  // Total Existing EMIs
-  const existingEmis = useMemo(() => {
-    return existingLoans.reduce((sum, loan) => sum + (Number(loan.emi) || 0), 0);
-  }, [existingLoans]);
-
-  const generatedExistingEmiNotes = useMemo(() => {
-    const validLoans = existingLoans.filter(l => l.typeOfLoan !== 'NA' && l.typeOfLoan.trim() !== '');
-    if (validLoans.length > 0) {
-      return `Existing obligations include ${validLoans.map(l => `${l.typeOfLoan} from ${l.financerName || 'Unknown'} (EMI: ₹${l.emi || 0})`).join(', ')}.`;
-    }
-    return 'As per applicant no any existing obligation.';
-  }, [existingLoans]);
 
   // Total Household Surplus before Proposed EMI
   const netFamilySurplusBeforeEmi = useMemo(() => {
