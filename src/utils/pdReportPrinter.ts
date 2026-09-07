@@ -169,14 +169,14 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
-  const appNo = data.applicationNumber || 'null';
-  const caseStatus = data.statusOfCase || 'null';
+  const appNo = data.applicationNumber || 'Not Provided';
+  const caseStatus = data.statusOfCase || 'Not Provided';
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
   // Income Assessment Default Calculations
   const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
-    { particulars: `${data.firmName || 'null'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 275000, yearly: (data.totalSalesMonthly || 275000) * 12 }
+    { particulars: `${data.firmName || 'Not Provided'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 275000, yearly: (data.totalSalesMonthly || 275000) * 12 }
   ];
 
   const totalSalesM = data.totalSalesMonthly || salesItems.reduce((acc, i) => acc + i.monthly, 0);
@@ -210,7 +210,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${data.companyHeader?.name || 'null'} PD Report - ${appNo} - ${data.applicantName}</title>
+  <title>${data.companyHeader?.name || 'Not Provided'} PD Report - ${appNo} - ${data.applicantName}</title>
   <style>
     @page {
       size: A4;
@@ -458,7 +458,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <!-- Floating Print Control Header for Web Preview -->
   <div class="no-print" style="position: sticky; top: 0; background-color: #384c5e; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 2px solid #eb8a23; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
     <div>
-      <strong style="font-size: 11pt; font-family: sans-serif;">${data.companyHeader?.name || 'null'} Standard Personal Discussion Report</strong>
+      <strong style="font-size: 11pt; font-family: sans-serif;">${data.companyHeader?.name || 'Not Provided'} Standard Personal Discussion Report</strong>
       <span style="font-size: 9pt; opacity: 0.8; margin-left: 10px;">App #${appNo} • ${data.applicantName}</span>
     </div>
     <button onclick="window.print()" style="background-color: #eb8a23; color: #fff; border: none; padding: 6px 16px; font-weight: bold; font-size: 10pt; border-radius: 4px; cursor: pointer; transition: 0.2s;">
@@ -481,7 +481,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       </svg>
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
-    <div class="cover-subtitle">${data.companyHeader?.name || 'null'}</div>
+    <div class="cover-subtitle">${data.companyHeader?.name || 'Not Provided'}</div>
     
     <div class="cover-details">
       <table>
@@ -491,7 +491,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
         </tr>
         <tr>
           <td class="bold">Business / Firm</td>
-          <td>${data.firmName || 'null'}</td>
+          <td>${data.firmName || 'Not Provided'}</td>
         </tr>
         <tr>
           <td class="bold">Application ID</td>
@@ -519,10 +519,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <!-- SECTION 1: OFFICIAL COMPANY HEADER & CASE PROFILE -->
   <div class="hdr-main">
-    <div class="hdr-title">${data.companyHeader?.name || 'null'}</div>
-    <div class="hdr-sub">CIN : ${data.companyHeader?.cin || 'null'}</div>
-    <div class="hdr-desc"><strong>(${data.companyHeader?.designation || 'null'})</strong></div>
-    <div class="hdr-desc">${data.companyHeader?.address || 'null'}</div>
+    <div class="hdr-title">${data.companyHeader?.name || 'Not Provided'}</div>
+    <div class="hdr-sub">CIN : ${data.companyHeader?.cin || 'Not Provided'}</div>
+    <div class="hdr-desc"><strong>(${data.companyHeader?.designation || 'Not Provided'})</strong></div>
+    <div class="hdr-desc">${data.companyHeader?.address || 'Not Provided'}</div>
   </div>
 
   <table class="report-table">
@@ -572,14 +572,14 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Business firm name</td>
-      <td colspan="3">${data.firmName || 'null'}</td>
+      <td colspan="3">${data.firmName || 'Not Provided'}</td>
     </tr>
     ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, i: number) => `
     <tr>
       <td class="bold">Co-applicant ${i + 1} Name with relation</td>
       <td>${c.name} (${c.relation})</td>
       <td class="bold">Contact Number</td>
-      <td>${c.mobileNumber || 'null'}</td>
+      <td>${c.mobileNumber || 'Not Provided'}</td>
     </tr>
     `).join('') : `
     <tr>
@@ -591,35 +591,35 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     `}
     <tr>
       <td class="bold">Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || 'null'}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Loan Amount (as mention in application form)</td>
       <td>${data.loanAmount ? `₹${Number(data.loanAmount).toLocaleString('en-IN')}` : 'Not provided'}</td>
       <td class="bold">Type of Loan (as mention in application form)</td>
-      <td>${data.loanType || 'null'}</td>
+      <td>${data.loanType || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || 'null'}</td>
+      <td colspan="3">${data.loanPurpose || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the residence</td>
-      <td colspan="3">${data.residenceAddress || 'null'}</td>
+      <td colspan="3">${data.residenceAddress || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the business (applicant)</td>
-      <td colspan="3">${data.businessAddress || data.residenceAddress || 'null'}</td>
+      <td colspan="3">${data.businessAddress || data.residenceAddress || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Met person during visit time</td>
-      <td>${data.metPersonName || 'null'}</td>
+      <td>${data.metPersonName || 'Not Provided'}</td>
       <td class="bold">Met person identity proof</td>
-      <td>${data.metPersonIdProof || 'null'}</td>
+      <td>${data.metPersonIdProof || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Executive Name</td>
-      <td colspan="3">${data.executiveName || 'null'}</td>
+      <td colspan="3">${data.executiveName || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -630,26 +630,26 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td style="width: 25%;" class="bold">Met person during visit time</td>
-      <td colspan="3">${data.metPersonName || 'null'}</td>
+      <td colspan="3">${data.metPersonName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the meeting</td>
-      <td colspan="3">${data.meetingAddress || data.residenceAddress || 'null'}</td>
+      <td colspan="3">${data.meetingAddress || data.residenceAddress || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Locating Premises Type</td>
-      <td colspan="3">${data.locatingPremisesType || 'null'}</td>
+      <td colspan="3">${data.locatingPremisesType || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="4" class="sec-head">Residential Details</td>
     </tr>
     <tr>
       <td class="bold">Ownership (If rented then rent amount)</td>
-      <td colspan="3">${data.residenceOwnership || 'null'}</td>
+      <td colspan="3">${data.residenceOwnership || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">House Details</td>
-      <td colspan="3">${data.houseDetails || 'null'}</td>
+      <td colspan="3">${data.houseDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="4" class="sec-head">Family Background of the Applicant</td>
@@ -669,11 +669,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
           ${familyList.map((f, index) => `
             <tr>
               <td style="border: 1px solid #000;" class="text-center">${index + 1}</td>
-              <td style="border: 1px solid #000;">${f.name || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.age || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
+              <td style="border: 1px solid #000;">${f.name || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.age || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'Not Provided'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.isDependent !== false ? 'Yes' : 'No'}</td>
             </tr>
           `).join('')}
@@ -684,21 +684,21 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Monthly Household Expenses</td>
       <td>₹${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
       <td class="bold">Electricity Connection Details</td>
-      <td>${data.residenceElectricityDetails || 'null'}</td>
+      <td>${data.residenceElectricityDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbor Name</td>
-      <td colspan="3">${data.residenceNeighborName || 'null'}</td>
+      <td colspan="3">${data.residenceNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbor Feedback</td>
-      <td colspan="3">${data.residenceNeighborFeedback || 'null'}</td>
+      <td colspan="3">${data.residenceNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Latitude & Longitude of premises</td>
-      <td>${data.residenceGpsCoords || 'null'}</td>
+      <td>${data.residenceGpsCoords || 'Not Provided'}</td>
       <td class="bold">Residence Status</td>
-      <td class="bold" style="color: #065f46;">${data.residenceStatus || 'null'}</td>
+      <td class="bold" style="color: #065f46;">${data.residenceStatus || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -715,20 +715,20 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
-        ${data.briefBusinessProfile || 'null'}
+        ${data.briefBusinessProfile || 'Not Provided'}
       </td>
     </tr>
     <tr>
       <td style="width: 35%;" class="bold">Vintage of the business</td>
-      <td>${data.businessVintage || 'null'}</td>
+      <td>${data.businessVintage || 'Not Provided'}</td>
     </tr>
-    ${data.previousOccupation ? `
+    ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td class="bold">Previous Occupation</td>
       <td>${data.previousOccupation}</td>
     </tr>
     ` : ''}
-    ${data.reasonToLeave ? `
+    ${(data.reasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td class="bold">Reason to leave the last occupation</td>
       <td>${data.reasonToLeave}</td>
@@ -736,43 +736,43 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     ` : ''}
     <tr>
       <td class="bold">Number of staff</td>
-      <td>${data.staffCount || 'null'}</td>
+      <td>${data.staffCount || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Is office premise on rented / owned</td>
-      <td>${data.businessPremiseOwnership || 'null'}</td>
+      <td>${data.businessPremiseOwnership || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Details of Office / Factory infrastructure (Assets)</td>
-      <td>${data.factoryInfrastructure || 'null'}</td>
+      <td>${data.factoryInfrastructure || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Stock details with estimated value</td>
-      <td>${data.stockDetailsValue || 'null'}</td>
+      <td>${data.stockDetailsValue || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Fixed & Current Asset Analysis</td>
-      <td>${data.fixedAndCurrentAssetAnalysis || 'null'}</td>
+      <td>${data.fixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Asset Creation Through Business</td>
-      <td>${data.assetCreationThroughBusiness || 'null'}</td>
+      <td>${data.assetCreationThroughBusiness || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Business Investment</td>
-      <td>${data.initialBusinessInvestment || 'null'}</td>
+      <td>${data.initialBusinessInvestment || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Agricultural Income Details</td>
-      <td>${data.agriculturalIncomeDetails || 'null'}</td>
+      <td>${data.agriculturalIncomeDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Other source income</td>
-      <td>${data.otherSourceIncomeDetails || 'null'}</td>
+      <td>${data.otherSourceIncomeDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Operational / Saving analysis</td>
-      <td>${data.operationalSavingAnalysis || 'null'}</td>
+      <td>${data.operationalSavingAnalysis || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" style="text-align: center; font-style: italic; font-weight: bold; padding: 10px; background-color: #f8fafc;">
@@ -814,31 +814,31 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
     ${data.parsedCreditReport ? `
     <tr>
-      <td colspan="3" class="sec-head">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'null'})</td>
+      <td colspan="3" class="sec-head">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'Not Provided'})</td>
     </tr>
     <tr>
       <td class="bold">Report Date</td>
-      <td colspan="2">${data.parsedCreditReport.reportDate || 'null'}</td>
+      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Total Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'null'}</td>
+      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Active Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'null'}</td>
+      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Total Current Balance</td>
-      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'null'}</td>
+      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Total Overdue Amount</td>
-      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'null'}</td>
+      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Credit Score</td>
-      <td colspan="2">${data.parsedCreditReport.creditScore || 'null'}</td>
+      <td colspan="2">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Risk Indicators</td>
@@ -962,27 +962,27 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Latitude & Longitude of business premises</td>
-      <td colspan="2">${data.businessGpsCoords || 'null'}</td>
+      <td colspan="2">${data.businessGpsCoords || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Remarks</td>
-      <td colspan="2">${data.businessLocationRemarks || 'null'}</td>
+      <td colspan="2">${data.businessLocationRemarks || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Electricity Connection Details</td>
-      <td colspan="2">${data.businessElectricityDetails || 'null'}</td>
+      <td colspan="2">${data.businessElectricityDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbour Name</td>
-      <td colspan="2">${data.businessNeighborName || 'null'}</td>
+      <td colspan="2">${data.businessNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Neighbour Feedback</td>
-      <td colspan="2">${data.businessNeighborFeedback || 'null'}</td>
+      <td colspan="2">${data.businessNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Business Status</td>
-      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || 'null'}</td>
+      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -1098,7 +1098,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <strong>(Sign of Agency authorized signatory)</strong>
     </div>
     <div style="text-align: right;">
-      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'null'}</strong>
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Not Provided'}</strong>
     </div>
   </div>
 
@@ -1112,7 +1112,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </div>
 
     <div style="font-size: 9pt; line-height: 1.5; color: #1e293b; text-align: justify; margin-bottom: 12px;">
-      ${data.aiExecutiveSummary || 'null'}
+      ${data.aiExecutiveSummary || 'Not Provided'}
     </div>
 
     <!-- Financial Metrics Summary Table -->
@@ -1197,7 +1197,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <div class="hdr-main" style="margin-bottom: 10px;">
     <div class="hdr-title">ANNEXURE - VERIFIED KYC & FIELD VISIT PHOTOGRAPHS</div>
-    <div class="hdr-sub">Application ID: ${appNo} • ${data.applicantName} (${data.firmName || 'null'})</div>
+    <div class="hdr-sub">Application ID: ${appNo} • ${data.applicantName} (${data.firmName || 'Not Provided'})</div>
   </div>
 
   <table class="report-table">
@@ -1215,7 +1215,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
                 <div class="photo-card">
                   <img src="${p.dataUrl}" alt="${p.name}" />
                   <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-                  <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'null'}, ${p.gps?.lng || 'null'} • Verified Stamp</div>
+                  <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'Not Provided'}, ${p.gps?.lng || 'Not Provided'} • Verified Stamp</div>
                 </div>
               `).join('')
                 : `<div style="padding: 20px; border: 1px dashed #ccc; width: 100%; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`
@@ -1238,8 +1238,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const initiationDate = data.caseInitiationDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-  const appNo = data.applicationNumber || 'null';
-  const caseStatus = data.statusOfCase || 'null';
+  const appNo = data.applicationNumber || 'Not Provided';
+  const caseStatus = data.statusOfCase || 'Not Provided';
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
@@ -1427,7 +1427,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         </tr>
         <tr>
           <td class="bold">Business / Firm</td>
-          <td>${data.firmName || 'null'}</td>
+          <td>${data.firmName || 'Not Provided'}</td>
         </tr>
         <tr>
           <td class="bold">Application ID</td>
@@ -1457,10 +1457,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <table>
     <tr>
       <td colspan="4" class="text-center bold" style="border: 2px solid #000; padding: 8px;">
-        ${data.companyHeader?.name || 'null'}<br/>
-        CIN : ${data.companyHeader?.cin || 'null'}<br/>
-        (${data.companyHeader?.designation || 'null'})<br/>
-        ${data.companyHeader?.address || 'null'}
+        ${data.companyHeader?.name || 'Not Provided'}<br/>
+        CIN : ${data.companyHeader?.cin || 'Not Provided'}<br/>
+        (${data.companyHeader?.designation || 'Not Provided'})<br/>
+        ${data.companyHeader?.address || 'Not Provided'}
       </td>
     </tr>
     <tr>
@@ -1499,19 +1499,19 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Contact Number</td>
-      <td colspan="3">${data.applicantPhone || 'null'}</td>
+      <td colspan="3">${data.applicantPhone || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Business firm name</td>
-      <td colspan="3">${data.firmName || 'null'}</td>
+      <td colspan="3">${data.firmName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Co-applicant Name with relation</td>
-      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'null'}</td>
+      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Female candidate is on loan or not if no please collect details</td>
-      <td colspan="3">${data.femaleCandidateDetails || 'null'}</td>
+      <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Loan Amount (as mention in application form)</td>
@@ -1519,19 +1519,19 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Type of Loan (as mention in application form)</td>
-      <td colspan="3">${data.loanType || 'null'}</td>
+      <td colspan="3">${data.loanType || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || 'null'}</td>
+      <td colspan="3">${data.loanPurpose || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>
-      <td colspan="3">${data.residenceAddress || 'null'}</td>
+      <td colspan="3">${data.residenceAddress || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Address of the business (applicant)</td>
-      <td colspan="3"><strong>${data.businessAddress || 'null'}</strong></td>
+      <td colspan="3"><strong>${data.businessAddress || 'Not Provided'}</strong></td>
     </tr>
     <tr>
       <td>Met person during visit time.</td>
@@ -1539,11 +1539,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Met person identity proof</td>
-      <td colspan="3">${data.metPersonIdProof || 'null'}</td>
+      <td colspan="3">${data.metPersonIdProof || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Executive Name</td>
-      <td colspan="3">${data.executiveName || 'null'}</td>
+      <td colspan="3">${data.executiveName || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -1561,22 +1561,22 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2">Address of the meeting</td>
-      <td colspan="5">${data.residenceAddress || 'null'}</td>
+      <td colspan="5">${data.residenceAddress || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2">Locating Premises Type</td>
-      <td colspan="5">${data.locatingPremisesType || 'null'}</td>
+      <td colspan="5">${data.locatingPremisesType || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="7" class="sec-title">Residential Details</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Ownership (If rented then rent amount)</td>
-      <td colspan="5">${data.residenceOwnership || 'null'}</td>
+      <td colspan="5">${data.residenceOwnership || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">House Details</td>
-      <td colspan="5">${data.houseDetails || 'null'}</td>
+      <td colspan="5">${data.houseDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="7" class="sec-title">Family Background of the Applicant</td>
@@ -1593,11 +1593,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     ${familyList.map((f, index) => `
             <tr>
               <td style="border: 1px solid #000;" class="text-center">${index + 1}</td>
-              <td style="border: 1px solid #000;">${f.name || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.age || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'null'}</td>
-              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'null'}</td>
+              <td style="border: 1px solid #000;">${f.name || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.age || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.relationship || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.qualification || 'Not Provided'}</td>
+              <td style="border: 1px solid #000;" class="text-center">${f.occupation || f.profession || 'Not Provided'}</td>
               <td style="border: 1px solid #000;" class="text-center">${f.isDependent !== false ? 'Yes' : 'No'}</td>
             </tr>
           `).join('')}
@@ -1607,23 +1607,23 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${data.residenceElectricityDetails || 'null'}</td>
+      <td colspan="5">${data.residenceElectricityDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Name</td>
-      <td colspan="5">${data.residenceNeighborName || 'null'}</td>
+      <td colspan="5">${data.residenceNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.residenceNeighborFeedback || 'null'}</td>
+      <td colspan="5">${data.residenceNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${data.businessGpsCoords || 'null'}</td>
+      <td colspan="5">${data.businessGpsCoords || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Residence Status</td>
-      <td colspan="5">${data.residenceStatus || 'null'}</td>
+      <td colspan="5">${data.residenceStatus || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -1639,20 +1639,20 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
-        ${data.briefBusinessProfile || 'null'}
+        ${data.briefBusinessProfile || 'Not Provided'}
       </td>
     </tr>
     <tr>
       <td style="width:30%;">Vintage of the business</td>
-      <td>${data.businessVintage || 'null'}</td>
+      <td>${data.businessVintage || 'Not Provided'}</td>
     </tr>
-    ${data.previousOccupation ? `
+    ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td>Previous Occupation</td>
       <td>${data.previousOccupation}</td>
     </tr>
     ` : ''}
-    ${data.reasonToLeave ? `
+    ${(data.reasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td>Reason to leave the last occupation</td>
       <td>${data.reasonToLeave}</td>
@@ -1660,43 +1660,43 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     ` : ''}
     <tr>
       <td>Number of staffs</td>
-      <td>${data.staffCount || 'null'}</td>
+      <td>${data.staffCount || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
-      <td>${data.businessPremiseOwnership || 'null'}</td>
+      <td>${data.businessPremiseOwnership || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${data.factoryInfrastructure || 'null'}</td>
+      <td>${data.factoryInfrastructure || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${data.stockDetailsValue || 'null'}</td>
+      <td>${data.stockDetailsValue || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Fixed & Current Asset Analysis</td>
-      <td>${data.fixedAndCurrentAssetAnalysis || 'null'}</td>
+      <td>${data.fixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Asset Creation Through Business</td>
-      <td>${data.assetCreationThroughBusiness || 'null'}</td>
+      <td>${data.assetCreationThroughBusiness || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Business Investment</td>
-      <td>${data.initialBusinessInvestment || 'null'}</td>
+      <td>${data.initialBusinessInvestment || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Agricultural Income Details</td>
-      <td>${data.agriculturalIncomeDetails || 'null'}</td>
+      <td>${data.agriculturalIncomeDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${data.otherSourceIncomeDetails || 'null'}</td>
+      <td>${data.otherSourceIncomeDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Solar saving analysis</td>
-      <td>${data.operationalSavingAnalysis || 'null'}</td>
+      <td>${data.operationalSavingAnalysis || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -1739,31 +1739,31 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
     ${data.parsedCreditReport ? `
     <tr>
-      <td colspan="7" class="sec-title bg-light">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'null'})</td>
+      <td colspan="7" class="sec-title bg-light">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'Not Provided'})</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Report Date</td>
-      <td colspan="4">${data.parsedCreditReport.reportDate || 'null'}</td>
+      <td colspan="4">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Total Accounts</td>
-      <td colspan="4">${data.parsedCreditReport.totalAccounts || 'null'}</td>
+      <td colspan="4">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Active Accounts</td>
-      <td colspan="4">${data.parsedCreditReport.activeAccounts || 'null'}</td>
+      <td colspan="4">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Total Current Balance</td>
-      <td colspan="4">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'null'}</td>
+      <td colspan="4">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Total Overdue Amount</td>
-      <td colspan="4" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'null'}</td>
+      <td colspan="4" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Credit Score</td>
-      <td colspan="4">${data.parsedCreditReport.creditScore || 'null'}</td>
+      <td colspan="4">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="3" class="bold">Risk Indicators</td>
@@ -1870,31 +1870,31 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     `).join('')}
     <tr>
       <td colspan="2" class="bold">Current Obligation</td>
-      <td colspan="5">${data.currentObligationSummary || 'null'}</td>
+      <td colspan="5">${data.currentObligationSummary || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${data.businessGpsCoords || 'null'}</td>
+      <td colspan="5">${data.businessGpsCoords || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Remarks</td>
-      <td colspan="5">${data.businessLocationRemarks || 'null'}</td>
+      <td colspan="5">${data.businessLocationRemarks || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${data.businessElectricityDetails || 'null'}</td>
+      <td colspan="5">${data.businessElectricityDetails || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
-      <td colspan="5">${data.businessNeighborName || 'null'}</td>
+      <td colspan="5">${data.businessNeighborName || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${data.businessNeighborFeedback || 'null'}</td>
+      <td colspan="5">${data.businessNeighborFeedback || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
-      <td colspan="5">${data.businessStatus || 'null'}</td>
+      <td colspan="5">${data.businessStatus || 'Not Provided'}</td>
     </tr>
   </table>
 
@@ -1951,13 +1951,13 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || 'null'}</td>
+      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td class="text-left">${data.householdExpensesNotes || 'null'}</td>
+      <td class="text-left">${data.householdExpensesNotes || 'Not Provided'}</td>
       <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>
@@ -1969,7 +1969,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">${data.comfortableEmiNotes || 'null'}</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
       <td colspan="2" class="bold">As per ${bankName} Limited</td>
     </tr>
   </table>
@@ -1978,9 +1978,9 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
     <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Detailed Summary</h3>
     <p style="text-align: justify; font-size: 9.5pt; line-height: 1.6;">
-      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'null'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
+      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'Not Provided'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
       <br/><br/>
-      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'null'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
+      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'Not Provided'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
       <br/><br/>
       <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')}.
     </p>
@@ -1991,8 +1991,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <div style="width: 65%;">
       <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Risk Assessment</h3>
       <p style="font-size: 9.5pt; line-height: 1.5;">
-        <strong>CIBIL Score:</strong> ${data.cibilScore || 'null'}<br/>
-        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'null'}
+        <strong>CIBIL Score:</strong> ${data.cibilScore || 'Not Provided'}<br/>
+        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'Not Provided'}
       </p>
     </div>
     <div style="width: 30%; text-align: center;">
@@ -2042,7 +2042,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <strong style="text-decoration: underline;">(Sign of Agency authorized signatory)</strong>
     </div>
     <div style="text-align: right;">
-      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'null'}</strong>
+      <strong style="font-size: 10pt; color: #1e3a8a;">${data.companyHeader?.name || 'Not Provided'}</strong>
     </div>
   </div>
 
@@ -2062,7 +2062,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
             <div class="photo-card">
               <img src="${p.dataUrl}" alt="${p.name}" />
               <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'null'}, ${p.gps?.lng || 'null'} • Verified Stamp</div>
+              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'Not Provided'}, ${p.gps?.lng || 'Not Provided'} • Verified Stamp</div>
             </div>
           `).join('')
             : `<div style="grid-column: span 2; padding: 20px; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`
