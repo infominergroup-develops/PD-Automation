@@ -941,15 +941,15 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
             <td style="border: 1px solid #000;">Balance Tenure</td>
             <td style="border: 1px solid #000;">Remark</td>
           </tr>
-          ${(data.existingLoans || [{ typeOfLoan: 'NA', financerName: 'NA', loanAmountLakhs: '0', emiRs: `${existEmiM}`, tenureYearsMonths: 'NA', balanceTenure: 'NA', remark: existEmiM > 0 ? 'Regular monthly EMI track' : 'No existing loan obligation' }]).map(l => `
+          ${(data.existingLoans || [{ typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '0', emi: `${existEmiM}`, tenure: 'NA', balanceTenure: 'NA', remark: existEmiM > 0 ? 'Regular monthly EMI track' : 'No existing loan obligation' }]).map(l => `
             <tr>
               <td style="border: 1px solid #000;">${l.typeOfLoan}</td>
               <td style="border: 1px solid #000;">${l.financerName}</td>
-              <td style="border: 1px solid #000;" class="text-center">${l.loanAmountLakhs}</td>
-              <td style="border: 1px solid #000;" class="text-center">₹${l.emiRs}</td>
-              <td style="border: 1px solid #000;" class="text-center">${l.tenureYearsMonths}</td>
-              <td style="border: 1px solid #000;" class="text-center">${l.balanceTenure}</td>
-              <td style="border: 1px solid #000;">${l.remark}</td>
+              <td style="border: 1px solid #000;" class="text-center">${l.amountInLakhs || l.loanAmountLakhs || ''}</td>
+              <td style="border: 1px solid #000;" class="text-center">₹${l.emi || l.emiRs || ''}</td>
+              <td style="border: 1px solid #000;" class="text-center">${l.tenure || l.tenureYearsMonths || ''}</td>
+              <td style="border: 1px solid #000;" class="text-center">${l.balanceTenure || ''}</td>
+              <td style="border: 1px solid #000;">${l.remark || ''}</td>
             </tr>
           `).join('')}
         </table>
@@ -1857,15 +1857,15 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>Balance Tenure (Years, Months)</td>
       <td>Remark</td>
     </tr>
-    ${(data.existingLoans || [{ typeOfLoan: 'NA', financerName: 'NA', loanAmountLakhs: '', emiRs: '', tenureYearsMonths: '', balanceTenure: '', remark: 'No any existing obligation' }]).map((l) => `
+    ${(data.existingLoans || [{ typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]).map((l) => `
       <tr class="text-center">
         <td>${l.typeOfLoan}</td>
         <td>${l.financerName}</td>
-        <td>${l.loanAmountLakhs}</td>
-        <td>${l.emiRs}</td>
-        <td>${l.tenureYearsMonths}</td>
-        <td>${l.balanceTenure}</td>
-        <td>${l.remark}</td>
+        <td>${l.amountInLakhs || l.loanAmountLakhs || ''}</td>
+        <td>${l.emi || l.emiRs || ''}</td>
+        <td>${l.tenure || l.tenureYearsMonths || ''}</td>
+        <td>${l.balanceTenure || ''}</td>
+        <td>${l.remark || ''}</td>
       </tr>
     `).join('')}
     <tr>
