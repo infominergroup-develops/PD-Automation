@@ -1524,10 +1524,10 @@ ${qaPairs.join('\n\n')}`;
     const finalMeetingAddress = meetingAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
-    const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'NIL';
-    const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'NIL';
-    const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'NIL');
-    const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'NIL';
+    const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'Not provided';
+    const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'Not provided';
+    const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'Not provided');
+    const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Not provided';
     const fbStockDetails = stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.';
     const fbAssetAnalysis = `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`;
     const fbAssetCreation = `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`;
@@ -1552,34 +1552,34 @@ ${qaPairs.join('\n\n')}`;
       applicantPhone: mobileNumber,
       coApplicants,
       femaleCandidateDetails: hasFemaleCandidate 
-        ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || 'NIL'}, ${femaleCandidateRelation === 'Other' ? (femaleCandidateOtherRelation || 'NIL') : femaleCandidateRelation.toLowerCase()} of the applicant.`
-        : "NIL",
-      firmName: firmName || 'NIL',
+        ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || 'Not provided'}, ${femaleCandidateRelation === 'Other' ? (femaleCandidateOtherRelation || 'Not provided') : femaleCandidateRelation.toLowerCase()} of the applicant.`
+        : "Not provided",
+      firmName: firmName || 'Not provided',
       loanAmount: appliedAmount || 0,
-      loanType: loanType === 'Other' ? (otherLoanType || 'NIL') : loanType,
-      loanPurpose: solarPurposeGeneratedText || 'NIL',
+      loanType: loanType === 'Other' ? (otherLoanType || 'Not provided') : loanType,
+      loanPurpose: solarPurposeGeneratedText || 'Not provided',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
       meetingAddress: finalMeetingAddress,
       locatingPremisesType: locatingPremisesType === 'Other' ? locatingPremisesTypeOther : locatingPremisesType,
-      metPersonName: applicantName ? `${applicantName} (Self)` : 'NIL',
-      metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'NIL') : (identityProof || 'NIL'),
-      executiveName: executiveName || 'NIL',
+      metPersonName: applicantName ? `${applicantName} (Self)` : 'Not provided',
+      metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'Not provided') : (identityProof || 'Not provided'),
+      executiveName: executiveName || 'Not provided',
       familyMembers: familyMembers,
 
-      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'NIL'))),
-      houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'NIL'} rooms and is a ${houseStructureType || 'NIL'} structure, comprising a ${houseFloorPosition || 'NIL'} floor.` : 'NIL',
+      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
+      houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'Not provided'} rooms and is a ${houseStructureType || 'Not provided'} structure, comprising a ${houseFloorPosition || 'Not provided'} floor.` : 'Not provided',
       monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
-      residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${resElectricityConsumerNumber || 'NIL'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'NIL',
+      residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
       residenceGpsCoords: formattedGps,
-      residenceStatus: residenceStatus || 'NIL',
-      residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'NIL',
-      residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'NIL'} regarding their behaviour.` : 'NIL',
+      residenceStatus: residenceStatus || 'Not provided',
+      residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'Not provided',
+      residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'Not provided'} regarding their behaviour.` : 'Not provided',
 
-      briefBusinessProfile: briefBusinessProfile || 'NIL',
+      briefBusinessProfile: briefBusinessProfile || 'Not provided',
       businessVintage: businessVintageText || fbBusinessVintage,
-      previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'NIL') : (previousOccupation || 'NIL'),
-      reasonToLeave: reasonToLeave || 'NIL',
+      previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'Not provided') : (previousOccupation || 'Not provided'),
+      reasonToLeave: reasonToLeave || 'Not provided',
       staffCount: staffCountText || fbStaffCount,
       businessPremiseOwnership: premiseOwnershipText || fbPremiseOwnership,
       factoryInfrastructure: factoryInfrastructureText || fbFactoryInfra,
@@ -1588,20 +1588,20 @@ ${qaPairs.join('\n\n')}`;
       assetCreationThroughBusiness: assetCreationText || fbAssetCreation,
       initialBusinessInvestment: businessInvestmentText || fbBusinessInvestment,
       agriculturalIncomeDetails: agriculturalIncomeText || fbAgriIncome,
-      otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'NIL',
+      otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'Not provided',
       operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
       prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
       prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [],
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
-      currentObligationSummary: currentObligation || 'NIL',
+      currentObligationSummary: currentObligation || 'Not provided',
       businessGpsCoords: formattedGps,
-      businessLocationRemarks: businessLongitudeRemarks || 'NIL',
-      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'NIL'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'NIL',
-      businessNeighborName: businessNeighbourName || 'NIL',
-      businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'NIL',
-      businessStatus: businessStatus || 'NIL',
+      businessLocationRemarks: businessLongitudeRemarks || 'Not provided',
+      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
+      businessNeighborName: businessNeighbourName || 'Not provided',
+      businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
+      businessStatus: businessStatus || 'Not provided',
 
       itemizedSales: incomeLines.map(l => ({
         particulars: l.particulars,
@@ -1660,7 +1660,7 @@ ${qaPairs.join('\n\n')}`;
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'NIL'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'NIL'}.`,
+      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
       parsedCreditReport: parsedCreditReport
     });
   };
@@ -4975,7 +4975,7 @@ ${qaPairs.join('\n\n')}`;
                   <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {tenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
                 </p>
                 <p>
-                  <strong>Community Verification:</strong> {neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'NIL'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: {businessNeighbourFeedback || neighborFeedback || 'NIL'}.
+                  <strong>Community Verification:</strong> {neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: {businessNeighbourFeedback || neighborFeedback || 'Not provided'}.
                 </p>
               </div>
 

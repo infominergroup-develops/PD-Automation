@@ -469,16 +469,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <div contenteditable="true" style="outline: none;">
   <!-- COVER PAGE -->
   <div class="cover-page">
-    <div class="cover-logo">
-      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="url(#orange-gradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <defs>
-          <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f97316" />
-            <stop offset="100%" stop-color="#f59e0b" />
-          </linearGradient>
-        </defs>
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-      </svg>
+    <div class="cover-logo" style="background: transparent; color: #2d3e50; border: none; box-shadow: none; width: auto; height: auto; padding: 20px;">
+      <img src="${window.location.origin}/infominer-logo.png" style="max-height: 80px;" alt="Infominer Services Pvt. Ltd." />
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
     <div class="cover-subtitle">${data.companyHeader?.name || 'Not Provided'}</div>
@@ -508,6 +500,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
         <tr>
           <td class="bold">Case Status</td>
           <td style="color: #065f46; font-weight: bold;">${caseStatus}</td>
+        </tr>
+        <tr>
+          <td class="bold">Business Summary</td>
+          <td>${data.briefBusinessProfile || 'Not provided'}</td>
         </tr>
       </table>
     </div>
@@ -813,91 +809,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       </tr>
     `).join('')}
 
-    ${data.parsedCreditReport ? `
-    <tr>
-      <td colspan="3" class="sec-head">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'Not Provided'})</td>
-    </tr>
-    <tr>
-      <td class="bold">Report Date</td>
-      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Total Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Active Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Total Current Balance</td>
-      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Total Overdue Amount</td>
-      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Credit Score</td>
-      <td colspan="2">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td class="bold">Risk Indicators</td>
-      <td colspan="2">
-        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
-      </td>
-    </tr>
-    ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
-    <tr>
-      <td colspan="3" style="padding: 0;">
-        <table style="width: 100%; border-collapse: collapse; border: none; font-size: 8px;">
-          <tr style="background-color: #2d3e50; color: #ffffff; font-weight: bold; text-align: left; text-transform: uppercase;">
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">#</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Borrower</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Facility Type</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Lending Inst.</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Category</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Status</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Disbursed Date</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Disbursed Amt</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Current Balance</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Overdue Amt</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">EMI</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Tenure</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">ROI</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Last Paid</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">As On</td>
-          </tr>
-          ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
-            const isOverdue = (acc.overdueAmount || 0) > 0;
-            const bgClass = isOverdue ? '#fef2f2' : (index % 2 === 1 ? '#fcfcfd' : '#ffffff');
-            const isActive = acc.status === 'Active';
-            
-            return `
-              <tr style="background-color: ${bgClass};">
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #94a3b8; font-weight: bold;">${index + 1}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #1e293b;">${acc.applicantName || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.accountType || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.creditGrantor || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569; font-weight: bold; font-size: 6px;">${acc.lenderType || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-weight: bold; color: ${isActive ? '#16a34a' : (acc.status === 'Closed' ? '#64748b' : '#2d3e50')};">${acc.status || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.disbursedDate || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: #1e293b;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: ${isOverdue ? '#dc2626' : '#1e293b'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.interestRate ? acc.interestRate + '%' : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.lastPaymentDate || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.asOnDate || '—'}</td>
-              </tr>
-            `;
-          }).join('')}
-        </table>
-      </td>
-    </tr>
-    ` : ''}
-    ` : ''}
+
 
     <tr>
       <td colspan="3" class="sec-head">Banking Details and Limit OD and CC limit with bank</td>
@@ -1072,6 +984,89 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  <!-- CRIF / CIBIL REPORT PAGE -->
+  ${data.parsedCreditReport ? `
+  <div class="page-break"></div>
+  <div style="padding: 12px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff; border-radius: 8px 8px 0 0; font-size: 14pt; font-weight: bold; text-align: center; margin-top: 15px; border: 1px solid #1e3a8a; border-bottom: none;">
+    Extracted Credit Report (${data.parsedCreditReport.reportProvider || 'Not Provided'})
+  </div>
+  <table class="report-table" style="border: 2px solid #1e3a8a; border-top: none; margin-bottom: 20px;">
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Report Date</td>
+      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Active Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Current Balance</td>
+      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Total Overdue Amount</td>
+      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Credit Score</td>
+      <td colspan="2" style="font-size: 14pt; color: #1e3a8a; font-weight: bold;">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Risk Indicators</td>
+      <td colspan="2">
+        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
+      </td>
+    </tr>
+  </table>
+  
+  ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <tr style="background-color: #0f766e; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">#</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Borrower</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Facility Type</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Lending Inst.</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Status</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Disbursed Date</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Disbursed Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Current Balance</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Overdue Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">EMI</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Tenure</th>
+    </tr>
+    ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
+      const isOverdue = (acc.overdueAmount || 0) > 0;
+      const bgClass = isOverdue ? '#fff1f2' : (index % 2 === 1 ? '#f8fafc' : '#ffffff');
+      const isActive = acc.status === 'Active';
+      
+      const statusStyle = isActive 
+        ? 'background-color: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; display: inline-block;' 
+        : (acc.status === 'Closed' ? 'background-color: #f1f5f9; color: #475569; padding: 3px 6px; border-radius: 4px; display: inline-block;' : 'color: #0f172a;');
+      
+      return `
+        <tr style="background-color: ${bgClass}; border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 700;">${index + 1}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #1e293b;">${acc.applicantName || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #0369a1;">${acc.accountType || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #334155;">${acc.creditGrantor || '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; font-weight: 700;"><span style="${statusStyle}">${acc.status || '—'}</span></td>
+          <td style="padding: 10px 8px; color: #475569;">${acc.disbursedDate || '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #0f172a;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: ${isOverdue ? '#e11d48' : '#334155'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; color: #475569; font-weight: 600;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
+        </tr>
+      `;
+    }).join('')}
+  </table>
+  ` : ''}
+  ` : ''}
+
   <!-- RISK FACTOR -->
   ${data.riskFactor ? `
   <table class="report-table" style="margin-top: 10px; margin-bottom: 15px;">
@@ -1204,6 +1199,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <table class="report-table">
     ${['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map(category => {
       const catPhotos = (data.photos || []).filter(p => p.category === category);
+      if (catPhotos.length === 0) return '';
       return `
         <tr>
           <td class="sec-head">${category}</td>
@@ -1211,16 +1207,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
         <tr>
           <td style="padding: 10px;">
             <div class="photo-grid">
-              ${catPhotos.length > 0 
-                ? catPhotos.map(p => `
+              ${catPhotos.map(p => `
                 <div class="photo-card">
-                  <img src="${p.dataUrl}" alt="${p.name}" />
-                  <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-                  <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'Not Provided'}, ${p.gps?.lng || 'Not Provided'} • Verified Stamp</div>
+                  <img src="${p.dataUrl}" alt="Photo" />
                 </div>
-              `).join('')
-                : `<div style="padding: 20px; border: 1px dashed #ccc; width: 100%; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`
-              }
+              `).join('')}
             </div>
           </td>
         </tr>
@@ -1406,16 +1397,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <div contenteditable="true" style="outline: none;">
   <!-- COVER PAGE -->
   <div class="cover-page">
-    <div class="cover-logo">
-      <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="url(#orange-gradient)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <defs>
-          <linearGradient id="orange-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#f97316" />
-            <stop offset="100%" stop-color="#f59e0b" />
-          </linearGradient>
-        </defs>
-        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-      </svg>
+    <div class="cover-logo" style="background: transparent; color: #2d3e50; border: none; box-shadow: none; width: auto; height: auto; padding: 20px;">
+      <img src="${window.location.origin}/infominer-logo.png" style="max-height: 80px;" alt="Infominer Services Pvt. Ltd." />
     </div>
     <div class="cover-title">Personal Discussion<br/>Credit Assessment Report</div>
     <div class="cover-subtitle">${data.clientBankName || 'Moneyboxx Finance Limited'}</div>
@@ -1445,6 +1428,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         <tr>
           <td class="bold">Case Status</td>
           <td style="color: #065f46; font-weight: bold;">${caseStatus}</td>
+        </tr>
+        <tr>
+          <td class="bold">Business Summary</td>
+          <td>${data.briefBusinessProfile || 'Not provided'}</td>
         </tr>
       </table>
     </div>
@@ -1739,91 +1726,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       </tr>
     `).join('')}
 
-    ${data.parsedCreditReport ? `
-    <tr>
-      <td colspan="7" class="sec-title bg-light">Parsed Credit Report Data (${data.parsedCreditReport.reportProvider || 'Not Provided'})</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Report Date</td>
-      <td colspan="4">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Total Accounts</td>
-      <td colspan="4">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Active Accounts</td>
-      <td colspan="4">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Total Current Balance</td>
-      <td colspan="4">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Total Overdue Amount</td>
-      <td colspan="4" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Credit Score</td>
-      <td colspan="4">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td colspan="3" class="bold">Risk Indicators</td>
-      <td colspan="4">
-        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
-      </td>
-    </tr>
-    ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
-    <tr>
-      <td colspan="7" style="padding: 0;">
-        <table style="width: 100%; border-collapse: collapse; border: none; font-size: 8px;">
-          <tr style="background-color: #2d3e50; color: #ffffff; font-weight: bold; text-align: left; text-transform: uppercase;">
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">#</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Borrower</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Facility Type</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Lending Inst.</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Category</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Status</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Disbursed Date</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Disbursed Amt</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Current Balance</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">Overdue Amt</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right;">EMI</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">Tenure</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center;">ROI</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">Last Paid</td>
-            <td style="border: 1px solid #e2e8f0; padding: 4px;">As On</td>
-          </tr>
-          ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
-            const isOverdue = (acc.overdueAmount || 0) > 0;
-            const bgClass = isOverdue ? '#fef2f2' : (index % 2 === 1 ? '#fcfcfd' : '#ffffff');
-            const isActive = acc.status === 'Active';
-            
-            return `
-              <tr style="background-color: ${bgClass};">
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #94a3b8; font-weight: bold;">${index + 1}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #1e293b;">${acc.applicantName || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.accountType || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; font-weight: bold; color: #2d3e50;">${acc.creditGrantor || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569; font-weight: bold; font-size: 6px;">${acc.lenderType || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; font-weight: bold; color: ${isActive ? '#16a34a' : (acc.status === 'Closed' ? '#64748b' : '#2d3e50')};">${acc.status || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.disbursedDate || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: #1e293b;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; font-weight: bold; color: ${isOverdue ? '#dc2626' : '#1e293b'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; text-align: center; color: #475569;">${acc.interestRate ? acc.interestRate + '%' : '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.lastPaymentDate || '—'}</td>
-                <td style="border: 1px solid #e2e8f0; padding: 4px; color: #475569;">${acc.asOnDate || '—'}</td>
-              </tr>
-            `;
-          }).join('')}
-        </table>
-      </td>
-    </tr>
-    ` : ''}
-    ` : ''}
+
 
     <tr>
       <td colspan="7" class="sec-title bg-light">Banking Details and Limit OD and CC limit with bank</td>
@@ -1976,6 +1879,89 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  <!-- CRIF / CIBIL REPORT PAGE -->
+  ${data.parsedCreditReport ? `
+  <div class="page-break"></div>
+  <div style="padding: 12px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff; border-radius: 8px 8px 0 0; font-size: 14pt; font-weight: bold; text-align: center; margin-top: 15px; border: 1px solid #1e3a8a; border-bottom: none;">
+    Extracted Credit Report (${data.parsedCreditReport.reportProvider || 'Not Provided'})
+  </div>
+  <table class="report-table" style="border: 2px solid #1e3a8a; border-top: none; margin-bottom: 20px;">
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Report Date</td>
+      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Active Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Current Balance</td>
+      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Total Overdue Amount</td>
+      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Credit Score</td>
+      <td colspan="2" style="font-size: 14pt; color: #1e3a8a; font-weight: bold;">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Risk Indicators</td>
+      <td colspan="2">
+        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
+      </td>
+    </tr>
+  </table>
+  
+  ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <tr style="background-color: #0f766e; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">#</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Borrower</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Facility Type</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Lending Inst.</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Status</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Disbursed Date</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Disbursed Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Current Balance</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Overdue Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">EMI</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Tenure</th>
+    </tr>
+    ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
+      const isOverdue = (acc.overdueAmount || 0) > 0;
+      const bgClass = isOverdue ? '#fff1f2' : (index % 2 === 1 ? '#f8fafc' : '#ffffff');
+      const isActive = acc.status === 'Active';
+      
+      const statusStyle = isActive 
+        ? 'background-color: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; display: inline-block;' 
+        : (acc.status === 'Closed' ? 'background-color: #f1f5f9; color: #475569; padding: 3px 6px; border-radius: 4px; display: inline-block;' : 'color: #0f172a;');
+      
+      return `
+        <tr style="background-color: ${bgClass}; border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 700;">${index + 1}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #1e293b;">${acc.applicantName || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #0369a1;">${acc.accountType || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #334155;">${acc.creditGrantor || '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; font-weight: 700;"><span style="${statusStyle}">${acc.status || '—'}</span></td>
+          <td style="padding: 10px 8px; color: #475569;">${acc.disbursedDate || '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #0f172a;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: ${isOverdue ? '#e11d48' : '#334155'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; color: #475569; font-weight: 600;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
+        </tr>
+      `;
+    }).join('')}
+  </table>
+  ` : ''}
+  ` : ''}
+
   <!-- Detailed Summary Section -->
   <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
     <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Detailed Summary</h3>
@@ -2056,19 +2042,15 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <div style="max-width: 800px; margin: 0 auto;">
     ${['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map(category => {
       const catPhotos = (data.photos || []).filter(p => p.category === category);
+      if (catPhotos.length === 0) return '';
       return `
         <h4 style="text-align: center; background: #f5f5f5; padding: 5px; margin-top: 20px; border: 1px solid #000;">${category}</h4>
         <div class="photo-grid" style="grid-template-columns: 1fr 1fr; border: 1px solid #000; border-top: none; min-height: 50px;">
-          ${catPhotos.length > 0 
-            ? catPhotos.map(p => `
+          ${catPhotos.map(p => `
             <div class="photo-card">
-              <img src="${p.dataUrl}" alt="${p.name}" />
-              <div style="font-weight: bold; font-size: 8pt; margin-top: 4px;">${p.name}</div>
-              <div style="font-size: 7.5pt; color: #475569;">GPS: ${p.gps?.lat || 'Not Provided'}, ${p.gps?.lng || 'Not Provided'} • Verified Stamp</div>
+              <img src="${p.dataUrl}" alt="Photo" />
             </div>
-          `).join('')
-            : `<div style="grid-column: span 2; padding: 20px; text-align: center; color: #666; font-size: 9pt;">No ${category.toLowerCase()} uploaded</div>`
-          }
+          `).join('')}
         </div>
       `;
     }).join('')}

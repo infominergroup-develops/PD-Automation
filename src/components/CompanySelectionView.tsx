@@ -13,7 +13,7 @@ export interface Company {
 export const COMPANIES: Company[] = [
   {
     id: 'infominers',
-    name: 'Infominer Services',
+    name: 'Infominer Services Pvt. Ltd.',
     shortCode: 'INFO',
     logoColor: '#2D3E50',
     description: 'Internal corporate PD automation division.'
