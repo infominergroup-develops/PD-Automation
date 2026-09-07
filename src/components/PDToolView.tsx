@@ -1473,6 +1473,40 @@ ${qaPairs.join('\n\n')}`;
       flags.push(`Product revenue contribution sums to ${totalProductContribPct}% (expected 100%)`);
     }
 
+    // 1. Residence Ownership Risk
+    if (residenceOwnership?.toUpperCase() === 'OWNED') {
+      strengths.push('Applicant owns their residence, demonstrating stability');
+      score += 5;
+    } else if (residenceOwnership?.toUpperCase() === 'RENTED') {
+      flags.push('Rented residence (monitor stability)');
+      score -= 5;
+    }
+
+    // 2. Business Premise Ownership Risk
+    if (premiseOwnership?.toUpperCase() === 'OWNED' || shopOwnership?.toUpperCase() === 'OWNED') {
+      strengths.push('Applicant owns the business premises, reducing operational risk');
+      score += 5;
+    } else if (premiseOwnership?.toUpperCase() === 'RENTED' || shopOwnership?.toUpperCase() === 'RENTED') {
+      flags.push('Rented business premises');
+      score -= 5;
+    }
+
+    // 3. Feedback Checks
+    if (neighborFeedback?.toUpperCase().includes('NEGATIVE')) {
+      score -= 15;
+      flags.push('Negative feedback received from neighbors');
+    } else if (neighborFeedback?.toUpperCase().includes('POSITIVE')) {
+      strengths.push('Positive feedback received from neighbors');
+    }
+
+    if (landlordFeedback?.toUpperCase().includes('NEGATIVE')) {
+      score -= 15;
+      flags.push('Negative feedback received from landlord');
+    }
+
+    // Bound the score between 0 and 100
+    score = Math.max(0, Math.min(100, score));
+
     let decision: 'APPROVED' | 'CONDITIONAL' | 'REJECTED' = 'APPROVED';
     if (score < 50 || dscrRatio < 1.0) {
       decision = 'REJECTED';
@@ -1481,7 +1515,7 @@ ${qaPairs.join('\n\n')}`;
     }
 
     return { score, flags, strengths, decision };
-  }, [dscrRatio, foirPct, yearsInBusiness, totalProductContribPct]);
+  }, [dscrRatio, foirPct, yearsInBusiness, totalProductContribPct, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
