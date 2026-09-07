@@ -466,6 +466,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </button>
   </div>
 
+  <div contenteditable="true" style="outline: none;">
   <!-- COVER PAGE -->
   <div class="cover-page">
     <div class="cover-logo">
@@ -1225,6 +1226,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       `;
     }).join('')}
   </table>
+  </div>
 
 </body>
 </html>
@@ -1400,6 +1402,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   </div>
   <style>@media print { .no-print { display: none !important; } }</style>
 
+  <div contenteditable="true" style="outline: none;">
   <!-- COVER PAGE -->
   <div class="cover-page">
     <div class="cover-logo">
@@ -2067,6 +2070,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         </div>
       `;
     }).join('')}
+  </div>
   </div>
 </body>
 </html>
