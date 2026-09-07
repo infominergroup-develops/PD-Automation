@@ -520,9 +520,6 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <!-- SECTION 1: OFFICIAL COMPANY HEADER & CASE PROFILE -->
   <div class="hdr-main">
     <div class="hdr-title">${data.companyHeader?.name || 'Not Provided'}</div>
-    <div class="hdr-sub">CIN : ${data.companyHeader?.cin || 'Not Provided'}</div>
-    <div class="hdr-desc"><strong>(${data.companyHeader?.designation || 'Not Provided'})</strong></div>
-    <div class="hdr-desc">${data.companyHeader?.address || 'Not Provided'}</div>
   </div>
 
   <table class="report-table">
@@ -543,6 +540,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td colspan="2"><strong>Dear Sir/Madam,</strong></td>
       <td class="bold text-center">Status of case</td>
       <td class="bold text-center" style="color: #065f46;">${caseStatus}</td>
+    </tr>
+    <tr>
+      <td class="bold" style="vertical-align: middle;">Business Summary</td>
+      <td colspan="3" style="vertical-align: middle;">${data.briefBusinessProfile || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="4" style="font-size: 8pt; font-style: italic;">
@@ -1457,10 +1458,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <table>
     <tr>
       <td colspan="4" class="text-center bold" style="border: 2px solid #000; padding: 8px;">
-        ${data.companyHeader?.name || 'Not Provided'}<br/>
-        CIN : ${data.companyHeader?.cin || 'Not Provided'}<br/>
-        (${data.companyHeader?.designation || 'Not Provided'})<br/>
-        ${data.companyHeader?.address || 'Not Provided'}
+        ${data.companyHeader?.name || 'Not Provided'}
       </td>
     </tr>
     <tr>
@@ -1480,6 +1478,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td class="bold text-center" style="vertical-align: middle;">Status of case</td>
       <td class="bold text-center" style="vertical-align: middle;">${caseStatus}</td>
+    </tr>
+    <tr>
+      <td class="bold text-center" style="vertical-align: middle;">Business Summary</td>
+      <td colspan="3" style="vertical-align: middle; text-align: left;">${data.briefBusinessProfile || 'Not Provided'}</td>
     </tr>
     <tr>
       <td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td>
