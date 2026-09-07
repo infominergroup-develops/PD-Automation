@@ -902,6 +902,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [electricityConnectionTypeOther, setElectricityConnectionTypeOther] = useState('');
   const [electricityConsumerNumber, setElectricityConsumerNumber] = useState('');
   const [electricityMonthlyExpense, setElectricityMonthlyExpense] = useState<number | ''>('');
+  const [hasResElectricityConnection, setHasResElectricityConnection] = useState('Not Provided');
+  const [resElectricityConnectionType, setResElectricityConnectionType] = useState('');
+  const [resElectricityConnectionTypeOther, setResElectricityConnectionTypeOther] = useState('');
+  const [resElectricityConsumerNumber, setResElectricityConsumerNumber] = useState('');
+  const [resElectricityMonthlyExpense, setResElectricityMonthlyExpense] = useState<number | ''>('');
   const [neighbors, setNeighbors] = useState<any[]>([]);
   const [neighborVerificationConducted, setNeighborVerificationConducted] = useState(false);
   const [neighborResidenceConfirmed, setNeighborResidenceConfirmed] = useState('');
@@ -1178,6 +1183,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         propertyRentAmount, propertyOwnerName, propertyArea, propertyValue, propertyOwnershipDoc, houseFloors, houseRooms, houseStructureType,
         houseStructureTypeOther, houseFloorPosition, houseFloorPositionOther, houseAdditionalDetails, monthlyHouseholdExpensesAmount,
         hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
+        hasResElectricityConnection, resElectricityConnectionType, resElectricityConnectionTypeOther, resElectricityConsumerNumber, resElectricityMonthlyExpense,
         neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
         neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
         aataChakkiData,
@@ -1518,6 +1524,7 @@ ${qaPairs.join('\n\n')}`;
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'NIL'))),
       houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'NIL'} rooms and is a ${houseStructureType || 'NIL'} structure, comprising a ${houseFloorPosition || 'NIL'} floor.` : 'NIL',
       monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
+      residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${resElectricityConsumerNumber || 'NIL'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'NIL',
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'NIL',
       residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'NIL',
@@ -3714,9 +3721,49 @@ ${qaPairs.join('\n\n')}`;
                </div>
             </div>
 
-            {/* 19. Electricity Connection Details */}
+            {/* 19A. Residence Electricity Connection Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">19. Electricity Connection Details</label>
+               <label className="block text-xs font-bold text-slate-700">19A. Residence Electricity Connection Details</label>
+               <div className="flex gap-2">
+                 {['Yes', 'No', 'Not Provided'].map(opt => (
+                    <button key={opt} type="button" onClick={() => setHasResElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasResElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
+                 ))}
+               </div>
+               
+               {hasResElectricityConnection === 'Yes' && (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+                     <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                        <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                           <option value="">Select...</option>
+                           <option value="Domestic">Domestic</option>
+                           <option value="Commercial">Commercial</option>
+                           <option value="Agricultural">Agricultural</option>
+                           <option value="Other">Other</option>
+                        </select>
+                        {resElectricityConnectionType === 'Other' && (
+                           <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
+                        )}
+                     </div>
+                     <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                        <input type="text" value={resElectricityConsumerNumber} onChange={(e) => setResElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
+                     </div>
+                     <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                        <div className="relative">
+                           <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                           <input type="number" value={resElectricityMonthlyExpense} onChange={(e) => setResElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
+                        </div>
+                     </div>
+                  </div>
+               )}
+               {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
+            </div>
+
+            {/* 19B. Business Electricity Connection Details */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+               <label className="block text-xs font-bold text-slate-700">19B. Business Electricity Connection Details</label>
                <div className="flex gap-2">
                  {['Yes', 'No', 'Not Provided'].map(opt => (
                     <button key={opt} type="button" onClick={() => setHasElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
@@ -3751,7 +3798,7 @@ ${qaPairs.join('\n\n')}`;
                      </div>
                   </div>
                )}
-               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection</div>}
+               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
             </div>
 
             {/* 20. Neighbor Name */}
