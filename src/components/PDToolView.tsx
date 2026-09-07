@@ -982,11 +982,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Total Existing EMIs
   const existingEmis = useMemo(() => {
-    return existingLoans.reduce((sum, loan) => sum + (Number(loan.emi) || 0), 0);
+    return (existingLoans || []).reduce((sum, loan) => sum + (Number(loan?.emi) || 0), 0);
   }, [existingLoans]);
 
   const generatedExistingEmiNotes = useMemo(() => {
-    const validLoans = existingLoans.filter(l => l.typeOfLoan !== 'NA' && l.typeOfLoan.trim() !== '');
+    const validLoans = (existingLoans || []).filter(l => l?.typeOfLoan && l.typeOfLoan !== 'NA' && String(l.typeOfLoan).trim() !== '');
     if (validLoans.length > 0) {
       return `Existing obligations include ${validLoans.map(l => `${l.typeOfLoan} from ${l.financerName || 'Unknown'} (EMI: ₹${l.emi || 0})`).join(', ')}.`;
     }
