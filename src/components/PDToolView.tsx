@@ -1474,7 +1474,7 @@ ${qaPairs.join('\n\n')}`;
 
     const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'NIL';
     const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'NIL';
-    const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`) || 'NIL';
+    const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'NIL');
     const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'NIL';
     const fbStockDetails = stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.';
     const fbAssetAnalysis = `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`;
@@ -1515,7 +1515,7 @@ ${qaPairs.join('\n\n')}`;
       executiveName: executiveName || 'NIL',
       familyMembers: familyMembers,
 
-      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : 'NIL'),
+      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'NIL'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'NIL'))),
       houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'NIL'} rooms and is a ${houseStructureType || 'NIL'} structure, comprising a ${houseFloorPosition || 'NIL'} floor.` : 'NIL',
       monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
       residenceGpsCoords: formattedGps,
