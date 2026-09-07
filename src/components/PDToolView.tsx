@@ -974,7 +974,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [miscExpense, setMiscExpense] = useState(0);
   const [otherIncome, setOtherIncome] = useState(0);
   const [householdExpenses, setHouseholdExpenses] = useState(0);
-  const [existingEmis, setExistingEmis] = useState(0);
   const [existingEmiNotes, setExistingEmiNotes] = useState('');
   const [householdExpensesNotes, setHouseholdExpensesNotes] = useState('');
   const [comfortableEmiNotes, setComfortableEmiNotes] = useState('');
@@ -1112,7 +1111,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setMiscExpense(app.miscExpense || 0);
     setOtherIncome(app.otherIncome || 0);
     setHouseholdExpenses(app.householdExpenses || 0);
-    setExistingEmis(app.existingEmis || 0);
+
     setPhotos(app.photos || []);
 
     const defaultLines = getCategoryDefaultItemizedLines(app.categoryId, app.dailyFootfall, app.avgTicketValue, app.workingDays, categoriesList);
@@ -1391,6 +1390,19 @@ ${qaPairs.join('\n\n')}`;
     return grossProfit - totalOperatingExpenses;
   }, [grossProfit, totalOperatingExpenses]);
 
+  // Total Existing EMIs
+  const existingEmis = useMemo(() => {
+    return existingLoans.reduce((sum, loan) => sum + (Number(loan.emi) || 0), 0);
+  }, [existingLoans]);
+
+  const generatedExistingEmiNotes = useMemo(() => {
+    const validLoans = existingLoans.filter(l => l.typeOfLoan !== 'NA' && l.typeOfLoan.trim() !== '');
+    if (validLoans.length > 0) {
+      return `Existing obligations include ${validLoans.map(l => `${l.typeOfLoan} from ${l.financerName || 'Unknown'} (EMI: ₹${l.emi || 0})`).join(', ')}.`;
+    }
+    return 'As per applicant no any existing obligation.';
+  }, [existingLoans]);
+
   // Total Household Surplus before Proposed EMI
   const netFamilySurplusBeforeEmi = useMemo(() => {
     return (netBusinessIncome + otherIncome) - householdExpenses - existingEmis;
@@ -1587,7 +1599,7 @@ ${qaPairs.join('\n\n')}`;
       netProfitYearly: netBusinessIncome * 12,
       existingEmiMonthly: existingEmis,
       existingEmiYearly: existingEmis * 12,
-      existingEmiNotes: existingEmiNotes,
+      existingEmiNotes: existingEmiNotes || generatedExistingEmiNotes,
       householdExpensesMonthly: householdExpenses,
       householdExpensesYearly: householdExpenses * 12,
       householdExpensesNotes: householdExpensesNotes,
@@ -4727,11 +4739,12 @@ ${qaPairs.join('\n\n')}`;
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Existing EMI Notes (Report Override)</label>
+                <div className="text-[10px] text-blue-600 font-semibold mb-1">Auto-calculated: {generatedExistingEmiNotes}</div>
                 <input
                   type="text"
                   value={existingEmiNotes}
                   onChange={(e) => setExistingEmiNotes(e.target.value)}
-                  placeholder="e.g. As per applicant no any existing obligation"
+                  placeholder="Leave blank to use auto-calculated notes above"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
               </div>
