@@ -1370,7 +1370,11 @@ ${qaPairs.join('\n\n')}`;
 
   // Gallery Filtered Applications
   const galleryApplications = useMemo(() => {
-    return applicantsList;
+    // Show live database cases first, then fallback to mock sample applications
+    const filteredSamples = SAMPLE_APPLICATIONS.filter(
+      sample => !applicantsList.some(live => live.applicationNumber === sample.applicationNumber)
+    );
+    return [...applicantsList, ...filteredSamples];
   }, [applicantsList]);
 
 

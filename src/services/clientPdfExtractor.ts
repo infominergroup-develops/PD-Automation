@@ -275,7 +275,7 @@ export function parseCrifAccounts(text: string, applicantName?: string | null): 
     }
   });
 
-  return accounts;
+  return accounts.filter(acc => acc.status === 'Active');
 }
 
 /**
@@ -397,7 +397,7 @@ export function parseCibilAccounts(text: string, applicantName?: string | null):
     }
   });
 
-  return accounts;
+  return accounts.filter(acc => acc.status === 'Active');
 }
 
 /**

@@ -522,41 +522,6 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <div  style="outline: none;">
   
-  <!-- COVER PAGE -->
-  <div class="cover-page">
-    <div class="cover-logo">
-      <img src="${coverLogo}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 15px;" alt="Logo" />
-    </div>
-    <div class="cover-title">Personal Discussion Report</div>
-    <div class="cover-subtitle">${data.clientBankName || data.companyHeader?.name || 'MONEYBOXX FINANCE LIMITED'}</div>
-    <div class="cover-details">
-      <table>
-        <tr>
-          <td><strong>Applicant Name:</strong></td>
-          <td>${data.applicantName}</td>
-        </tr>
-        <tr>
-          <td><strong>Business / Firm:</strong></td>
-          <td>${data.firmName || 'Not provided'}</td>
-        </tr>
-        <tr>
-          <td><strong>Application ID:</strong></td>
-          <td>${appNo}</td>
-        </tr>
-        <tr>
-          <td><strong>Loan Amount:</strong></td>
-          <td>₹${Number(data.loanAmount || 0).toLocaleString('en-IN')}</td>
-        </tr>
-        <tr>
-          <td><strong>Report Date:</strong></td>
-          <td>${reportDate}</td>
-        </tr>
-      </table>
-    </div>
-    <div class="cover-footer">
-      Strictly Private and Confidential • ${data.companyHeader?.name || 'Infominer Services Pvt. Ltd.'}
-    </div>
-  </div>
 
   <!-- PAGE 1: EXECUTIVE SUMMARY -->
   <div class="exec-page">
@@ -650,43 +615,6 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     <div class="exec-section">
       <div class="exec-section-header">
         <div class="exec-section-number">03</div>
-        <div class="exec-section-title">KEY FINDINGS</div>
-      </div>
-      <div style="padding: 20px 10px;">
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Business Continuity</h4>
-            <p>${data.businessVintage || 'The applicant has been involved in the stated business for a considerable period (as per his discussion).'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Financial Stability</h4>
-            <p>${data.netProfitMonthly ? 'Assessed monthly net profit of ₹' + Number(data.netProfitMonthly).toLocaleString('en-IN') : 'The applicant’s responses indicate a consistent income stream from the business.'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Repayment Capacity</h4>
-            <p>${data.foirPct ? 'FOIR assessed at ' + data.foirPct + '% and DSCR at ' + data.dscrRatio + 'x. The applicant appears committed towards business growth and repayment of the proposed credit facility.' : 'The applicant appears committed towards business growth and repayment of the proposed credit facility.'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Overall Impression</h4>
-            <p>The applicant demonstrates business involvement, experience and a positive reputation in the locality.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">04</div>
         <div class="exec-section-title">FINANCIAL POSITION</div>
       </div>
       <div style="padding-left: 50px;">
@@ -712,19 +640,6 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
             <td>${data.agriculturalIncomeDetails || 'Not disclosed'}</td>
           </tr>
         </table>
-      </div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">05</div>
-        <div class="exec-section-title">CONCLUSION</div>
-      </div>
-      <div style="display: flex; gap: 20px; align-items: center; padding: 10px;">
-        <div style="color: #1e3a8a;"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: none; stroke: currentColor; stroke-width: 2;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line></svg></div>
-        <div style="font-size: 10pt; color: #475569; line-height: 1.5;">
-          ${data.aiExecutiveSummary || 'The applicant demonstrates business involvement, experience and a positive reputation in the locality. The proposed credit facility appears to be aligned with the business requirements and repayment capacity.'}
-        </div>
       </div>
     </div>
     
@@ -1760,43 +1675,6 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <div class="exec-section">
       <div class="exec-section-header">
         <div class="exec-section-number">03</div>
-        <div class="exec-section-title">KEY FINDINGS</div>
-      </div>
-      <div style="padding: 20px 10px;">
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Business Continuity</h4>
-            <p>${data.businessVintage || 'The applicant has been involved in the stated business for a considerable period (as per his discussion).'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Financial Stability</h4>
-            <p>${data.netProfitMonthly ? 'Assessed monthly net profit of ₹' + Number(data.netProfitMonthly).toLocaleString('en-IN') : 'The applicant’s responses indicate a consistent income stream from the business.'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Repayment Capacity</h4>
-            <p>${data.foirPct ? 'FOIR assessed at ' + data.foirPct + '% and DSCR at ' + data.dscrRatio + 'x. The applicant appears committed towards business growth and repayment of the proposed credit facility.' : 'The applicant appears committed towards business growth and repayment of the proposed credit facility.'}</p>
-          </div>
-        </div>
-        <div class="exec-finding-item">
-          <div class="exec-finding-icon"><svg viewBox="0 0 24 24" style="fill: #1e3a8a; stroke: none;"><circle cx="12" cy="12" r="10"></circle><path d="M9 12l2 2 4-4" stroke="#ffffff" stroke-width="2" fill="none"></path></svg></div>
-          <div class="exec-finding-content">
-            <h4>Overall Impression</h4>
-            <p>The applicant demonstrates business involvement, experience and a positive reputation in the locality.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">04</div>
         <div class="exec-section-title">FINANCIAL POSITION</div>
       </div>
       <div style="padding-left: 50px;">
@@ -1822,19 +1700,6 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
             <td>${data.agriculturalIncomeDetails || 'Not disclosed'}</td>
           </tr>
         </table>
-      </div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">05</div>
-        <div class="exec-section-title">CONCLUSION</div>
-      </div>
-      <div style="display: flex; gap: 20px; align-items: center; padding: 10px;">
-        <div style="color: #1e3a8a;"><svg viewBox="0 0 24 24" style="width: 48px; height: 48px; fill: none; stroke: currentColor; stroke-width: 2;"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="2" y1="12" x2="4" y2="12"></line><line x1="20" y1="12" x2="22" y2="12"></line></svg></div>
-        <div style="font-size: 10pt; color: #475569; line-height: 1.5;">
-          ${data.aiExecutiveSummary || 'The applicant demonstrates business involvement, experience and a positive reputation in the locality. The proposed credit facility appears to be aligned with the business requirements and repayment capacity.'}
-        </div>
       </div>
     </div>
     
