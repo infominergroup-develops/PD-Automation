@@ -91,7 +91,7 @@ export default function App() {
           setIsClientSelected(true);
           window.history.pushState({ step: 'main' }, '');
         }}
-        userName={currentUser.name}
+        currentUser={currentUser}
       />
     );
   }

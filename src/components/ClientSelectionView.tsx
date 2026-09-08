@@ -3,15 +3,15 @@ import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { InfominerLogo } from './InfominerLogo';
 import { api } from '../services/api';
-
 import { Building2, ArrowRight, ShieldCheck, CheckCircle2, Sparkles, Building, Layers } from 'lucide-react';
+import { EmployeeRecord } from '../services/api';
 
 interface ClientSelectionViewProps {
   selectedCompany?: Company | null;
   selectedClient: ClientBank | null;
   onSelectClient: (client: ClientBank) => void;
   onContinue: () => void;
-  userName?: string;
+  currentUser?: EmployeeRecord | null;
 }
 
 export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
@@ -19,25 +19,54 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
   selectedClient,
   onSelectClient,
   onContinue,
-  userName = 'Credit Officer',
+  currentUser,
 }) => {
   const [customBankName, setCustomBankName] = useState('');
   const [customDivision, setCustomDivision] = useState('');
+  const [templateFormat, setTemplateFormat] = useState<'standard' | 'pdf' | 'excel'>('standard');
+  const [templateFileBase64, setTemplateFileBase64] = useState<string>('');
   const [clients, setClients] = useState<ClientBank[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.getClients().then(fetchedClients => {
-      setClients(fetchedClients);
+      let finalClients = [...fetchedClients];
+      if (currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER') {
+        finalClients.push({
+          id: 'custom',
+          name: 'Add Custom Client',
+          shortCode: 'NEW',
+          division: 'New Configuration',
+          logoColor: '#e2e8f0',
+          accentColor: '#94a3b8',
+          borderClass: 'border-slate-300 border-dashed border-2',
+          bgGradient: 'from-slate-50 to-white',
+          description: 'Configure a new banking partner with custom PDF/Excel templates.',
+          defaultScheme: 'Custom',
+          tagline: 'Admin Only'
+        });
+      }
+      setClients(finalClients);
       setLoading(false);
     }).catch(err => {
       console.error(err);
       setLoading(false);
     });
-  }, []);
+  }, [currentUser]);
 
   const handleChooseBank = (bank: ClientBank) => {
     onSelectClient(bank);
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setTemplateFileBase64(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleCustomConfirm = async () => {
@@ -53,7 +82,9 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
       bgGradient: 'from-slate-100 to-amber-50',
       description: 'Custom client partner configuration for specialized underwriting.',
       defaultScheme: `${customBankName.trim()} Express Facility`,
-      tagline: 'Custom Financial Partner'
+      tagline: 'Custom Financial Partner',
+      templateFormat,
+      templateFileBase64
     };
     try {
       const savedBank = await api.saveClient(customBank);
@@ -91,7 +122,7 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
             Select Client Bank / Financial Partner
           </h1>
           <p className="text-sm text-slate-500 font-medium max-w-xl mx-auto">
-            Welcome back, <span className="font-bold text-[#2d3e50]">{userName}</span>. Select the banking client for which you are conducting Personal Discussion (PD) credit appraisals.
+            Welcome back, <span className="font-bold text-[#2d3e50]">{currentUser?.name || 'Credit Officer'}</span>. Select the banking client for which you are conducting Personal Discussion (PD) credit appraisals.
           </p>
         </div>
 
@@ -188,6 +219,33 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
                   className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
                 />
               </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+              <div>
+                <label className="block text-xs font-bold text-[#2d3e50] mb-1">Template Format</label>
+                <select 
+                  value={templateFormat} 
+                  onChange={(e) => setTemplateFormat(e.target.value as any)}
+                  className="w-full px-3 py-2 text-xs bg-white border border-slate-300 rounded-xl font-semibold focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
+                >
+                  <option value="standard">Standard Web HTML</option>
+                  <option value="pdf">AcroForm PDF Template</option>
+                  <option value="excel">Excel {'{{tags}}'} Template</option>
+                </select>
+              </div>
+              
+              {(templateFormat === 'pdf' || templateFormat === 'excel') && (
+                <div>
+                  <label className="block text-xs font-bold text-[#2d3e50] mb-1">Upload Template File</label>
+                  <input
+                    type="file"
+                    accept={templateFormat === 'pdf' ? '.pdf' : '.xlsx,.xls'}
+                    onChange={handleFileUpload}
+                    className="w-full text-xs"
+                  />
+                </div>
+              )}
             </div>
             <div className="flex justify-end">
               <button

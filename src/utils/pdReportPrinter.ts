@@ -520,7 +520,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </button>
   </div>
 
-  <div contenteditable="true" style="outline: none;">
+  <div  style="outline: none;">
   
   <!-- COVER PAGE -->
   <div class="cover-page">
@@ -1031,7 +1031,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
 
     <tr>
-      <td colspan="3" class="sec-head">Banking Details and Limit OD and CC limit with bank</td>
+      <td colspan="3" class="sec-head">Banking Details & CC/OD Limits</td>
     </tr>
     <tr>
       <td colspan="3" style="padding: 0;">
@@ -1044,12 +1044,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
             <td style="border: 1px solid #000;">Account No.</td>
             <td style="border: 1px solid #000;">Remark</td>
           </tr>
-          ${(data.bankingDetails || [{ bankName: bankName, branchName: 'Main Branch', accountType: 'Saving / Current', ccOdLimit: 'NA', accountNo: '**********9522', remark: 'The account belongs to applicant' }]).map(b => `
+          ${(data.bankingDetails || [{ bankName: bankName, branchName: 'Main Branch', accountType: 'Saving / Current', limit: 'NA', accountNo: '**********9522', remark: 'The account belongs to applicant' }]).map(b => `
             <tr>
               <td style="border: 1px solid #000;">${b.bankName}</td>
               <td style="border: 1px solid #000;">${b.branchName}</td>
               <td style="border: 1px solid #000;" class="text-center">${b.accountType}</td>
-              <td style="border: 1px solid #000;" class="text-center">${b.ccOdLimit}</td>
+              <td style="border: 1px solid #000;" class="text-center">${b.limit || 'NA'}</td>
               <td style="border: 1px solid #000;" class="text-center">${b.accountNo}</td>
               <td style="border: 1px solid #000;">${b.remark}</td>
             </tr>
@@ -1666,7 +1666,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   </div>
   <style>@media print { .no-print { display: none !important; } }</style>
 
-  <div contenteditable="true" style="outline: none;">
+  <div  style="outline: none;">
   
   <!-- PAGE 1: EXECUTIVE SUMMARY -->
   <div class="exec-page">
@@ -2130,7 +2130,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
 
     <tr>
-      <td colspan="7" class="sec-title bg-light">Banking Details and Limit OD and CC limit with bank</td>
+      <td colspan="7" class="sec-title bg-light">Banking Details & CC/OD Limits</td>
     </tr>
     <tr class="sec-title bg-light">
       <td colspan="2">Bank Name</td>
@@ -2140,12 +2140,12 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>Account No.</td>
       <td>Remark</td>
     </tr>
-    ${(data.bankingDetails || [{ bankName: 'State Bank of India', branchName: 'Tilhar', accountType: 'Saving Account', ccOdLimit: 'NA', accountNo: '**********', remark: 'The account belongs to applicant' }]).map((b) => `
+    ${(data.bankingDetails || [{ bankName: 'State Bank of India', branchName: 'Tilhar', accountType: 'Saving Account', limit: 'NA', accountNo: '**********', remark: 'The account belongs to applicant' }]).map((b) => `
       <tr class="text-center">
         <td colspan="2">${b.bankName}</td>
         <td>${b.branchName}</td>
         <td>${b.accountType}</td>
-        <td>${b.ccOdLimit}</td>
+        <td>${b.limit || 'NA'}</td>
         <td>${b.accountNo}</td>
         <td>${b.remark}</td>
       </tr>

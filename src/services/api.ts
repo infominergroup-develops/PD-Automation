@@ -110,6 +110,14 @@ export const api = {
     return data.applicant;
   },
 
+  saveApplicantDraft: async (clientId: string, applicantData: any): Promise<any> => {
+    if (applicantData._id) {
+      return api.updateApplicant(clientId, applicantData._id, applicantData);
+    } else {
+      return api.createApplicant(clientId, applicantData);
+    }
+  },
+
   // Categories
   getCategories: async (): Promise<BusinessCategory[]> => {
     const data = await handleResponse<{ categories: BusinessCategory[] }>(

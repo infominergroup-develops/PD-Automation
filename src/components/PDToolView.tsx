@@ -1205,7 +1205,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   useEffect(() => {
-    if (!activeAppId || !selectedClient?.id) return;
+    if (!selectedClient?.id) return;
     
     // Auto-save loop that checks for changes every 1.5 seconds independently of state re-renders
     const interval = setInterval(() => {
@@ -1215,13 +1215,18 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       const currentStr = JSON.stringify(currentData);
       
       // Save local draft as a fallback instantly
-      localStorage.setItem(`offline_draft_${activeAppId}`, currentStr);
+      const storageKey = activeAppId ? `offline_draft_${activeAppId}` : 'offline_draft_new';
+      localStorage.setItem(storageKey, currentStr);
       
       if (lastSavedStrRef.current !== currentStr) {
-        api.updateApplicant(selectedClient.id, activeAppId, currentData)
-          .then(() => {
+        api.saveApplicantDraft(selectedClient.id, { ...currentData, _id: activeAppId })
+          .then((savedApp) => {
             lastSavedStrRef.current = currentStr;
-            localStorage.removeItem(`offline_draft_${activeAppId}`); // clear on successful save
+            localStorage.removeItem(storageKey); // clear on successful save
+            if (!activeAppId && savedApp._id) {
+              setActiveAppId(savedApp._id);
+              if (savedApp.applicationNumber) setActiveAppNumber(savedApp.applicationNumber);
+            }
           })
           .catch(err => console.error('Failed to auto-save:', err));
       }
@@ -4072,7 +4077,13 @@ ${qaPairs.join('\n\n')}`;
                                   <option value="Other">Other</option>
                                </select>
                             </td>
-                            <td className="py-2 pr-2"><input type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" /></td>
+                            <td className="py-2 pr-2">
+                               <input list="limit-options" type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
+                               <datalist id="limit-options">
+                                 <option value="NA" />
+                                 <option value="Not Disclosed" />
+                               </datalist>
+                            </td>
                             <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountNo = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
                             <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].remark = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
                             <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>

@@ -10,6 +10,8 @@ export interface ClientBank {
   description: string;
   defaultScheme: string;
   tagline: string;
+  templateFormat?: 'standard' | 'pdf' | 'excel';
+  templateFileBase64?: string;
 }
 
 export const CLIENT_BANKS: ClientBank[] = [
