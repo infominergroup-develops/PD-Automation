@@ -350,7 +350,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 95vh;
       text-align: center;
       background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
       border: 15px solid #2d3e50;
@@ -358,6 +358,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       padding: 25px 35px;
       box-sizing: border-box;
       page-break-after: always;
+      break-after: page;
       position: relative;
       overflow: hidden;
     }
@@ -428,6 +429,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       text-align: left;
       z-index: 1;
       border: 1px solid rgba(255,255,255,0.4);
+      margin-bottom: 30px;
     }
     .cover-details table {
       width: 100%;
@@ -443,6 +445,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     }
     .cover-footer {
       margin-top: auto;
+      margin-bottom: 20px;
       font-size: 10pt;
       color: #64748b;
       z-index: 1;
@@ -756,10 +759,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold text-center">Status of case</td>
       <td class="bold text-center" style="color: #065f46;">${caseStatus}</td>
     </tr>
-    <tr>
-      <td class="bold" style="vertical-align: middle;">Business Summary</td>
-      <td colspan="3" style="vertical-align: middle;">${data.briefBusinessProfile || 'Not Provided'}</td>
-    </tr>
+
     <tr>
       <td colspan="4" style="font-size: 8pt; font-style: italic;">
         Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:
@@ -1504,7 +1504,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      height: 100vh;
+      min-height: 95vh;
       text-align: center;
       background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
       border: 15px solid #2d3e50;
@@ -1512,6 +1512,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       padding: 25px 35px;
       box-sizing: border-box;
       page-break-after: always;
+      break-after: page;
       position: relative;
       overflow: hidden;
     }
@@ -1597,6 +1598,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     }
     .cover-footer {
       margin-top: auto;
+      margin-bottom: 20px;
       font-size: 10pt;
       color: #64748b;
       z-index: 1;
@@ -1866,10 +1868,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td class="bold text-center" style="vertical-align: middle;">Status of case</td>
       <td class="bold text-center" style="vertical-align: middle;">${caseStatus}</td>
     </tr>
-    <tr>
-      <td class="bold text-center" style="vertical-align: middle;">Business Summary</td>
-      <td colspan="3" style="vertical-align: middle; text-align: left;">${data.briefBusinessProfile || 'Not Provided'}</td>
-    </tr>
+
     <tr>
       <td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td>
     </tr>
