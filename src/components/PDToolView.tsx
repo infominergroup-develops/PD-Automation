@@ -3942,13 +3942,13 @@ ${qaPairs.join('\n\n')}`;
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
                <label className="block text-xs font-bold text-slate-700">23. Residence Status</label>
                <div className="flex flex-wrap gap-2">
-                 {['Recommended', 'Not Recommended', 'Pending', 'Requires Further Verification'].map(opt => (
+                 {['Recommended', 'Not Recommended', 'Recommended subjects to demerits'].map(opt => (
                     <button key={opt} type="button" onClick={() => setResidenceStatus(opt)} className={`px-4 py-2 text-xs font-bold rounded-lg border ${residenceStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600' : opt === 'Not Recommended' ? 'bg-red-600 text-white border-red-600' : 'bg-[#eb8a23] text-white border-[#eb8a23]') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
                       {opt}
                     </button>
                  ))}
                </div>
-               {(residenceStatus === 'Not Recommended' || residenceStatus === 'Pending' || residenceStatus === 'Requires Further Verification') && (
+               {(residenceStatus === 'Not Recommended' || residenceStatus === 'Recommended subjects to demerits') && (
                   <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
                )}
             </div>
