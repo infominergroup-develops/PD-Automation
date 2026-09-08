@@ -217,7 +217,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       margin: 10mm 8mm 10mm 8mm;
     }
     body {
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 9pt;
       color: #000;
       background-color: #fff;
@@ -458,7 +458,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       background: #ffffff;
       padding: 25px 35px;
       page-break-after: always;
-      height: 270mm; box-sizing: border-box;
+      height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
       border: 1px solid #e2e8f0;
@@ -1445,7 +1445,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <title>Moneyboxx PD Report - ${appNo}</title>
   <style>
     @page { size: A4; margin: 10mm 10mm 10mm 10mm; }
-    body { font-family: 'Times New Roman', Times, serif; font-size: 10pt; margin: 0; padding: 0; color: #000; line-height: 1.2; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 10pt; margin: 0; padding: 0; color: #000; line-height: 1.2; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 0; }
     th, td { border: 2px solid #000; padding: 4px; vertical-align: top; }
     .text-center { text-align: center; }
@@ -1572,7 +1572,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       background: #ffffff;
       padding: 25px 35px;
       page-break-after: always;
-      height: 270mm; box-sizing: border-box;
+      height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       overflow: hidden;
       border: 1px solid #e2e8f0;
@@ -2336,44 +2336,6 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </p>
   </div>
 
-  <!-- Risk Assessment & Meter -->
-  <div style="margin-top: 20px; margin-bottom: 20px; border: 1px solid #000; padding: 15px; display: flex; align-items: center; justify-content: space-between; background: #fff;">
-    <div style="width: 65%;">
-      <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Risk Assessment</h3>
-      <p style="font-size: 9.5pt; line-height: 1.5;">
-        <strong>CIBIL Score:</strong> ${data.cibilScore || 'Not Provided'}<br/>
-        <strong>Risk Factor / Mitigant:</strong> ${data.riskFactor || 'Not Provided'}
-      </p>
-    </div>
-    <div style="width: 30%; text-align: center;">
-      <div style="font-weight: bold; margin-bottom: 10px; font-size: 10pt;">Risk Meter</div>
-      <!-- SVG Semi-circle Gauge -->
-      <svg viewBox="0 0 100 50" style="width: 150px; height: 75px; overflow: visible;">
-        <!-- Base Track -->
-        <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e5e7eb" stroke-width="15" stroke-linecap="round" />
-        <!-- Low Risk (Green) -->
-        <path d="M 10 50 A 40 40 0 0 1 30 15" fill="none" stroke="#22c55e" stroke-width="15" stroke-linecap="round" />
-        <!-- Medium Risk (Yellow) -->
-        <path d="M 30 15 A 40 40 0 0 1 70 15" fill="none" stroke="#eab308" stroke-width="15" />
-        <!-- High Risk (Red) -->
-        <path d="M 70 15 A 40 40 0 0 1 90 50" fill="none" stroke="#ef4444" stroke-width="15" stroke-linecap="round" />
-        <!-- Needle -->
-        ${(() => {
-          const score = data.cibilScore ? Math.max(0, Math.min(100, (data.cibilScore - 300) / 6)) : 75; // Map 300-900 to 0-100
-          const angle = -90 + (score * 1.8);
-          return `<g transform="rotate(${angle} 50 50)">
-                   <polygon points="48,50 52,50 50,5" fill="#334155" />
-                   <circle cx="50" cy="50" r="5" fill="#334155" />
-                 </g>`;
-        })()}
-      </svg>
-      <div style="font-size: 9.5pt; font-weight: bold; margin-top: 8px; color: ${data.cibilScore && data.cibilScore < 650 ? '#ef4444' : data.cibilScore && data.cibilScore > 750 ? '#22c55e' : '#eab308'}">
-        ${data.cibilScore && data.cibilScore < 650 ? 'HIGH RISK' : data.cibilScore && data.cibilScore > 750 ? 'LOW RISK' : 'MODERATE RISK'}
-      </div>
-    </div>
-  </div>
-
-  <!-- Disclaimer and Signature inside the table border structure -->
   <div class="disclaimer-box">
     <strong>Limitation and Disclaimer clause: -</strong><br/>
     This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field 
