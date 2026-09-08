@@ -178,7 +178,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   // Income Assessment Default Calculations
   const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
-    { particulars: `${data.firmName || 'Not Provided'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 275000, yearly: (data.totalSalesMonthly || 275000) * 12 }
+    { particulars: `${data.firmName || 'Not Provided'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 91000, yearly: (data.totalSalesMonthly || 91000) * 12 }
   ];
 
   const totalSalesM = data.totalSalesMonthly || salesItems.reduce((acc, i) => acc + i.monthly, 0);
@@ -186,10 +186,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   const expenseItems = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses : [
     { particulars: 'Purchases / COGS Raw Material', businessNotes: 'Stock replenishment expenses', monthly: Math.round(totalSalesM * 0.75), yearly: Math.round(totalSalesM * 0.75) * 12 },
-    { particulars: 'Monthly Electricity Expenses', businessNotes: 'Utility & Power connection charges', monthly: 6500, yearly: 78000 },
-    { particulars: 'Salary of Employees / Family Labour', businessNotes: 'Staff wages or family maintenance allowance', monthly: 15000, yearly: 180000 },
-    { particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: 12000, yearly: 144000 },
-    { particulars: 'Other Expenses / Maintenance', businessNotes: 'Machine upkeep, transport & misc', monthly: 5000, yearly: 60000 }
+    { particulars: 'Monthly Electricity Expenses', businessNotes: 'Utility & Power connection charges', monthly: 2500, yearly: 30000 },
+    { particulars: 'Salary of Employees / Family Labour', businessNotes: 'Staff wages or family maintenance allowance', monthly: 7000, yearly: 84000 },
+    { particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: 2000, yearly: 24000 },
+    { particulars: 'Other Expenses / Maintenance', businessNotes: 'Machine upkeep, transport & misc', monthly: 1000, yearly: 12000 }
   ];
 
   const totalExpM = data.totalExpensesMonthly || expenseItems.reduce((acc, i) => acc + i.monthly, 0);
@@ -201,7 +201,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
 
-  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
+  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
 
   const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
@@ -1118,6 +1118,89 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  <!-- CRIF / CIBIL REPORT PAGE -->
+  ${data.parsedCreditReport ? `
+  <div class="page-break"></div>
+  <div style="padding: 12px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff; border-radius: 8px 8px 0 0; font-size: 14pt; font-weight: bold; text-align: center; margin-top: 15px; border: 1px solid #1e3a8a; border-bottom: none;">
+    Extracted Credit Report (${data.parsedCreditReport.reportProvider || 'Not Provided'})
+  </div>
+  <table class="report-table" style="border: 2px solid #1e3a8a; border-top: none; margin-bottom: 20px;">
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Report Date</td>
+      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Active Accounts</td>
+      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Total Current Balance</td>
+      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Total Overdue Amount</td>
+      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #ffffff;">
+      <td class="bold">Credit Score</td>
+      <td colspan="2" style="font-size: 14pt; color: #1e3a8a; font-weight: bold;">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
+    </tr>
+    <tr style="background-color: #f8fafc;">
+      <td class="bold">Risk Indicators</td>
+      <td colspan="2">
+        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
+      </td>
+    </tr>
+  </table>
+  
+  ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <tr style="background-color: #0f766e; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">#</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Borrower</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Facility Type</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Lending Inst.</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Status</th>
+      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Disbursed Date</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Disbursed Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Current Balance</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Overdue Amt</th>
+      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">EMI</th>
+      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Tenure</th>
+    </tr>
+    ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
+      const isOverdue = (acc.overdueAmount || 0) > 0;
+      const bgClass = isOverdue ? '#fff1f2' : (index % 2 === 1 ? '#f8fafc' : '#ffffff');
+      const isActive = acc.status === 'Active';
+      
+      const statusStyle = isActive 
+        ? 'background-color: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; display: inline-block;' 
+        : (acc.status === 'Closed' ? 'background-color: #f1f5f9; color: #475569; padding: 3px 6px; border-radius: 4px; display: inline-block;' : 'color: #0f172a;');
+      
+      return `
+        <tr style="background-color: ${bgClass}; border-bottom: 1px solid #e2e8f0;">
+          <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 700;">${index + 1}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #1e293b;">${acc.applicantName || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #0369a1;">${acc.accountType || '—'}</td>
+          <td style="padding: 10px 8px; font-weight: 600; color: #334155;">${acc.creditGrantor || '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; font-weight: 700;"><span style="${statusStyle}">${acc.status || '—'}</span></td>
+          <td style="padding: 10px 8px; color: #475569;">${acc.disbursedDate || '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #0f172a;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: ${isOverdue ? '#e11d48' : '#334155'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
+          <td style="padding: 10px 8px; text-align: center; color: #475569; font-weight: 600;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
+        </tr>
+      `;
+    }).join('')}
+  </table>
+  ` : ''}
+  ` : ''}
+
   <!-- PAGE BREAK FOR CASH FLOW TABLE -->
   <div class="page-break"></div>
 
@@ -1203,88 +1286,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  <!-- CRIF / CIBIL REPORT PAGE -->
-  ${data.parsedCreditReport ? `
-  <div class="page-break"></div>
-  <div style="padding: 12px; background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%); color: #fff; border-radius: 8px 8px 0 0; font-size: 14pt; font-weight: bold; text-align: center; margin-top: 15px; border: 1px solid #1e3a8a; border-bottom: none;">
-    Extracted Credit Report (${data.parsedCreditReport.reportProvider || 'Not Provided'})
-  </div>
-  <table class="report-table" style="border: 2px solid #1e3a8a; border-top: none; margin-bottom: 20px;">
-    <tr style="background-color: #f8fafc;">
-      <td class="bold">Report Date</td>
-      <td colspan="2">${data.parsedCreditReport.reportDate || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #ffffff;">
-      <td class="bold">Total Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.totalAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #f8fafc;">
-      <td class="bold">Active Accounts</td>
-      <td colspan="2">${data.parsedCreditReport.activeAccounts || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #ffffff;">
-      <td class="bold">Total Current Balance</td>
-      <td colspan="2">₹${data.parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #f8fafc;">
-      <td class="bold">Total Overdue Amount</td>
-      <td colspan="2" style="color: ${data.parsedCreditReport.totalOverdueAmount > 0 ? '#dc2626' : 'inherit'}; font-weight: ${data.parsedCreditReport.totalOverdueAmount > 0 ? 'bold' : 'normal'};">₹${data.parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #ffffff;">
-      <td class="bold">Credit Score</td>
-      <td colspan="2" style="font-size: 14pt; color: #1e3a8a; font-weight: bold;">${data.parsedCreditReport.creditScore || 'Not Provided'}</td>
-    </tr>
-    <tr style="background-color: #f8fafc;">
-      <td class="bold">Risk Indicators</td>
-      <td colspan="2">
-        ${data.parsedCreditReport.flags && data.parsedCreditReport.flags.length > 0 ? data.parsedCreditReport.flags.join('<br/>') : 'No negative flags detected.'}
-      </td>
-    </tr>
-  </table>
-  
-  ${data.parsedCreditReport.accounts && data.parsedCreditReport.accounts.length > 0 ? `
-  <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-    <tr style="background-color: #0f766e; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px;">
-      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">#</th>
-      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Borrower</th>
-      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Facility Type</th>
-      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Lending Inst.</th>
-      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Status</th>
-      <th style="padding: 10px 8px; text-align: left; font-weight: 600;">Disbursed Date</th>
-      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Disbursed Amt</th>
-      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Current Balance</th>
-      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">Overdue Amt</th>
-      <th style="padding: 10px 8px; text-align: right; font-weight: 600;">EMI</th>
-      <th style="padding: 10px 8px; text-align: center; font-weight: 600;">Tenure</th>
-    </tr>
-    ${data.parsedCreditReport.accounts.map((acc: any, index: number) => {
-      const isOverdue = (acc.overdueAmount || 0) > 0;
-      const bgClass = isOverdue ? '#fff1f2' : (index % 2 === 1 ? '#f8fafc' : '#ffffff');
-      const isActive = acc.status === 'Active';
-      
-      const statusStyle = isActive 
-        ? 'background-color: #dcfce7; color: #166534; padding: 3px 6px; border-radius: 4px; display: inline-block;' 
-        : (acc.status === 'Closed' ? 'background-color: #f1f5f9; color: #475569; padding: 3px 6px; border-radius: 4px; display: inline-block;' : 'color: #0f172a;');
-      
-      return `
-        <tr style="background-color: ${bgClass}; border-bottom: 1px solid #e2e8f0;">
-          <td style="padding: 10px 8px; text-align: center; color: #94a3b8; font-weight: 700;">${index + 1}</td>
-          <td style="padding: 10px 8px; font-weight: 600; color: #1e293b;">${acc.applicantName || '—'}</td>
-          <td style="padding: 10px 8px; font-weight: 600; color: #0369a1;">${acc.accountType || '—'}</td>
-          <td style="padding: 10px 8px; font-weight: 600; color: #334155;">${acc.creditGrantor || '—'}</td>
-          <td style="padding: 10px 8px; text-align: center; font-weight: 700;"><span style="${statusStyle}">${acc.status || '—'}</span></td>
-          <td style="padding: 10px 8px; color: #475569;">${acc.disbursedDate || '—'}</td>
-          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : '—'}</td>
-          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: #0f172a;">${acc.currentBalance ? '₹' + acc.currentBalance.toLocaleString('en-IN') : '—'}</td>
-          <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: ${isOverdue ? '#e11d48' : '#334155'};">${acc.overdueAmount ? '₹' + acc.overdueAmount.toLocaleString('en-IN') : '—'}</td>
-          <td style="padding: 10px 8px; text-align: right; color: #475569;">${acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : '—'}</td>
-          <td style="padding: 10px 8px; text-align: center; color: #475569; font-weight: 600;">${acc.tenureMonths ? acc.tenureMonths + 'M' : '—'}</td>
-        </tr>
-      `;
-    }).join('')}
-  </table>
-  ` : ''}
-  ` : ''}
+
 
   <!-- RISK FACTOR -->
   ${data.riskFactor ? `
@@ -1470,7 +1472,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = data.netProfitYearly || (netProfM * 12);
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
+  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
   const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
   const netDisposalY = data.netDisposalIncomeYearly || (netDisposalM * 12);
@@ -2202,82 +2204,6 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  <div class="page-break"></div>
-
-  <!-- Page 5: Monthly Income Assessment -->
-  <table>
-    <tr>
-      <td colspan="4" class="sec-title">Assessment of the monthly income of the applicant</td>
-    </tr>
-    <tr class="sec-title text-center">
-      <td style="width:25%;">Particulars</td>
-      <td style="width:45%;">Business Notes<br/><span style="font-weight:normal;">Income assessment considered for ${data.workingDays || 28} working days</span></td>
-      <td colspan="2">(Period)</td>
-    </tr>
-    <tr class="sec-title text-center">
-      <td>Sales/Receipts</td>
-      <td></td>
-      <td style="width:15%;">Monthly</td>
-      <td style="width:15%;">Yearly</td>
-    </tr>
-    ${salesItems.map(item => `
-      <tr class="text-center">
-        <td>${item.particulars}</td>
-        <td>${item.businessNotes}</td>
-        <td>${Number(item.monthly).toLocaleString('en-IN')}</td>
-        <td>${Number(item.yearly).toLocaleString('en-IN')}</td>
-      </tr>
-    `).join('')}
-    <tr class="sec-title text-center">
-      <td colspan="2" class="text-left">Total Sales/Receipts (A)</td>
-      <td>${Number(totalSalesM).toLocaleString('en-IN')}</td>
-      <td>${Number(totalSalesY).toLocaleString('en-IN')}</td>
-    </tr>
-    
-    ${expenseItems.map(item => `
-      <tr class="text-center">
-        <td>${item.particulars}</td>
-        <td class="text-left">${item.businessNotes}</td>
-        <td>${Number(item.monthly).toLocaleString('en-IN')}</td>
-        <td>${Number(item.yearly).toLocaleString('en-IN')}</td>
-      </tr>
-    `).join('')}
-    
-    <tr class="sec-title text-center">
-      <td colspan="2" class="text-left">Total Expenses(B)</td>
-      <td>${Number(totalExpM).toLocaleString('en-IN')}</td>
-      <td>${Number(totalExpY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="sec-title text-center">
-      <td colspan="2" class="text-left">Net Profit Per month(A- B)</td>
-      <td>${Number(netProfM).toLocaleString('en-IN')}</td>
-      <td>${Number(netProfY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
-      <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td class="text-left">${data.householdExpensesNotes || 'Not Provided'}</td>
-      <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="sec-title text-center">
-      <td class="text-left">Net Disposal Income</td>
-      <td>Net Income after all deductions ( Monthly/Yearly )</td>
-      <td>${Number(netDisposalM).toLocaleString('en-IN')}</td>
-      <td>${Number(netDisposalY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
-      <td colspan="2" class="bold">As per ${bankName} Limited</td>
-    </tr>
-  </table>
-
   <!-- CRIF / CIBIL REPORT PAGE -->
   ${data.parsedCreditReport ? `
   <div class="page-break"></div>
@@ -2360,6 +2286,84 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   </table>
   ` : ''}
   ` : ''}
+
+  <div class="page-break"></div>
+
+  <!-- Page 5: Monthly Income Assessment -->
+  <table>
+    <tr>
+      <td colspan="4" class="sec-title">Assessment of the monthly income of the applicant</td>
+    </tr>
+    <tr class="sec-title text-center">
+      <td style="width:25%;">Particulars</td>
+      <td style="width:45%;">Business Notes<br/><span style="font-weight:normal;">Income assessment considered for ${data.workingDays || 28} working days</span></td>
+      <td colspan="2">(Period)</td>
+    </tr>
+    <tr class="sec-title text-center">
+      <td>Sales/Receipts</td>
+      <td></td>
+      <td style="width:15%;">Monthly</td>
+      <td style="width:15%;">Yearly</td>
+    </tr>
+    ${salesItems.map(item => `
+      <tr class="text-center">
+        <td>${item.particulars}</td>
+        <td>${item.businessNotes}</td>
+        <td>${Number(item.monthly).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    <tr class="sec-title text-center">
+      <td colspan="2" class="text-left">Total Sales/Receipts (A)</td>
+      <td>${Number(totalSalesM).toLocaleString('en-IN')}</td>
+      <td>${Number(totalSalesY).toLocaleString('en-IN')}</td>
+    </tr>
+    
+    ${expenseItems.map(item => `
+      <tr class="text-center">
+        <td>${item.particulars}</td>
+        <td class="text-left">${item.businessNotes}</td>
+        <td>${Number(item.monthly).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    
+    <tr class="sec-title text-center">
+      <td colspan="2" class="text-left">Total Expenses(B)</td>
+      <td>${Number(totalExpM).toLocaleString('en-IN')}</td>
+      <td>${Number(totalExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="sec-title text-center">
+      <td colspan="2" class="text-left">Net Profit Per month(A- B)</td>
+      <td>${Number(netProfM).toLocaleString('en-IN')}</td>
+      <td>${Number(netProfY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="text-center">
+      <td class="text-left bold">Less: Existing EMI</td>
+      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
+      <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
+      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="text-center">
+      <td class="text-left bold">Less: Existing Household Expenses</td>
+      <td class="text-left">${data.householdExpensesNotes || 'Not Provided'}</td>
+      <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
+      <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="sec-title text-center">
+      <td class="text-left">Net Disposal Income</td>
+      <td>Net Income after all deductions ( Monthly/Yearly )</td>
+      <td>${Number(netDisposalM).toLocaleString('en-IN')}</td>
+      <td>${Number(netDisposalY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="text-center">
+      <td class="text-left bold">Comfortable Monthly EMI</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
+      <td colspan="2" class="bold">As per ${bankName} Limited</td>
+    </tr>
+  </table>
+
+
 
   <!-- Detailed Summary Section -->
   <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
