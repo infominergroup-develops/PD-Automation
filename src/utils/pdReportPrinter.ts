@@ -1,6 +1,8 @@
 // Dedicated Company Standard PD Report Printer Module
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
+import coverLogo from '../images/Logo.jpeg';
+
 export interface PDReportPrintData {
   companyHeader?: {
     name: string;
@@ -517,6 +519,42 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   <div contenteditable="true" style="outline: none;">
   
+  <!-- COVER PAGE -->
+  <div class="cover-page">
+    <div class="cover-logo">
+      <img src="${coverLogo}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 15px;" alt="Logo" />
+    </div>
+    <div class="cover-title">Personal Discussion Report</div>
+    <div class="cover-subtitle">${data.clientBankName || data.companyHeader?.name || 'MONEYBOXX FINANCE LIMITED'}</div>
+    <div class="cover-details">
+      <table>
+        <tr>
+          <td><strong>Applicant Name:</strong></td>
+          <td>${data.applicantName}</td>
+        </tr>
+        <tr>
+          <td><strong>Business / Firm:</strong></td>
+          <td>${data.firmName || 'Not provided'}</td>
+        </tr>
+        <tr>
+          <td><strong>Application ID:</strong></td>
+          <td>${appNo}</td>
+        </tr>
+        <tr>
+          <td><strong>Loan Amount:</strong></td>
+          <td>₹${Number(data.loanAmount || 0).toLocaleString('en-IN')}</td>
+        </tr>
+        <tr>
+          <td><strong>Report Date:</strong></td>
+          <td>${reportDate}</td>
+        </tr>
+      </table>
+    </div>
+    <div class="cover-footer">
+      Strictly Private and Confidential • ${data.companyHeader?.name || 'Infominer Services Pvt. Ltd.'}
+    </div>
+  </div>
+
   <!-- PAGE 1: EXECUTIVE SUMMARY -->
   <div class="exec-page">
     <div class="shape-1"></div>
@@ -525,7 +563,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     
     <div class="exec-header">
       <div class="exec-logo-container">
-        <img src="${window.location.origin}/infominer-logo.png" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
+        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
       </div>
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
@@ -601,7 +639,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     <div class="shape-2"></div>
     <div class="exec-header">
       <div class="exec-logo-container">
-        <img src="${window.location.origin}/infominer-logo.png" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
+        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
       </div>
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
@@ -1634,7 +1672,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     
     <div class="exec-header">
       <div class="exec-logo-container">
-        <img src="${window.location.origin}/infominer-logo.png" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
+        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
       </div>
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
@@ -1710,7 +1748,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <div class="shape-2"></div>
     <div class="exec-header">
       <div class="exec-logo-container">
-        <img src="${window.location.origin}/infominer-logo.png" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
+        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
       </div>
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
