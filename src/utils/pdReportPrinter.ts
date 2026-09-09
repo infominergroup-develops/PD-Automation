@@ -1,7 +1,7 @@
 // Dedicated Company Standard PD Report Printer Module
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
-import coverLogo from '../images/Logo.jpeg';
+import { coverLogoBase64 as coverLogo } from '../images/logoBase64';
 
 export interface PDReportPrintData {
   companyHeader?: {
