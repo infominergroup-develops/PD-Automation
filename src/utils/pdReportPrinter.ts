@@ -481,11 +481,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     .exec-page {
       position: relative;
       background: #ffffff;
-      padding: 25px 35px;
+      padding: 25px 35px 80px 35px;
       page-break-after: always;
-      height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
+      min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      overflow: hidden;
+      overflow: visible;
       border: 1px solid #e2e8f0;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
@@ -508,9 +508,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
     .exec-table .td-value { color: #1e293b; font-weight: 500; }
     .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
-    .exec-overview-box { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; }
-    .exec-overview-icon { flex: 0 0 60px; display: flex; justify-content: center; align-items: center; color: #1e3a8a; }
-    .exec-overview-text { flex: 1; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; }
+    .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
+    .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
+    .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
+    .exec-overview-box::after { content: ""; display: table; clear: both; }
     .exec-finding-item { display: flex; margin-bottom: 20px; }
     .exec-finding-icon { flex: 0 0 40px; color: #1e3a8a; padding-top: 2px; }
     .exec-finding-content h4 { margin: 0 0 5px 0; color: #1e293b; font-size: 10.5pt; }
@@ -1547,11 +1548,11 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     .exec-page {
       position: relative;
       background: #ffffff;
-      padding: 25px 35px;
+      padding: 25px 35px 80px 35px;
       page-break-after: always;
-      height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
+      min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      overflow: hidden;
+      overflow: visible;
       border: 1px solid #e2e8f0;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
       margin-bottom: 20px;
@@ -1574,9 +1575,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
     .exec-table .td-value { color: #1e293b; font-weight: 500; }
     .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
-    .exec-overview-box { display: flex; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; }
-    .exec-overview-icon { flex: 0 0 60px; display: flex; justify-content: center; align-items: center; color: #1e3a8a; }
-    .exec-overview-text { flex: 1; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; }
+    .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
+    .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
+    .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
+    .exec-overview-box::after { content: ""; display: table; clear: both; }
     .exec-finding-item { display: flex; margin-bottom: 20px; }
     .exec-finding-icon { flex: 0 0 40px; color: #1e3a8a; padding-top: 2px; }
     .exec-finding-content h4 { margin: 0 0 5px 0; color: #1e293b; font-size: 10.5pt; }
