@@ -1446,10 +1446,6 @@ ${qaPairs.join('\n\n')}`;
     return Math.round((totalObligations / totalIncome) * 100);
   }, [netBusinessIncome, otherIncome, existingEmis, proposedEmi, householdExpenses]);
 
-  // Product Revenue Sum Check
-  const totalProductContribPct = useMemo(() => {
-    return productsList.reduce((acc, p) => acc + (p.revenueContributionPct || 0), 0);
-  }, [productsList]);
 
   // Automated Risk Score Calculation
   const riskAssessment = useMemo(() => {
@@ -1476,10 +1472,6 @@ ${qaPairs.join('\n\n')}`;
     } else {
       score -= 10;
       flags.push(`Business vintage under 3 years`);
-    }
-
-    if (totalProductContribPct !== 100) {
-      flags.push(`Product revenue contribution sums to ${totalProductContribPct}% (expected 100%)`);
     }
 
     // 1. Residence Ownership Risk
@@ -1524,7 +1516,7 @@ ${qaPairs.join('\n\n')}`;
     }
 
     return { score, flags, strengths, decision };
-  }, [dscrRatio, foirPct, yearsInBusiness, totalProductContribPct, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
+  }, [dscrRatio, foirPct, yearsInBusiness, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
@@ -1764,7 +1756,7 @@ ${qaPairs.join('\n\n')}`;
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
       { id: 'verification', label: '2. Business & Residence Verification' },
-      { id: 'profile', label: '3. Business Profile & Products' },
+      { id: 'profile', label: '3. Business Profile' },
       { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
       { id: 'field', label: '5. Field Verification' },
       { id: 'financials', label: '6. Financial Analysis' },
@@ -2129,7 +2121,7 @@ ${qaPairs.join('\n\n')}`;
         {[
           { id: 'applicant', label: '1. Applicant & Household', icon: User },
           { id: 'verification', label: '2. Business & Residence Verification', icon: Store },
-          { id: 'profile', label: '3. Business Profile & Products', icon: Store },
+          { id: 'profile', label: '3. Business Profile', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
           { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
           { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
@@ -2154,7 +2146,7 @@ ${qaPairs.join('\n\n')}`;
         })}
       </div>
 
-      {/* TAB 1: BUSINESS PROFILE & PRODUCT MAPPING */}
+      {/* TAB 1: BUSINESS PROFILE */}
       {activeTab === 'profile' && (
         <div className="space-y-6">
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
@@ -2425,138 +2417,7 @@ ${qaPairs.join('\n\n')}`;
             </div>
           )}
 
-          {/* Product Breakdown Matrix */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                  <PieChart className="w-4 h-4 text-[#eb8a23]" />
-                  Product Mapping & Revenue Calculation
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Editable product items with price and quantity auto-calculating to total revenue.
-                </p>
-              </div>
-            </div>
 
-            <div className="overflow-x-auto border border-slate-200 rounded">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider">
-                  <tr>
-                    <th className="p-3 w-8 text-center"></th>
-                    <th className="p-3">Product / Service Name</th>
-                    <th className="p-3">Category</th>
-                    <th className="p-3 text-center">Price (₹)</th>
-                    <th className="p-3 text-center">Quantity</th>
-                    <th className="p-3 text-right">Total (₹)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 font-medium bg-white">
-                  {productsList.map((prod, idx) => {
-                    const currentPrice = prod.price || 0;
-                    const currentQty = prod.quantity || 0;
-                    const calculatedTotal = currentPrice * currentQty;
-
-                    return (
-                      <tr key={prod.id || idx} className="hover:bg-slate-50/80">
-                        <td className="p-3 text-center">
-                          <button
-                            onClick={() => {
-                              const updated = productsList.filter((_, i) => i !== idx);
-                              setProductsList(updated);
-                            }}
-                            className="text-red-400 hover:text-red-600 font-bold text-lg leading-none"
-                            title="Remove Product"
-                          >
-                            ×
-                          </button>
-                        </td>
-                        <td className="p-3 font-bold text-[#2d3e50]">
-                          <input
-                            type="text"
-                            value={prod.productName}
-                            onChange={(e) => {
-                              const updated = [...productsList];
-                              updated[idx].productName = e.target.value;
-                              setProductsList(updated);
-                            }}
-                            className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
-                          />
-                        </td>
-                        <td className="p-3 text-slate-600">
-                          <input
-                            type="text"
-                            value={prod.productCategory}
-                            onChange={(e) => {
-                              const updated = [...productsList];
-                              updated[idx].productCategory = e.target.value as any;
-                              setProductsList(updated);
-                            }}
-                            className="w-full bg-transparent border-b border-dashed border-slate-300 focus:border-[#eb8a23] focus:outline-none py-1"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="number"
-                            value={currentPrice}
-                            onChange={(e) => {
-                              const updated = [...productsList];
-                              updated[idx].price = Number(e.target.value);
-                              updated[idx].total = updated[idx].price! * (updated[idx].quantity || 0);
-                              setProductsList(updated);
-                            }}
-                            className="w-20 text-center border border-slate-300 rounded py-1 font-bold text-[#2d3e50]"
-                          />
-                        </td>
-                        <td className="p-3 text-center">
-                          <input
-                            type="number"
-                            value={currentQty}
-                            onChange={(e) => {
-                              const updated = [...productsList];
-                              updated[idx].quantity = Number(e.target.value);
-                              updated[idx].total = (updated[idx].price || 0) * updated[idx].quantity!;
-                              setProductsList(updated);
-                            }}
-                            className="w-16 text-center border border-slate-300 rounded py-1 font-bold text-emerald-700"
-                          />
-                        </td>
-                        <td className="p-3 text-right text-slate-800 font-bold text-[13px]">
-                          ₹{calculatedTotal.toLocaleString('en-IN')}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {productsList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="p-6 text-center text-slate-400 italic font-medium">
-                        No products added. Click "+ Add Product Row" to begin.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              <div className="p-3 border-t border-slate-200 bg-slate-50 flex justify-start">
-                <button
-                  onClick={() => {
-                    setProductsList([...productsList, {
-                      id: `custom-${Date.now()}`,
-                      categoryId: selectedCategoryId,
-                      productName: '',
-                      productCategory: 'Custom',
-                      revenueContributionPct: 0,
-                      price: '' as any,
-                      quantity: '' as any,
-                      total: 0
-                    }]);
-                  }}
-                  className="px-3 py-1.5 bg-white border border-slate-300 text-slate-600 text-xs font-bold rounded hover:bg-slate-100 transition flex items-center gap-1 shadow-sm"
-                >
-                  <span className="text-lg leading-none">+</span> Add Product Row
-                </button>
-              </div>
-            </div>
-          </div>
           {renderTabNavigationFooter()}
         </div>
       )}
