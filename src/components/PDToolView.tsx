@@ -1564,6 +1564,8 @@ ${qaPairs.join('\n\n')}`;
         ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || 'Not provided'}, ${femaleCandidateRelation === 'Other' ? (femaleCandidateOtherRelation || 'Not provided') : femaleCandidateRelation.toLowerCase()} of the applicant.`
         : "Not provided",
       firmName: firmName || 'Not provided',
+      yearsInBusiness: yearsInBusiness || 0,
+      shopOwnership: shopOwnership || 'RENTED',
       loanAmount: appliedAmount || 0,
       loanType: loanType === 'Other' ? (otherLoanType || 'Not provided') : loanType,
       loanPurpose: solarPurposeGeneratedText || 'Not provided',

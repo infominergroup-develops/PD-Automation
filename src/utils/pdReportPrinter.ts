@@ -177,14 +177,24 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
   // Income Assessment Default Calculations
-  const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
+  let salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
     { particulars: `${data.firmName || 'Not Provided'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 91000, yearly: (data.totalSalesMonthly || 91000) * 12 }
   ];
 
-  const totalSalesM = data.totalSalesMonthly || salesItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalSalesY = data.totalSalesYearly || totalSalesM * 12;
+  let rawTotalSales = salesItems.reduce((acc, i) => acc + i.monthly, 0);
+  const totalSalesM = data.totalSalesMonthly ?? rawTotalSales;
+  const totalSalesY = data.totalSalesYearly ?? totalSalesM * 12;
 
-  const expenseItems = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses : [
+  if (rawTotalSales > 0 && totalSalesM !== rawTotalSales) {
+    const ratio = totalSalesM / rawTotalSales;
+    salesItems = salesItems.map(item => ({
+      ...item,
+      monthly: Math.round(item.monthly * ratio),
+      yearly: Math.round(item.yearly * ratio)
+    }));
+  }
+
+  let expenseItems = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses : [
     { particulars: 'Purchases / COGS Raw Material', businessNotes: 'Stock replenishment expenses', monthly: Math.round(totalSalesM * 0.75), yearly: Math.round(totalSalesM * 0.75) * 12 },
     { particulars: 'Monthly Electricity Expenses', businessNotes: 'Utility & Power connection charges', monthly: 2500, yearly: 30000 },
     { particulars: 'Salary of Employees / Family Labour', businessNotes: 'Staff wages or family maintenance allowance', monthly: 7000, yearly: 84000 },
@@ -192,20 +202,30 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     { particulars: 'Other Expenses / Maintenance', businessNotes: 'Machine upkeep, transport & misc', monthly: 1000, yearly: 12000 }
   ];
 
-  const totalExpM = data.totalExpensesMonthly || expenseItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalExpY = data.totalExpensesYearly || totalExpM * 12;
+  let rawTotalExp = expenseItems.reduce((acc, i) => acc + i.monthly, 0);
+  const totalExpM = data.totalExpensesMonthly ?? rawTotalExp;
+  const totalExpY = data.totalExpensesYearly ?? totalExpM * 12;
 
-  const netProfM = data.netProfitMonthly || (totalSalesM - totalExpM);
-  const netProfY = data.netProfitYearly || (netProfM * 12);
+  if (rawTotalExp > 0 && totalExpM !== rawTotalExp) {
+    const ratio = totalExpM / rawTotalExp;
+    expenseItems = expenseItems.map(item => ({
+      ...item,
+      monthly: Math.round(item.monthly * ratio),
+      yearly: Math.round(item.yearly * ratio)
+    }));
+  }
 
-  const existEmiM = data.existingEmiMonthly || 0;
-  const existEmiY = data.existingEmiYearly || (existEmiM * 12);
+  const netProfM = data.netProfitMonthly ?? (totalSalesM - totalExpM);
+  const netProfY = data.netProfitYearly ?? (netProfM * 12);
 
-  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
-  const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
+  const existEmiM = data.existingEmiMonthly ?? 0;
+  const existEmiY = data.existingEmiYearly ?? (existEmiM * 12);
 
-  const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
-  const netDisposalY = data.netDisposalIncomeYearly || (netDisposalM * 12);
+  const hhExpM = data.monthlyHouseholdExpenses ?? data.householdExpensesMonthly ?? 4000;
+  const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
+
+  const netDisposalM = data.netDisposalIncomeMonthly ?? (netProfM - existEmiM - hhExpM);
+  const netDisposalY = data.netDisposalIncomeYearly ?? (netDisposalM * 12);
 
   return `
 <!DOCTYPE html>
