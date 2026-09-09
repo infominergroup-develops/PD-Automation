@@ -60,6 +60,23 @@ app.use(async (req, res, next) => {
   // In-memory data persistence stores (removed in favor of MongoDB)
   // Seed functions will fall back to INITIAL_CATEGORIES and INITIAL_PRODUCTS if empty
 
+  let localApplicants: any[] = [];
+  const applicantsFilePath = path.join(process.cwd(), 'data_applicants.json');
+  try {
+    if (fs.existsSync(applicantsFilePath)) {
+      localApplicants = JSON.parse(fs.readFileSync(applicantsFilePath, 'utf8'));
+    }
+  } catch (e) {
+    console.error("Failed to load local applicants file", e);
+  }
+  const saveLocalApplicants = () => {
+    try {
+      fs.writeFileSync(applicantsFilePath, JSON.stringify(localApplicants, null, 2));
+    } catch (e) {
+      console.error("Failed to save local applicants file", e);
+    }
+  };
+
   async function addAuditLog(userName: string, userRole: any, action: string, resource: string, resourceId: string, details: string) {
     if (!mongoDb) return;
     const log: AuditLogEntry = {
@@ -115,10 +132,13 @@ app.use(async (req, res, next) => {
     }
   });
 
-  // Applicant Management Endpoints (MongoDB)
+  // Applicant Management Endpoints (MongoDB or Local Fallback)
   app.get("/api/clients/:clientId/applicants", async (req, res) => {
     try {
-      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
+      if (!mongoDb) {
+        const applicants = localApplicants.filter(a => a.clientId === req.params.clientId);
+        return res.json({ applicants });
+      }
       const applicants = await mongoDb.collection("applicants").find({ clientId: req.params.clientId }).toArray();
       res.json({ applicants });
     } catch (err) {
@@ -128,12 +148,19 @@ app.use(async (req, res, next) => {
 
   app.post("/api/clients/:clientId/applicants", async (req, res) => {
     try {
-      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
       const newApplicant = {
         ...req.body,
         clientId: req.params.clientId,
         createdAt: new Date().toISOString()
       };
+      
+      if (!mongoDb) {
+        newApplicant._id = new ObjectId().toString(); // Generate string ID for local
+        localApplicants.push(newApplicant);
+        saveLocalApplicants();
+        return res.json({ success: true, applicant: newApplicant });
+      }
+
       const result = await mongoDb.collection("applicants").insertOne(newApplicant);
       res.json({ success: true, applicant: { _id: result.insertedId, ...newApplicant } });
     } catch (err) {
@@ -143,8 +170,16 @@ app.use(async (req, res, next) => {
 
   app.patch("/api/clients/:clientId/applicants/:appId", async (req, res) => {
     try {
-      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
       const { _id, clientId, ...updateData } = req.body;
+      
+      if (!mongoDb) {
+        const index = localApplicants.findIndex(a => a._id === req.params.appId && a.clientId === req.params.clientId);
+        if (index === -1) return res.status(404).json({ error: "Applicant not found" });
+        
+        localApplicants[index] = { ...localApplicants[index], ...updateData, updatedAt: new Date().toISOString() };
+        saveLocalApplicants();
+        return res.json({ success: true, applicant: localApplicants[index] });
+      }
       
       const result = await mongoDb.collection("applicants").findOneAndUpdate(
         { _id: new ObjectId(req.params.appId), clientId: req.params.clientId },
