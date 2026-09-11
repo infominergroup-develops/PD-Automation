@@ -76,5 +76,19 @@ export const CLIENT_BANKS: ClientBank[] = [
     defaultScheme: 'SBFC Business Loan',
     tagline: 'SBFC • Business Loan',
     templateFormat: 'standard'
+  },
+  {
+    id: 'tata',
+    name: 'Tata Capital Limited',
+    shortCode: 'TATA',
+    division: 'Business Loan Division',
+    logoColor: '#005587',
+    accentColor: '#005587',
+    borderClass: 'border-[#005587]',
+    bgGradient: 'from-[#005587]/10 to-blue-50',
+    description: 'Customized Tata Capital Assessment portal.',
+    defaultScheme: 'Tata Business Loan',
+    tagline: 'Tata Capital • Business Loan',
+    templateFormat: 'standard'
   }
 ];

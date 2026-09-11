@@ -848,6 +848,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [previousOccupationOther, setPreviousOccupationOther] = useState('');
   const [reasonToLeave, setReasonToLeave] = useState('');
   const [externalStaffCount, setExternalStaffCount] = useState(0);
+  const [tataCapitalDistance, setTataCapitalDistance] = useState('');
   const [businessManagedBy, setBusinessManagedBy] = useState<string[]>([]);
   const [businessManagedByOther, setBusinessManagedByOther] = useState('');
   const [premiseOwnership, setPremiseOwnership] = useState('');
@@ -1186,7 +1187,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
         businessAddress,
         additionalAddresses,
-        personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName,
+        personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName, tataCapitalDistance,
         businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
         premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
         businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
@@ -1611,6 +1612,7 @@ ${qaPairs.join('\n\n')}`;
       metPersonName: applicantName ? `${applicantName} (Self)` : 'Not provided',
       metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'Not provided') : (identityProof || 'Not provided'),
       executiveName: executiveName || 'Not provided',
+      tataCapitalDistance: tataCapitalDistance || '5-10 Km (Approx)',
       familyMembers: familyMembers,
 
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
@@ -2918,8 +2920,21 @@ ${qaPairs.join('\n\n')}`;
                  placeholder="Enter Executive Name..." 
                  className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" 
                />
-
             </div>
+
+            {/* 18. Tata Capital Distance (Conditional) */}
+            {selectedClient?.name === 'Tata Capital Limited' && (
+              <div className="pt-6 border-t border-slate-200">
+                 <label className="block text-xs font-bold text-slate-700 mb-1">18. Distance from Tata Capital Office (In Km's)</label>
+                 <input 
+                   type="text" 
+                   value={tataCapitalDistance} 
+                   onChange={(e) => setTataCapitalDistance(e.target.value)} 
+                   placeholder="e.g. 5-10 Km (Approx)" 
+                   className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" 
+                 />
+              </div>
+            )}
 
           </div>
           {renderTabNavigationFooter()}
