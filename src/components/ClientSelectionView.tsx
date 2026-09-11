@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ClientBank } from '../data/clientBanksData';
+import { ClientBank, TemplateFieldSchema } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { InfominerLogo } from './InfominerLogo';
 import { api } from '../services/api';
@@ -27,6 +27,8 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
   const [templateFileBase64, setTemplateFileBase64] = useState<string>('');
   const [clients, setClients] = useState<ClientBank[]>([]);
   const [loading, setLoading] = useState(true);
+  const [extractedSchema, setExtractedSchema] = useState<TemplateFieldSchema[] | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   useEffect(() => {
     api.getClients().then(fetchedClients => {
@@ -58,7 +60,7 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
     onSelectClient(bank);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -66,6 +68,26 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
         setTemplateFileBase64(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      if (templateFormat === 'excel') {
+        setIsExtracting(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', file);
+          const response = await fetch('/api/parse-excel-template', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          if (data.success && data.schema) {
+            setExtractedSchema(data.schema);
+          }
+        } catch (err) {
+          console.error('Failed to parse excel:', err);
+        } finally {
+          setIsExtracting(false);
+        }
+      }
     }
   };
 
@@ -84,7 +106,8 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
       defaultScheme: `${customBankName.trim()} Express Facility`,
       tagline: 'Custom Financial Partner',
       templateFormat,
-      templateFileBase64
+      templateFileBase64,
+      templateSchema: extractedSchema || undefined
     };
     try {
       const savedBank = await api.saveClient(customBank);
@@ -244,14 +267,69 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
                     onChange={handleFileUpload}
                     className="w-full text-xs"
                   />
+                  {templateFormat === 'excel' && (
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Ensure your Excel file contains tags formatted exactly like <span className="font-mono text-[#eb8a23]">{'{{VariableName}}'}</span> inside the cells.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
-            <div className="flex justify-end">
+
+            {isExtracting && <div className="text-xs text-[#eb8a23] font-bold animate-pulse mt-2">Extracting fields from Excel...</div>}
+
+            {extractedSchema && extractedSchema.length === 0 && !isExtracting && (
+              <div className="text-xs text-red-500 font-bold bg-red-50 border border-red-200 p-2 rounded mt-2">
+                No valid {'{{tags}}'} found in the uploaded Excel file. Please update your template and re-upload.
+              </div>
+            )}
+            
+            {extractedSchema && extractedSchema.length > 0 && !isExtracting && (
+              <div className="mt-4 border-t border-slate-200 pt-4 space-y-3">
+                <h4 className="text-xs font-bold text-[#2d3e50]">Map Extracted Variables (Optional)</h4>
+                <div className="max-h-48 overflow-y-auto space-y-2 pr-2">
+                  {extractedSchema.map((field, idx) => (
+                    <div key={idx} className="flex items-center gap-2 bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-xs font-mono font-bold w-1/3 truncate text-slate-700">{field.fieldName}</span>
+                      <select
+                        className="w-1/3 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#eb8a23]"
+                        value={field.type}
+                        onChange={(e) => {
+                          const newSchema = [...extractedSchema];
+                          newSchema[idx].type = e.target.value as any;
+                          setExtractedSchema(newSchema);
+                        }}
+                      >
+                        <option value="text">Text / String</option>
+                        <option value="number">Numeric Value</option>
+                        <option value="date">Date</option>
+                        <option value="photo">Photo Upload</option>
+                        <option value="formula">Calculated Formula</option>
+                      </select>
+                      {field.type === 'formula' && (
+                        <input
+                          type="text"
+                          placeholder="e.g. {{Income}} - {{Expense}}"
+                          value={field.formula || ''}
+                          onChange={(e) => {
+                            const newSchema = [...extractedSchema];
+                            newSchema[idx].formula = e.target.value;
+                            setExtractedSchema(newSchema);
+                          }}
+                          className="w-1/3 px-2 py-1 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-[#eb8a23]"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end mt-4">
               <button
                 type="button"
                 onClick={handleCustomConfirm}
-                disabled={!customBankName.trim()}
+                disabled={!customBankName.trim() || isExtracting || (templateFormat === 'excel' && (!extractedSchema || extractedSchema.length === 0))}
                 className="px-4 py-2 bg-[#384c5e] text-white rounded-xl text-xs font-bold hover:bg-[#2d3e50] transition disabled:opacity-50"
               >
                 Set Custom Institution

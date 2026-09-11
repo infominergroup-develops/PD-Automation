@@ -14,6 +14,7 @@ import { BusinessCategory, CategoryProduct, PDReport, AuditLogEntry, User } from
 import multer from "multer";
 import { pdfService } from "./pdfService.js";
 import { ParserFactory } from "./parsers/ParserFactory.js";
+import { parseExcelTemplate, generateExcelReport } from "./excelTemplateService.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 console.log("Starting PD System Server init...");
@@ -47,7 +48,11 @@ if (mongoUri) { // MongoDB Enabled
 app.use(async (req, res, next) => {
   if (mongoUri && !mongoDb && clientPromise) {
     try {
-      await clientPromise;
+      // Wait at most 3 seconds for the DB connection
+      await Promise.race([
+        clientPromise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error("DB Timeout")), 3000))
+      ]);
     } catch(e) {}
   }
   next();
@@ -105,6 +110,43 @@ app.use(async (req, res, next) => {
   // Health check
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Excel Template Parsing & Generation
+
+  app.post("/api/parse-excel-template", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file uploaded" });
+      }
+      const tags = await parseExcelTemplate(req.file.buffer);
+      const schema = tags.map(tag => ({
+        fieldName: tag,
+        type: 'text',
+        required: true
+      }));
+      res.json({ success: true, schema });
+    } catch (err: any) {
+      console.error("Parse error:", err);
+      res.status(500).json({ error: "Failed to parse Excel template: " + err.message });
+    }
+  });
+
+  app.post("/api/generate-excel-report", async (req, res) => {
+    try {
+      const { templateFileBase64, formData } = req.body;
+      if (!templateFileBase64 || !formData) {
+        return res.status(400).json({ error: "Missing template file or form data" });
+      }
+      const base64Data = templateFileBase64.replace(/^data:.*,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+      const generatedBuffer = await generateExcelReport(buffer, formData);
+      const outputBase64 = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${generatedBuffer.toString('base64')}`;
+      res.json({ success: true, fileBase64: outputBase64 });
+    } catch (err: any) {
+      console.error("Generate error:", err);
+      res.status(500).json({ error: "Failed to generate Excel report: " + err.message });
+    }
   });
 
   // Client Management Endpoints (MongoDB)
@@ -285,7 +327,10 @@ app.use(async (req, res, next) => {
         return res.status(400).json({ error: "Name, email, role, and designation are mandatory" });
       }
 
-      const existingUser = await mongoDb.collection("users").findOne({ id });
+      let existingUser = null;
+      if (id) {
+        existingUser = await mongoDb.collection("users").findOne({ id });
+      }
       
       if (existingUser) {
         const updateData: any = { name, email, role, designation, agency: agency || existingUser.agency, status };
@@ -530,6 +575,53 @@ app.use(async (req, res, next) => {
       res.json({ success: true, message: `Report ${repId} deleted` });
     } catch (err) {
       res.status(500).json({ error: "Failed to delete report" });
+    }
+  });
+
+  // Applicants DB API (Client-specific)
+  app.get("/api/clients/:clientId/applicants", async (req, res) => {
+    try {
+      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
+      const applicants = await mongoDb.collection("applicants").find({ clientId: req.params.clientId }).toArray();
+      res.json({ applicants });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to fetch applicants" });
+    }
+  });
+
+  app.post("/api/clients/:clientId/applicants", async (req, res) => {
+    const applicantData = req.body;
+    try {
+      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
+      const newApplicant = {
+        ...applicantData,
+        clientId: req.params.clientId,
+        _id: new ObjectId(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      await mongoDb.collection("applicants").insertOne(newApplicant);
+      res.json({ success: true, applicant: newApplicant });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to save applicant" });
+    }
+  });
+
+  app.patch("/api/clients/:clientId/applicants/:id", async (req, res) => {
+    const updateData = req.body;
+    try {
+      if (!mongoDb) return res.status(500).json({ error: "Database not connected" });
+      delete updateData._id;
+      updateData.updatedAt = new Date().toISOString();
+      const result = await mongoDb.collection("applicants").findOneAndUpdate(
+        { _id: new ObjectId(req.params.id), clientId: req.params.clientId },
+        { $set: updateData },
+        { returnDocument: 'after' }
+      );
+      if (!result) return res.status(404).json({ error: "Applicant not found" });
+      res.json({ success: true, applicant: result });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to update applicant" });
     }
   });
 

@@ -7,6 +7,7 @@ import { AuthView } from './components/AuthView';
 import { ClientSelectionView } from './components/ClientSelectionView';
 import { CompanySelectionView, Company } from './components/CompanySelectionView';
 import { PDToolView } from './components/PDToolView';
+import { DynamicTemplateView } from './components/DynamicTemplateView';
 import { EmployeeManagementView } from './components/EmployeeManagementView';
 
 export default function App() {
@@ -113,8 +114,16 @@ export default function App() {
       />
 
       <main className="w-full px-4 sm:px-6 lg:px-8 py-6">
-        {currentView === 'employee-management' ? (
+          {currentView === 'employee-management' ? (
           <EmployeeManagementView currentRole={currentUser.role} currentUserId={currentUser.id} />
+        ) : selectedClient?.templateFormat === 'excel' && selectedClient?.templateSchema ? (
+          <DynamicTemplateView
+            client={selectedClient}
+            onBack={() => {
+              setIsClientSelected(false);
+              window.history.pushState({ step: 'client' }, '');
+            }}
+          />
         ) : (
           <PDToolView
             currentUser={currentUser}

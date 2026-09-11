@@ -213,6 +213,86 @@ export interface ValidationIssue {
   suggestedAction: string;
 }
 
+export interface GodrejReportData {
+  basicInfo: {
+    financialInstitute: string;
+    product: string;
+    city: string;
+    applicantEntity: string;
+    constitution: string;
+    dateOfVisit: string;
+    personMet: string;
+    addressProvided: string;
+    designation: string;
+    contactNo: string;
+    addressVisited: string;
+    alternateMobile: string;
+    educationQuali: string;
+    addressOwnership: string;
+    appIdRefNo: string;
+    operatingSince: string;
+    loanAmountRequested: string;
+    officeAccessibility: string;
+    tenorRequested: string;
+    businessVintage: string;
+    marginsAssessed: string;
+    gstNoCustomer: string;
+    companyNameBoardSeen: string;
+    endUse: string;
+    finalRecommendation: string;
+    pdDoneBy: string;
+  };
+  businessProfile: {
+    natureOfBusiness: string;
+    industry: string;
+    product: string;
+    vintageKeyPersonDetails: string;
+    shareholdingPattern: Array<{ name: string; stake: string; onLoanStructure: string }>;
+    profileOfBusiness: string;
+    machineryDetails: string;
+    keyEmployeeDetails: string;
+    groupCoDetails: Array<{ entityName: string; relation: string; briefDetails: string }>;
+    otherSourceIncome: string;
+    financialDetails: string;
+    otherBusinessPremises: string;
+    otherStateGst: string;
+    familyMembersInvolved: Array<{ name: string; relation: string; periodInvolved: string; areaSupervised: string }>;
+  };
+  bankingAndLoans: {
+    bankAccounts: Array<{ bankName: string; accountTypes: string; accountNumber: string; ccOdLimit: string; vintage: string; collateralDetails: string }>;
+    loanDetails: Array<{ bankName: string; loanTypes: string; sanctionedAmount: string; emiRunning: string; tenor: string; noOfPaidEmi: string }>;
+    topBuyersSuppliers: Array<{ name: string; type: string; contribution: string; creditPeriod: string; relationshipSince: string; contactPerson: string }>;
+  };
+  assetsAndObservations: {
+    assets: Array<{ ownerName: string; relationWithKeyPerson: string; type: string; value: string; ownedSince: string; address: string }>;
+    stockLevel: string;
+    roughValueOfStock: string;
+    locality: string;
+    officeSetup: string;
+    businessActivityLevel: string;
+    sizeOfOffice: string;
+    noOfEmployeesSeen: string;
+    thirdPartyConfirmation: string;
+    anyCourtCasePending: string;
+    thirdPartyComment: string;
+    separateDemarcation: string;
+    gstDisplayed: string;
+  };
+  documentsAndStrengths: {
+    panCard: string;
+    gstinLegalName: string;
+    businessRegProof: string;
+    gstinRegistrationDate: string;
+    electricityBill: string;
+    employeeRegister: string;
+    saleBillsSeen: string;
+    otherRecords: string;
+    strengths: Array<{ strength: string }>;
+    weaknesses: Array<{ weakness: string }>;
+    finalStatus: string;
+  };
+}
+
 export interface RiskAssessmentResult {
   overallRiskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
   riskScore: number; // 0 to 100

@@ -1068,7 +1068,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // 1-CLICK LOAD APPLICATION HANDLER
   const handleLoadSampleApp = (dbApp: any) => {
-    let app = dbApp;
+    let app = { ...dbApp, ...(dbApp.formData || {}) };
     let isRecovered = false;
     
     // Attempt to recover offline draft if it exists
@@ -1076,7 +1076,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       const draftStr = localStorage.getItem(`offline_draft_${dbApp._id}`);
       if (draftStr) {
         const draftData = JSON.parse(draftStr);
-        app = { ...dbApp, ...draftData }; // Merge draft over DB
+        app = { ...app, ...draftData }; // Merge draft over DB
         isRecovered = true;
       }
     } catch (e) {
@@ -1517,6 +1517,46 @@ ${qaPairs.join('\n\n')}`;
 
     return { score, flags, strengths, decision };
   }, [dscrRatio, foirPct, yearsInBusiness, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
+
+  const handleSaveToDB = async () => {
+    if (!selectedClient) {
+      alert("Please select a client first.");
+      return;
+    }
+    const payload = {
+      appIdRefNo: activeAppNumber,
+      financialInstitute: selectedClient.name,
+      applicantEntity: applicantName || 'Draft Applicant',
+      product: loanType,
+      city: 'Not Provided',
+      loanAmountRequested: appliedAmount || 0,
+      contactNo: mobileNumber || '',
+      formData: JSON.parse(localStorage.getItem('infominer_pd_draft') || '{}')
+    };
+
+    try {
+      if (activeAppIdRef.current) {
+        await fetch(`/api/clients/${selectedClient.id}/applicants/${activeAppIdRef.current}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        alert('Applicant data updated in database successfully!');
+      } else {
+        const response = await fetch(`/api/clients/${selectedClient.id}/applicants`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        setActiveAppId(data._id);
+        alert('Applicant data saved to database successfully!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Failed to save applicant data.');
+    }
+  };
 
   // Direct Print Official Company Standard PD Report
   const handleDirectPrintReport = () => {
@@ -2001,11 +2041,19 @@ ${qaPairs.join('\n\n')}`;
 
 
             <button
+              onClick={handleSaveToDB}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-sm border border-emerald-800"
+            >
+              <Upload className="w-4 h-4 text-white" />
+              Save to DB
+            </button>
+
+            <button
               onClick={handleDirectPrintReport}
               className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2d3e50] hover:bg-[#1e293b] text-white rounded-lg text-xs font-bold transition shadow-sm border border-slate-700"
             >
               <Printer className="w-4 h-4 text-[#eb8a23]" />
-              Print Standard Company PD Report
+              Print / Generate Report
             </button>
           </div>
         </div>

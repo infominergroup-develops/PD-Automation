@@ -3,6 +3,123 @@
 
 import { coverLogoBase64 as coverLogo } from '../images/logoBase64';
 
+
+export function getUniversalCoverPageCSS(): string {
+  return `
+    .exec-page { position: relative; background: #ffffff; padding: 25px 35px 80px 35px; page-break-after: always; min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; overflow: visible; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+    .exec-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: relative; z-index: 2; }
+    .exec-logo-container { display: flex; align-items: center; gap: 12px; }
+    .exec-header-links { font-size: 9pt; color: #64748b; letter-spacing: 1px; }
+    .exec-title-area { margin-bottom: 20px; position: relative; z-index: 2; }
+    .exec-subtitle { font-size: 10pt; color: #64748b; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
+    .exec-title { font-size: 32pt; font-weight: 800; color: #1e3a8a; line-height: 1.1; margin-bottom: 15px; }
+    .exec-client { font-size: 12pt; color: #1e3a8a; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+    .exec-section { margin-bottom: 15px; position: relative; z-index: 2; }
+    .exec-section-header { display: flex; align-items: center; background: #f1f5f9; border-radius: 6px; padding: 0; margin-bottom: 15px; overflow: hidden; }
+    .exec-section-number { background: #1e3a8a; color: #ffffff; font-size: 14pt; font-weight: 700; padding: 10px 20px; }
+    .exec-section-title { font-size: 11pt; font-weight: 700; color: #334155; padding-left: 20px; letter-spacing: 1px; text-transform: uppercase; }
+    .exec-table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
+    .exec-table td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 10pt; vertical-align: middle; }
+    .exec-table tr:last-child td { border-bottom: none; }
+    .exec-table .td-icon { width: 40px; text-align: center; color: #1e3a8a; border-right: 1px solid #e2e8f0; }
+    .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
+    .exec-table .td-value { color: #1e293b; font-weight: 500; }
+    .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
+    .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
+    .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
+    .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
+    .exec-overview-box::after { content: ""; display: table; clear: both; }
+    .exec-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 9pt; color: #1e293b; font-weight: 600; z-index: 2; }
+    .shape-1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: #fdf6e3; border-radius: 50%; z-index: 1; }
+    .shape-3 { position: absolute; top: 150px; right: -20px; width: 100px; height: 300px; background: #e2e8f0; transform: rotate(45deg); z-index: 1; }
+    .shape-4 { position: absolute; top: 100px; right: -80px; width: 100px; height: 300px; background: #fef08a; transform: rotate(45deg); z-index: 1; }
+    .exec-icon svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+  `;
+}
+
+export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string, reportDate: string, caseStatus: string, coverLogoSrc: string): string {
+  const clientName = data.clientBankName || data.companyHeader?.name || 'INFOMINER SERVICES PVT. LTD.';
+  return `
+  <div class="exec-page">
+    <div class="shape-1"></div>
+    <div class="shape-3"></div>
+    <div class="shape-4"></div>
+    
+    <div class="exec-header">
+      <div class="exec-logo-container">
+        <img src="${coverLogoSrc}" style="max-height: 40px;" alt="Logo" />
+      </div>
+      <div class="exec-header-links">Insights | Data | Better Decisions</div>
+    </div>
+    
+    <div class="exec-title-area">
+      <div class="exec-subtitle">EXECUTIVE SUMMARY</div>
+      <div class="exec-title">Personal Discussion<br/>Credit Assessment Report</div>
+      <div class="exec-client">${clientName}</div>
+    </div>
+    
+    <div class="exec-section">
+      <div class="exec-section-header">
+        <div class="exec-section-number">01</div>
+        <div class="exec-section-title">APPLICANT DETAILS</div>
+      </div>
+      <table class="exec-table">
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div></td>
+          <td class="td-label">Applicant Name</td>
+          <td class="td-value">${data.applicantName || '-'}</td>
+        </tr>
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div></td>
+          <td class="td-label">Business / Firm</td>
+          <td class="td-value">${data.firmName || 'Not provided'}</td>
+        </tr>
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><circle cx="8.5" cy="11.5" r="2.5"></circle><path d="M20 18v-2a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v2"></path></svg></div></td>
+          <td class="td-label">Application ID</td>
+          <td class="td-value">${appNo}</td>
+        </tr>
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div></td>
+          <td class="td-label">Loan Amount</td>
+          <td class="td-value">₹${Number(data.appliedAmount || data.loanAmount || 0).toLocaleString('en-IN')}</td>
+        </tr>
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></td>
+          <td class="td-label">Report Date</td>
+          <td class="td-value">${reportDate}</td>
+        </tr>
+        <tr>
+          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg></div></td>
+          <td class="td-label">Case Status</td>
+          <td class="td-value"><div class="exec-pill-green">${caseStatus}</div></td>
+        </tr>
+      </table>
+    </div>
+    
+    <div class="exec-section">
+      <div class="exec-section-header">
+        <div class="exec-section-number">02</div>
+        <div class="exec-section-title">BUSINESS OVERVIEW</div>
+      </div>
+      <div class="exec-overview-box">
+        <div class="exec-overview-icon">
+          <div class="exec-icon"><svg viewBox="0 0 24 24" style="width: 36px; height: 36px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
+        </div>
+        <div class="exec-overview-text">
+          ${data.briefBusinessProfile || 'The applicant is engaged in business activities as per the information shared during the personal discussion. The business appears to be operational and has been running as per the applicant’s statement.'}
+        </div>
+      </div>
+    </div>
+    
+    <div class="exec-footer">
+      <div>Infominer</div>
+      <div>Cover Page</div>
+    </div>
+  </div>
+  `;
+}
+
 export interface PDReportPrintData {
   companyHeader?: {
     name: string;
@@ -135,6 +252,10 @@ export interface PDReportPrintData {
   netDisposalIncomeYearly?: number;
   comfortableMonthlyEmi?: string;
   comfortableEmiNotes?: string;
+  applicantQualification?: string;
+  businessNature?: string;
+  residenceMarketValue?: string;
+  businessCity?: string;
 
   // Financial Ratios
   dscrRatio?: number;
@@ -497,36 +618,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     .exec-subtitle { font-size: 10pt; color: #64748b; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
     .exec-title { font-size: 32pt; font-weight: 800; color: #1e3a8a; line-height: 1.1; margin-bottom: 15px; }
     .exec-client { font-size: 12pt; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-    .exec-section { margin-bottom: 15px; position: relative; z-index: 2; }
-    .exec-section-header { display: flex; align-items: center; background: #f1f5f9; border-radius: 6px; padding: 0; margin-bottom: 15px; overflow: hidden; }
-    .exec-section-number { background: #1e3a8a; color: #ffffff; font-size: 14pt; font-weight: 700; padding: 10px 20px; }
-    .exec-section-title { font-size: 11pt; font-weight: 700; color: #334155; padding-left: 20px; letter-spacing: 1px; text-transform: uppercase; }
-    .exec-table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
-    .exec-table td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 10pt; vertical-align: middle; }
-    .exec-table tr:last-child td { border-bottom: none; }
-    .exec-table .td-icon { width: 40px; text-align: center; color: #1e3a8a; border-right: 1px solid #e2e8f0; }
-    .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
-    .exec-table .td-value { color: #1e293b; font-weight: 500; }
-    .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
-    .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
-    .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
-    .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
-    .exec-overview-box::after { content: ""; display: table; clear: both; }
-    .exec-finding-item { display: flex; margin-bottom: 20px; }
-    .exec-finding-icon { flex: 0 0 40px; color: #1e3a8a; padding-top: 2px; }
-    .exec-finding-content h4 { margin: 0 0 5px 0; color: #1e293b; font-size: 10.5pt; }
-    .exec-finding-content p { margin: 0; color: #475569; font-size: 9.5pt; line-height: 1.5; }
-    .exec-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 9pt; color: #1e293b; font-weight: 600; z-index: 2; }
-    .shape-1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: #fdf6e3; border-radius: 50%; z-index: 1; }
-    .shape-2 { position: absolute; bottom: -100px; left: -100px; width: 400px; height: 400px; background: #f1f5f9; border-radius: 50%; z-index: 1; }
-    .shape-3 { position: absolute; top: 150px; right: -20px; width: 100px; height: 300px; background: #e2e8f0; transform: rotate(45deg); z-index: 1; }
-    .shape-4 { position: absolute; top: 100px; right: -80px; width: 100px; height: 300px; background: #fef08a; transform: rotate(45deg); z-index: 1; }
-    .exec-icon svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .exec-table-simple { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
-    .exec-table-simple th { background: #f8fafc; padding: 12px 15px; text-align: left; font-size: 9pt; font-weight: 700; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-    .exec-table-simple td { padding: 12px 15px; font-size: 9.5pt; color: #334155; border-bottom: 1px solid #e2e8f0; }
-    .exec-table-simple tr:last-child td { border-bottom: none; }
-</style>
+    ${getUniversalCoverPageCSS()}style>
 </head>
 <body>
 
@@ -544,85 +636,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <div  style="outline: none;">
   
 
-  <!-- PAGE 1: EXECUTIVE SUMMARY -->
-  <div class="exec-page">
-    <div class="shape-1"></div>
-    <div class="shape-3"></div>
-    <div class="shape-4"></div>
-    
-    <div class="exec-header">
-      <div class="exec-logo-container">
-        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
-      </div>
-      <div class="exec-header-links">Insights | Data | Better Decisions</div>
-    </div>
-    
-    <div class="exec-title-area">
-      <div class="exec-subtitle">EXECUTIVE SUMMARY</div>
-      <div class="exec-title">Personal Discussion<br/>Credit Assessment Report</div>
-      <div class="exec-client">${data.clientBankName || data.companyHeader?.name || 'MONEYBOXX FINANCE LIMITED'}</div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">01</div>
-        <div class="exec-section-title">APPLICANT DETAILS</div>
-      </div>
-      <table class="exec-table">
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div></td>
-          <td class="td-label">Applicant Name</td>
-          <td class="td-value">${data.applicantName}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div></td>
-          <td class="td-label">Business / Firm</td>
-          <td class="td-value">${data.firmName || 'Not provided'}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><circle cx="8.5" cy="11.5" r="2.5"></circle><path d="M20 18v-2a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v2"></path></svg></div></td>
-          <td class="td-label">Application ID</td>
-          <td class="td-value">${appNo}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div></td>
-          <td class="td-label">Loan Amount</td>
-          <td class="td-value">₹${Number(data.loanAmount || 0).toLocaleString('en-IN')}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></td>
-          <td class="td-label">Report Date</td>
-          <td class="td-value">${reportDate}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg></div></td>
-          <td class="td-label">Case Status</td>
-          <td class="td-value"><div class="exec-pill-green">${caseStatus}</div></td>
-        </tr>
-      </table>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">02</div>
-        <div class="exec-section-title">BUSINESS OVERVIEW</div>
-      </div>
-      <div class="exec-overview-box">
-        <div class="exec-overview-icon">
-          <div class="exec-icon"><svg viewBox="0 0 24 24" style="width: 36px; height: 36px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
-        </div>
-        <div class="exec-overview-text">
-          ${data.briefBusinessProfile || 'The applicant is engaged in business activities as per the information shared during the personal discussion. The business appears to be operational and has been running as per the applicant’s statement.'}
-        </div>
-      </div>
-    </div>
-    
-    <div class="exec-footer">
-      <div>Infominer</div>
-      <div>Page 1 of 2</div>
-    </div>
-  </div>
-  
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+
   <!-- PAGE 2: EXECUTIVE SUMMARY CONTINUED -->
   <div class="exec-page">
     <div class="shape-2"></div>
@@ -1564,36 +1579,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     .exec-subtitle { font-size: 10pt; color: #64748b; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
     .exec-title { font-size: 32pt; font-weight: 800; color: #1e3a8a; line-height: 1.1; margin-bottom: 15px; }
     .exec-client { font-size: 12pt; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-    .exec-section { margin-bottom: 15px; position: relative; z-index: 2; }
-    .exec-section-header { display: flex; align-items: center; background: #f1f5f9; border-radius: 6px; padding: 0; margin-bottom: 15px; overflow: hidden; }
-    .exec-section-number { background: #1e3a8a; color: #ffffff; font-size: 14pt; font-weight: 700; padding: 10px 20px; }
-    .exec-section-title { font-size: 11pt; font-weight: 700; color: #334155; padding-left: 20px; letter-spacing: 1px; text-transform: uppercase; }
-    .exec-table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
-    .exec-table td { padding: 15px; border-bottom: 1px solid #e2e8f0; font-size: 10pt; vertical-align: middle; }
-    .exec-table tr:last-child td { border-bottom: none; }
-    .exec-table .td-icon { width: 40px; text-align: center; color: #1e3a8a; border-right: 1px solid #e2e8f0; }
-    .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
-    .exec-table .td-value { color: #1e293b; font-weight: 500; }
-    .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
-    .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
-    .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
-    .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
-    .exec-overview-box::after { content: ""; display: table; clear: both; }
-    .exec-finding-item { display: flex; margin-bottom: 20px; }
-    .exec-finding-icon { flex: 0 0 40px; color: #1e3a8a; padding-top: 2px; }
-    .exec-finding-content h4 { margin: 0 0 5px 0; color: #1e293b; font-size: 10.5pt; }
-    .exec-finding-content p { margin: 0; color: #475569; font-size: 9.5pt; line-height: 1.5; }
-    .exec-footer { position: absolute; bottom: 20px; left: 40px; right: 40px; display: flex; justify-content: space-between; border-top: 1px solid #cbd5e1; padding-top: 15px; font-size: 9pt; color: #1e293b; font-weight: 600; z-index: 2; }
-    .shape-1 { position: absolute; top: -50px; right: -50px; width: 300px; height: 300px; background: #fdf6e3; border-radius: 50%; z-index: 1; }
-    .shape-2 { position: absolute; bottom: -100px; left: -100px; width: 400px; height: 400px; background: #f1f5f9; border-radius: 50%; z-index: 1; }
-    .shape-3 { position: absolute; top: 150px; right: -20px; width: 100px; height: 300px; background: #e2e8f0; transform: rotate(45deg); z-index: 1; }
-    .shape-4 { position: absolute; top: 100px; right: -80px; width: 100px; height: 300px; background: #fef08a; transform: rotate(45deg); z-index: 1; }
-    .exec-icon svg { width: 24px; height: 24px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-    .exec-table-simple { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #ffffff; }
-    .exec-table-simple th { background: #f8fafc; padding: 12px 15px; text-align: left; font-size: 9pt; font-weight: 700; color: #64748b; border-bottom: 2px solid #e2e8f0; }
-    .exec-table-simple td { padding: 12px 15px; font-size: 9.5pt; color: #334155; border-bottom: 1px solid #e2e8f0; }
-    .exec-table-simple tr:last-child td { border-bottom: none; }
-</style>
+    ${getUniversalCoverPageCSS()}style>
 </head>
 <body>
   <!-- Print Controls -->
@@ -1605,85 +1591,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   <div  style="outline: none;">
   
-  <!-- PAGE 1: EXECUTIVE SUMMARY -->
-  <div class="exec-page">
-    <div class="shape-1"></div>
-    <div class="shape-3"></div>
-    <div class="shape-4"></div>
-    
-    <div class="exec-header">
-      <div class="exec-logo-container">
-        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
-      </div>
-      <div class="exec-header-links">Insights | Data | Better Decisions</div>
-    </div>
-    
-    <div class="exec-title-area">
-      <div class="exec-subtitle">EXECUTIVE SUMMARY</div>
-      <div class="exec-title">Personal Discussion<br/>Credit Assessment Report</div>
-      <div class="exec-client">${data.clientBankName || data.companyHeader?.name || 'MONEYBOXX FINANCE LIMITED'}</div>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">01</div>
-        <div class="exec-section-title">APPLICANT DETAILS</div>
-      </div>
-      <table class="exec-table">
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div></td>
-          <td class="td-label">Applicant Name</td>
-          <td class="td-value">${data.applicantName}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg></div></td>
-          <td class="td-label">Business / Firm</td>
-          <td class="td-value">${data.firmName || 'Not provided'}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><circle cx="8.5" cy="11.5" r="2.5"></circle><path d="M20 18v-2a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4v2"></path></svg></div></td>
-          <td class="td-label">Application ID</td>
-          <td class="td-value">${appNo}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div></td>
-          <td class="td-label">Loan Amount</td>
-          <td class="td-value">₹${Number(data.loanAmount || 0).toLocaleString('en-IN')}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg></div></td>
-          <td class="td-label">Report Date</td>
-          <td class="td-value">${reportDate}</td>
-        </tr>
-        <tr>
-          <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg></div></td>
-          <td class="td-label">Case Status</td>
-          <td class="td-value"><div class="exec-pill-green">${caseStatus}</div></td>
-        </tr>
-      </table>
-    </div>
-    
-    <div class="exec-section">
-      <div class="exec-section-header">
-        <div class="exec-section-number">02</div>
-        <div class="exec-section-title">BUSINESS OVERVIEW</div>
-      </div>
-      <div class="exec-overview-box">
-        <div class="exec-overview-icon">
-          <div class="exec-icon"><svg viewBox="0 0 24 24" style="width: 36px; height: 36px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
-        </div>
-        <div class="exec-overview-text">
-          ${data.briefBusinessProfile || 'The applicant is engaged in business activities as per the information shared during the personal discussion. The business appears to be operational and has been running as per the applicant’s statement.'}
-        </div>
-      </div>
-    </div>
-    
-    <div class="exec-footer">
-      <div>Infominer</div>
-      <div>Page 1 of 2</div>
-    </div>
-  </div>
-  
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+
   <!-- PAGE 2: EXECUTIVE SUMMARY CONTINUED -->
   <div class="exec-page">
     <div class="shape-2"></div>
@@ -2317,6 +2226,10 @@ export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   let htmlContent = '';
   if (data.clientBankName && data.clientBankName.toLowerCase().includes('moneyboxx')) {
     htmlContent = generateMoneyboxxPDReportHTML(data);
+  } else if (data.clientBankName && data.clientBankName.toLowerCase().includes('sbfc')) {
+    htmlContent = generateSbfcPDReportHTML(data);
+  } else if (data.clientBankName && data.clientBankName.toLowerCase().includes('godrej')) {
+    htmlContent = generateGodrejPDReportHTML(data);
   } else {
     htmlContent = generateStandardPDReportHTML(data);
   }
@@ -2327,4 +2240,839 @@ export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   printWindow.document.write(htmlContent);
   printWindow.document.close();
   printWindow.focus();
+}
+
+
+export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
+  const appNo = data.applicationNumber || 'Not Provided';
+  const reportDate = data.visitDate || '-';
+  const caseStatus = data.statusOfCase || 'Positive';
+  
+  let photosHtml = '';
+  const photos = (data as any).photos || [];
+  if (photos && photos.length > 0) {
+    photosHtml = `
+      <div class="page-break"></div>
+      <table class="report-table">
+        <tr><td class="sec-head" style="text-align:center;">Photographs</td></tr>
+        <tr><td>
+          <div class="photo-grid">
+            ${photos.map((p: any) => `
+              <div class="photo-card">
+                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
+                <div style="font-size:8pt; margin-top:5px; font-weight:bold;">${p.label || 'Site Photo'}</div>
+              </div>
+            `).join('')}
+          </div>
+        </td></tr>
+      </table>
+    `;
+  }
+
+  // Helper variables for data
+  const existEmiM = data.existingEmiMonthly || 0;
+  const existEmiY = data.existingEmiYearly || (existEmiM * 12);
+  const totalSalesM = data.totalSalesMonthly || 0;
+  const totalSalesY = totalSalesM * 12;
+  const netProfM = data.netProfitMonthly || 0;
+  const netProfY = netProfM * 12;
+  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
+  const netDisposalM = netProfM - hhExpM;
+  const netDisposalY = netDisposalM * 12;
+  
+  const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
+  const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
+  const bankingList = data.bankingDetails && data.bankingDetails.length > 0 ? data.bankingDetails : [{ bankName: 'Not shared', branchName: 'NA', accountNo: 'NA', limit: 'NA', remark: 'NA' }];
+  const loansList = data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : [{ typeOfLoan: 'Not shared', financerName: 'NA', amountInLakhs: 'NA', emi: existEmiM || 'NA', tenure: 'NA', balanceTenure: 'NA' }];
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SBFC Finance LTD PD Report - ${appNo}</title>
+  <style>
+    @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 8.5pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.35; }
+    .page-break { page-break-before: always; margin-top: 15px; }
+    .report-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+    .report-table th, .report-table td { border: 1px solid #000; padding: 4px 8px; vertical-align: top; }
+    .hdr-main { text-align: center; background-color: #e2e8f0; padding: 10px; margin-bottom: 0px; border: 1px solid #000; border-bottom: none; }
+    .hdr-title { font-size: 10pt; }
+    .sec-head { background-color: #e2e8f0; text-align: center; font-weight: bold;}
+    .bold { font-weight: bold; }
+    .text-center { text-align: center; }
+    
+    ${getUniversalCoverPageCSS()}
+    
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+    .photo-card { border: 1px solid #000; padding: 5px; text-align: center; }
+    .photo-card img { width: 100%; height: 250px; object-fit: contain; background: #f3f4f6; }
+    @media print { body { padding: 0; } .no-print { display: none !important; } }
+  </style>
+</head>
+<body>
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+
+  <div class="hdr-main">
+    <div class="hdr-title">${data.companyHeader?.name || 'Mahesh & Co.'}</div>
+    <div>Email: pd4@mco.net.in</div>
+  </div>
+
+  <table class="report-table">
+    <tr><td colspan="4" class="text-center">Personal Discussion Report</td></tr>
+    <tr><td colspan="4">To,</td></tr>
+    <tr>
+      <td colspan="2" style="width: 50%;">${data.clientBankName || 'SBFC Finance LTD'}</td>
+      <td style="width: 25%;">Initiated Date</td>
+      <td style="width: 25%;">${data.visitDate || '-'}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Dear Sir/Madam,</td>
+      <td>Application No.</td>
+      <td>${appNo}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Sub: AIP Report of ${data.applicantName || '-'}</td>
+      <td>Case Status</td>
+      <td>${data.statusOfCase || 'Negative / Positive'}</td>
+    </tr>
+    <tr><td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td></tr>
+    
+    <tr><td colspan="4" class="sec-head">SUMMARY INFORMATION</td></tr>
+    <tr>
+      <td>Case visit date</td><td>${data.visitDate || '-'}</td>
+      <td>Report date</td><td>${data.visitDate || '-'}</td>
+    </tr>
+    <tr><td colspan="2">Name & Relation of person met</td><td colspan="2">${data.metPersonName || '-'} (${data.metPersonIdProof ? 'Owner' : 'Self'})</td></tr>
+    <tr><td colspan="2">Contact Number</td><td colspan="2">${data.applicantPhone || '-'}</td></tr>
+    <tr><td colspan="2">Applicant Qualification</td><td colspan="2">${data.applicantQualification || '12th passed'}</td></tr>
+    <tr><td colspan="2">Firm's Name</td><td colspan="2">${data.firmName || '-'}</td></tr>
+    <tr><td colspan="2">Business Address</td><td colspan="2">${data.businessAddress || '-'}</td></tr>
+    <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
+    <tr><td colspan="2">Documents Seen</td><td colspan="2">PAN Card, Udyam Certificate, GST Certificate, Manual Records.</td></tr>
+    <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
+    <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
+    <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
+    <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">Proprietorship</td></tr>
+    <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">Not applicable</td></tr>
+    <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
+    <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
+    <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || 'Trading / Retail / Service'}</td></tr>
+    
+    <tr><td colspan="4" class="sec-head">Brief Profile of Business</td></tr>
+    <tr><td colspan="4" style="height: 100px;">${data.briefBusinessProfile || 'The products supplied by the applicant range in price from approximately Rs. 100 to Rs. 4,000.\\nThe applicant deals with approximately 25-30 customers daily in the business.\\nThe business hours are from 11:00 AM to 10:00 PM, with no weekly holidays.\\n(All the above details are confirm verbally by met person)'}</td></tr>
+    
+    <tr>
+      <td colspan="2">Is office premise on rented /owned</td>
+      <td colspan="2">${data.shopOwnership || '-'}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Vintage of the business</td>
+      <td colspan="2">${data.businessVintage || '-'}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Inventory item details with estimated value</td>
+      <td colspan="2">${data.stockDetailsValue ? 'Stock worth approximately ' + data.stockDetailsValue : 'Not provided'}</td>
+    </tr>
+  </table>
+
+  <div class="page-break"></div>
+  
+  <table class="report-table">
+    <tr>
+      <td colspan="2" style="width: 30%;">Business Proof details (like S & E/GST Certificate/Electricity Bills)</td>
+      <td colspan="2" style="width: 70%;">Applicant has shared Udyam / GST / Utility bills as proof of business.</td>
+    </tr>
+    <tr><td colspan="2">Number of staffs</td><td colspan="2">${data.staffCount || 'He is self-employed and operates the business by himself.'}</td></tr>
+    <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="2">Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup.</td></tr>
+    <tr><td colspan="2">Other source income</td><td colspan="2">The applicant does not have any other source of income.</td></tr>
+    
+    <tr class="sec-head">
+      <td style="width: 10%;">Sr. No.</td>
+      <td style="width: 40%;">Customer Name & City</td>
+      <td style="width: 25%;">Contact No.</td>
+      <td style="width: 25%;">Feedback and remark</td>
+    </tr>
+    ${customerList.map((c: any, i: number) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${c.name}</td>
+      <td>${c.phone}</td>
+      <td>${c.remark}</td>
+    </tr>
+    `).join('')}
+
+    <tr class="sec-head">
+      <td>Sr. No.</td>
+      <td>Supplier Name & City</td>
+      <td>Contact No.</td>
+      <td>Feedback and remark</td>
+    </tr>
+    ${supplierList.map((s: any, i: number) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${s.name}</td>
+      <td>${s.phone}</td>
+      <td>${s.remark}</td>
+    </tr>
+    `).join('')}
+
+    <tr><td colspan="4" class="sec-head">Banking Details And Limit OD And CC Limit With Bank</td></tr>
+    <tr class="sec-head">
+      <td>Bank Name</td>
+      <td>Bank Branch</td>
+      <td>Account Number / CC/OD Limit</td>
+      <td>Remark</td>
+    </tr>
+    ${bankingList.map((b: any) => `
+    <tr class="text-center">
+      <td>${b.bankName}</td>
+      <td>${b.branchName}</td>
+      <td>${b.accountNo} / ${b.limit || 'NA'}</td>
+      <td>${b.remark}</td>
+    </tr>
+    `).join('')}
+
+    <tr><td colspan="4" class="sec-head">EXISTING LOANS / LIABILITIES</td></tr>
+    <tr class="sec-head">
+      <td>Type of Loan</td>
+      <td>FI Name / Loan Amount (Lacs)</td>
+      <td>EMI</td>
+      <td>Tenor (yrs., moths) / Bal. Tenor</td>
+    </tr>
+    ${loansList.map((l: any) => `
+    <tr class="text-center">
+      <td>${l.typeOfLoan}</td>
+      <td>${l.financerName} / ${l.amountInLakhs || 'NA'}</td>
+      <td>${l.emi}</td>
+      <td>${l.tenure || 'NA'} / ${l.balanceTenure || 'NA'}</td>
+    </tr>
+    `).join('')}
+
+    <tr><td colspan="4" class="sec-head">Monthly & Yearly Income Assessment of Customer</td></tr>
+    <tr class="sec-head">
+      <td colspan="2">Particulars (Applicant)</td>
+      <td>Monthly Income</td>
+      <td>Yearly Income</td>
+    </tr>
+    <tr>
+      <td colspan="2">Sales/Receipts</td>
+      <td>${totalSalesM}</td>
+      <td>${totalSalesY}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Total Sales/Receipts (A)</td>
+      <td>${totalSalesM}</td>
+      <td>${totalSalesY}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Purchase</td>
+      <td>${totalSalesM * 0.7}</td>
+      <td>${totalSalesY * 0.7}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Monthly Electricity Expenses</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2">Salary of Employees</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2">Business Premises Rent (if the premises is on rent)</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2">Other expenses</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2">Total Expenses (B)</td>
+      <td>${totalSalesM * 0.7}</td>
+      <td>${totalSalesY * 0.7}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Net Profit Per month(A- B)</td>
+      <td>${netProfM}</td>
+      <td>${netProfY}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Less: Household Expenses</td>
+      <td>${hhExpM}</td>
+      <td>${hhExpM * 12}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Add: Other Source of Income</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Net Disposal Income</td>
+      <td class="bold">${netDisposalM}</td>
+      <td class="bold">${netDisposalY}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Annual Turnover & Margin</td>
+      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round(totalSalesY/100000)} lakh and net profit margin ${Math.round((netProfM/(totalSalesM||1))*100)}%.</td>
+    </tr>
+    <tr>
+      <td colspan="2">Affordable EMI as per customer requirement</td>
+      <td colspan="2">As per branch.</td>
+    </tr>
+  </table>
+
+  <div class="page-break"></div>
+
+  <table class="report-table">
+    <tr><td colspan="2" class="sec-head">Residential Details</td></tr>
+    <tr><td style="width:30%;">House Address</td><td>${data.residenceAddress || '-'}</td></tr>
+    <tr><td>Locality</td><td>UMC</td></tr>
+    <tr><td>Ownership of premises</td><td>${data.residenceOwnership || '-'}</td></tr>
+    <tr><td>Area & Market Value</td><td>${data.residenceMarketValue || '-'}</td></tr>
+    
+    <tr><td colspan="2" class="sec-head">Family Background</td></tr>
+    <tr><td colspan="2">Total Family members- ${data.familyMembers?.length || 0}</td></tr>
+    
+    <tr><td colspan="2" class="sec-head">Family Details</td></tr>
+  </table>
+  <table class="report-table" style="margin-top:-20px; border-top:none;">
+    <tr class="sec-head">
+      <td>S.No</td>
+      <td>Members Name</td>
+      <td>Relation</td>
+      <td>Age</td>
+      <td>Occupation</td>
+      <td>Staying with Applicant or Not</td>
+    </tr>
+    ${(data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
+      { name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }
+    ]).map((f: any, i: number) => `
+      <tr>
+        <td>${i+1}</td>
+        <td>${f.name}</td>
+        <td>${f.relation}</td>
+        <td>${f.age || ''}</td>
+        <td>${f.occupation || ''}</td>
+        <td>Yes</td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <table class="report-table">
+    <tr><td colspan="2" class="sec-head">Observations</td></tr>
+    <tr>
+      <td class="bold" style="width:20%;">Strength</td>
+      <td>
+        1. The Applicant has been running this business under the name ${data.firmName || '-'} for the last ${data.businessVintage || '-'} years.<br/>
+        2. The applicant was available at the time of verification and provided all details.<br/>
+        3. During the visit, the applicant's business activity was observed.<br/>
+        4. The applicant presented a PAN card as a KYC document.<br/>
+      </td>
+    </tr>
+    <tr>
+      <td class="bold">Weakness</td>
+      <td>
+        1. Standard business risks apply.
+      </td>
+    </tr>
+    <tr>
+      <td class="bold">Latitude & Longitude</td>
+      <td>${data.businessGpsCoords || '-'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Case Status</td>
+      <td class="bold">${data.statusOfCase || 'Positive'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Reported By</td>
+      <td>• Visit Done By – ${data.executiveName || 'Verification Officer'}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="font-size:8pt; text-align:justify; color:#555;">
+        <b>Disclaimer:-</b> This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions. It does not constitute an audit, legal investigation.
+      </td>
+    </tr>
+    <tr>
+      <td colspan="2" style="height: 60px; vertical-align: bottom;">
+        <b>Authorized Signature</b>
+      </td>
+    </tr>
+  </table>
+
+  ${photosHtml}
+
+</body>
+</html>
+`;
+}
+
+
+export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
+  const appNo = data.applicationNumber || '';
+  const reportDate = data.visitDate || '';
+  const caseStatus = data.statusOfCase || 'Positive';
+
+  // Helper arrays for iteration
+  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: '', relation: '', period: '', area: '' }];
+  const bankingList = data.bankingDetails && data.bankingDetails.length > 0 ? data.bankingDetails : [{ bankName: '', accountType: '', accountNo: '', limit: '', vintage: '', collateral: '' }];
+  const loansList = data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : [{ bankName: '', loanType: '', amount: '', emi: '', tenor: '', paidEmi: '' }];
+  const buyerSupplierList = (data.prominentCustomers || []).concat(data.prominentSuppliers || []);
+  if (buyerSupplierList.length === 0) buyerSupplierList.push({ name: 'Not shared', type: '', contribution: '', creditPeriod: '', relationship: '', contact: '' } as any);
+  
+  let photosHtml = '';
+  const photos = (data as any).photos || [];
+  if (photos && photos.length > 0) {
+    photosHtml = `
+      <div class="page-break"></div>
+      <table class="report-table" style="border:none;">
+        <tr><td style="font-weight:bold; font-size:12pt; border:none;">Photographs</td></tr>
+        <tr><td style="border:none;">
+          <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+            ${photos.map((p: any) => `
+              <div style="width: 48%; margin-bottom: 15px;">
+                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" style="width: 100%; height: auto;" />
+              </div>
+            `).join('')}
+          </div>
+        </td></tr>
+      </table>
+    `;
+  }
+
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Godrej Finance Limited PD Report - ${appNo}</title>
+  <style>
+    @page { size: A4; margin: 12mm; }
+    body { font-family: 'Calibri', 'Segoe UI', Tahoma, sans-serif; font-size: 10pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.3; }
+    .page-break { page-break-before: always; margin-top: 15px; }
+    .report-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+    .report-table th, .report-table td { border: 1px solid #a3a3a3; padding: 6px; vertical-align: top; }
+    .hdr-main { text-align: center; margin-bottom: 20px; }
+    .hdr-title { font-size: 24pt; font-family: 'Times New Roman', serif; }
+    .hdr-subtitle { font-size: 11pt; font-weight: bold; }
+    .hdr-address { font-size: 10pt; }
+    .main-title { font-size: 20pt; font-weight: bold; text-align: center; margin: 20px 0; font-family: 'Times New Roman', serif; }
+    .bold { font-weight: bold; }
+    .bg-green { background-color: #e2efd9; }
+    .bg-red { background-color: #c00000; color: white; font-weight: bold; }
+    .bg-darkred { background-color: #c00000; color: white; font-weight: bold; padding: 4px; display:inline-block; width:100px; text-align:center;}
+    .sec-title { font-weight: bold; font-size: 11pt; margin: 15px 0 5px 0; }
+    .inner-table { width: 100%; border-collapse: collapse; }
+    .inner-table td { border: 1px solid #a3a3a3; padding: 4px; }
+    .inner-table .bg-green { background-color: #e2efd9; font-weight: bold; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="hdr-main">
+    <div class="hdr-title">${data.companyHeader?.name || 'Infominer Pvt Ltd.'}</div>
+    <div class="hdr-subtitle">(Chartered Accountant)</div>
+    <div class="hdr-address">Office No -410 Shree Siddhi Vinayak Trade Center Jeoni Mandi Agra 282004</div>
+  </div>
+
+  <div class="main-title">Godrej Finance Limited – Business Loan</div>
+
+  <div class="sec-title">Basic info of the case:</div>
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width: 20%;">Financial Institute</td>
+      <td style="width: 30%;">${data.clientBankName || 'Godrej Finance Limited'}</td>
+      <td class="bg-green" style="width: 15%;">Product</td>
+      <td class="bold text-center" style="width: 15%;">Business<br/>Loan</td>
+      <td class="bg-green" style="width: 10%;">City</td>
+      <td style="width: 10%;">${data.businessCity || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Name of the applicant entity</td>
+      <td>${data.firmName || ''}</td>
+      <td class="bg-green">Constitution</td>
+      <td class="bold text-center">Proprietorship</td>
+      <td class="bg-green">Date of Visit</td>
+      <td>${reportDate}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Person Met</td>
+      <td>${data.metPersonName || ''}</td>
+      <td class="bg-green">Add Provided</td>
+      <td colspan="3">${data.businessAddress || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Designation of person met</td>
+      <td>${data.metPersonIdProof ? 'Owner' : 'Self'}</td>
+      <td colspan="4" style="border-top:none;"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Contact no. of person met</td>
+      <td>${data.applicantPhone || ''}</td>
+      <td class="bg-green">Add Visited</td>
+      <td colspan="3">${data.meetingAddress || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Alternate mobile no.</td>
+      <td></td>
+      <td colspan="4" style="border-top:none;"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Education Quali of Person Met</td>
+      <td>${data.applicantQualification || ''}</td>
+      <td class="bg-green">Address Ownership</td>
+      <td colspan="3">${data.shopOwnership || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">App ID/Ref No.</td>
+      <td>${appNo}</td>
+      <td class="bg-green">Operating since</td>
+      <td colspan="3">${data.businessVintage || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Loan Amount Requested</td>
+      <td>${data.appliedAmount || ''}</td>
+      <td class="bg-green">Office Accessibility</td>
+      <td colspan="3"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Tenor Requested</td>
+      <td></td>
+      <td class="bg-green">Business Vintage</td>
+      <td colspan="3">${data.businessVintage || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Margins assessed</td>
+      <td></td>
+      <td class="bg-green">GST No. of Customer</td>
+      <td colspan="3"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Company Name Board Seen</td>
+      <td>Yes</td>
+      <td class="bg-green">End Use</td>
+      <td colspan="3">${data.purpose || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Final Recommendation</td>
+      <td class="bg-red">Positive</td>
+      <td class="bg-green">PD done by</td>
+      <td colspan="3">${data.executiveName || ''}</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Detailed business profile & background of the applicant's:</div>
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width:20%;">Nature of Business</td>
+      <td style="width:30%;">${data.businessNature || ''}</td>
+      <td class="bg-green" style="width:15%;">Industry</td>
+      <td style="width:15%;"></td>
+      <td class="bg-green" style="width:10%;">Product</td>
+      <td style="width:10%;"></td>
+    </tr>
+  </table>
+
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width: 25%;">Business vintage includingKey-Person details</td>
+      <td style="width: 75%;">${data.briefBusinessProfile || ''}</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Ownership/ ShareholdingPattern</td>
+      <td style="padding: 10px;">
+        <table class="inner-table">
+          <tr>
+            <td class="bg-green" style="width:33%;">Name</td>
+            <td class="bg-green" style="width:33%;">% Stake</td>
+            <td class="bg-green" style="width:33%;">On Loan Structure</td>
+          </tr>
+          <tr>
+            <td>${data.applicantName || ''}</td>
+            <td style="text-align:center;">100%</td>
+            <td></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width: 20%; height: 200px; vertical-align:middle;">Profile of Business</td>
+      <td style="width: 80%; vertical-align:top; padding:10px;">
+        ${data.briefBusinessProfile || ''}
+      </td>
+    </tr>
+  </table>
+
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width:25%;">Machinery details (Wherever applicable)</td>
+      <td style="width:75%;"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Key employee details</td>
+      <td>✓ .</td>
+    </tr>
+    <tr>
+      <td class="bg-green">Group Co. details</td>
+      <td style="padding:0;">
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td class="bold" style="border:none; border-bottom:1px solid #a3a3a3; border-right:1px solid #a3a3a3; width:33%;">Name of the entity</td>
+            <td class="bold" style="border:none; border-bottom:1px solid #a3a3a3; border-right:1px solid #a3a3a3; width:33%;">Relation with our customer</td>
+            <td class="bold" style="border:none; border-bottom:1px solid #a3a3a3; width:34%;">Brief business details</td>
+          </tr>
+          <tr>
+            <td style="border:none; border-right:1px solid #a3a3a3;">✓</td>
+            <td style="border:none; border-right:1px solid #a3a3a3;"></td>
+            <td style="border:none;"></td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td class="bg-green">Other Source of Income</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green" rowspan="2">Financial details</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Other business premises details</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Other state GST Registration taken</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Family member/s involved inbusiness</td>
+      <td></td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Existing Bank Accounts:</div>
+  <table class="report-table">
+    <tr class="bg-green">
+      <td>Name</td>
+      <td>Relation</td>
+      <td>Period Involved</td>
+      <td>Area supervised in business</td>
+    </tr>
+    ${familyList.map((f: any) => `
+      <tr>
+        <td>${f.name || ''}</td>
+        <td>${f.relation || ''}</td>
+        <td>${f.period || ''}</td>
+        <td>${f.area || ''}</td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <div class="sec-title">Existing Loan Details:</div>
+  <table class="report-table">
+    <tr class="bg-green">
+      <td>Bank Name</td>
+      <td>Account Types</td>
+      <td>Account Number</td>
+      <td>CC/OD Limit</td>
+      <td>Vintage of account</td>
+      <td>Collateral Details (if Auto Loan, then Reg No. of Car)</td>
+    </tr>
+    ${bankingList.map((b: any) => `
+      <tr>
+        <td>${b.bankName || ''}</td>
+        <td>${b.accountType || ''}</td>
+        <td>${b.accountNo || ''}</td>
+        <td>${b.limit || ''}</td>
+        <td>${b.vintage || ''}</td>
+        <td>${b.collateral || ''}</td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <table class="report-table">
+    <tr class="bg-green">
+      <td>Name of Bank</td>
+      <td>Loan Types</td>
+      <td>Sanctioned Loan Amount</td>
+      <td>EMI running</td>
+      <td>Tenor</td>
+      <td>No of Paid EMI</td>
+    </tr>
+    ${loansList.map((l: any) => `
+      <tr>
+        <td>${l.bankName || l.financerName || ''}</td>
+        <td>${l.loanType || l.typeOfLoan || ''}</td>
+        <td>${l.amount || l.loanAmountLakhs || ''}</td>
+        <td>${l.emi || l.emiRs || ''}</td>
+        <td>${l.tenor || l.tenureYearsMonths || ''}</td>
+        <td>${l.paidEmi || ''}</td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <div class="sec-title">Top 3 buyer & supplier:</div>
+  <table class="report-table">
+    <tr class="bg-green">
+      <td>Name</td>
+      <td>Type</td>
+      <td>% Contribution</td>
+      <td>Credit Period (days)</td>
+      <td>Relationship since</td>
+      <td>Contact Person Name & Number</td>
+    </tr>
+    ${buyerSupplierList.map((bs: any) => `
+      <tr>
+        <td>${bs.name || ''}</td>
+        <td>${bs.type || ''}</td>
+        <td>${bs.contribution || ''}</td>
+        <td>${bs.creditPeriod || ''}</td>
+        <td>${bs.relationship || ''}</td>
+        <td>${bs.contact || bs.phone || ''}</td>
+      </tr>
+    `).join('')}
+  </table>
+
+  <div class="sec-title">Movable & Immovable asset base:</div>
+  <table class="report-table">
+    <tr class="bg-green">
+      <td>Owner Name</td>
+      <td>Relation with Key Person</td>
+      <td>Type</td>
+      <td>Value</td>
+      <td>Owned Since</td>
+      <td>Address</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td></td>
+      <td>.</td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Observation:</div>
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width: 25%;">Stock Level</td>
+      <td style="width: 25%;"></td>
+      <td class="bg-green" style="width: 25%;">Rough value of stock</td>
+      <td style="width: 25%;"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Locality</td>
+      <td></td>
+      <td class="bg-green">Office Setup</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Business Activity Level</td>
+      <td></td>
+      <td class="bg-green">Size of the office</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">No. of employees seen</td>
+      <td>${data.staffCount || ''}</td>
+      <td class="bg-green">Third Party Confirmation</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Any court case pending</td>
+      <td></td>
+      <td class="bg-green">Third Party Comment</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green" colspan="2">Whether separate demarcation of office in Resi-cum-Office setup</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td class="bg-green" colspan="2">Whether GST Number displayed at the premises visited</td>
+      <td colspan="2"></td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Documents verified during PD:</div>
+  <table class="report-table">
+    <tr>
+      <td class="bg-green" style="width: 25%;">PAN Card</td>
+      <td style="width: 25%;"></td>
+      <td class="bg-green" style="width: 25%;">GSTIN – Legal Trade Name</td>
+      <td style="width: 25%;"></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Business Registration ProofSeen or Not Seen</td>
+      <td></td>
+      <td class="bg-green">GSTIN – Date of Registration</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Electricity Bill (latest 2 months)Seen/Not Seen</td>
+      <td></td>
+      <td class="bg-green">Employee Register</td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="bg-green">Sale Bills Seen</td>
+      <td></td>
+      <td class="bg-green">Other (Kacha Records)</td>
+      <td></td>
+    </tr>
+  </table>
+
+  <div class="sec-title">Strengths & Weaknesses:</div>
+  <table class="report-table">
+    <tr class="bg-green">
+      <td class="bold text-center" style="width: 5%;">S. No.</td>
+      <td class="bold text-center" style="width: 45%;">Strengths</td>
+      <td class="bold text-center" style="width: 5%;">S. No.</td>
+      <td class="bold text-center" style="width: 45%;">Weaknesses</td>
+    </tr>
+    <tr>
+      <td class="bold text-center">1</td>
+      <td class="bold">Ok receipt</td>
+      <td class="bold text-center">1</td>
+      <td></td>
+    </tr>
+  </table>
+
+  <table style="width: 300px; margin-top:20px; border: 1px solid #000; border-collapse: collapse;">
+    <tr>
+      <td class="bg-darkred" style="border: 1px solid #000;">Final Status</td>
+      <td class="bold" style="border: 1px solid #000; padding-left: 10px;">POSITIVE</td>
+    </tr>
+  </table>
+
+  <div style="margin-top: 10px; font-size: 10pt;">Report Prepared By: –</div>
+
+  <div style="margin-top: 20px; font-size: 8.5pt; text-align: justify; line-height: 1.5;">
+    <span class="bold">Limitation and Disclaimer clause: -</span> This report has been prepared for internal purposes only on the basis of verbal information provided and discussions by the person contacted and will not be shared to third party without any written consent from us. Company requesting this verification will be solely responsible for any actions taken on this report and any liabilities directly or indirectly accruing from such actions. We accept no responsibility or liability to a Third Party to whom our Report may be shown or in whose hands it may come. The Report should not be published or reproduced in part or in whole without prior written consent from us.
+  </div>
+
+  <div style="margin-top: 20px;">
+    <div class="bold">PD Officer Name: ${data.executiveName || 'Mr.'}</div>
+    <div class="bold">Agency Name & Seal:</div>
+    <br/><br/><br/>
+    <div>------------------------------------------------</div>
+    <div>(Sign of Agency authorized signatory)</div>
+  </div>
+
+  ${photosHtml}
+</body>
+</html>
+  `;
 }

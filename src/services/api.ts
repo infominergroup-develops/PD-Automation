@@ -67,7 +67,22 @@ export const api = {
 
   // Clients
   getClients: async (): Promise<ClientBank[]> => {
-    return CLIENT_BANKS;
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      const response = await fetch(`${BASE_URL}/api/clients`, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
+      const data = await handleResponse<{ clients: ClientBank[] }>(response);
+      // Merge DB clients with hardcoded ones, or just return DB clients
+      const dbClients = data.clients || [];
+      const hardcodedIds = CLIENT_BANKS.map(c => c.id);
+      const customClients = dbClients.filter(c => !hardcodedIds.includes(c.id));
+      return [...CLIENT_BANKS, ...customClients];
+    } catch (e) {
+      console.error("Failed to fetch clients from DB, falling back to static", e);
+      return CLIENT_BANKS;
+    }
   },
 
   saveClient: async (clientData: Partial<ClientBank>): Promise<ClientBank> => {

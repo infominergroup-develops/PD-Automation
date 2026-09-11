@@ -1,3 +1,10 @@
+export interface TemplateFieldSchema {
+  fieldName: string;
+  type: 'text' | 'number' | 'date' | 'photo' | 'formula';
+  formula?: string;
+  required?: boolean;
+}
+
 export interface ClientBank {
   id: string;
   name: string;
@@ -10,8 +17,9 @@ export interface ClientBank {
   description: string;
   defaultScheme: string;
   tagline: string;
-  templateFormat?: 'standard' | 'pdf' | 'excel';
+  templateFormat?: 'standard' | 'pdf' | 'excel' | 'godrej';
   templateFileBase64?: string;
+  templateSchema?: TemplateFieldSchema[];
 }
 
 export const CLIENT_BANKS: ClientBank[] = [
@@ -40,5 +48,33 @@ export const CLIENT_BANKS: ClientBank[] = [
     description: 'Micro lending and micro-enterprise credit assessment suite.',
     defaultScheme: 'Moneyboxx Express',
     tagline: 'Moneyboxx • Micro Credit Portal'
+  },
+  {
+    id: 'godrej',
+    name: 'Godrej Finance Limited',
+    shortCode: 'GODREJ',
+    division: 'Business Loan Division',
+    logoColor: '#cf102d',
+    accentColor: '#cf102d',
+    borderClass: 'border-[#cf102d]',
+    bgGradient: 'from-[#cf102d]/10 to-red-50',
+    description: 'Customized Business Loan assessment portal.',
+    defaultScheme: 'Godrej Business Loan',
+    tagline: 'Godrej • Business Loan',
+    templateFormat: 'godrej'
+  },
+  {
+    id: 'sbfc',
+    name: 'SBFC Finance LTD',
+    shortCode: 'SBFC',
+    division: 'Business Loan Division',
+    logoColor: '#6B21A8',
+    accentColor: '#6B21A8',
+    borderClass: 'border-[#6B21A8]',
+    bgGradient: 'from-[#6B21A8]/10 to-purple-50',
+    description: 'Customized SBFC Finance Assessment portal.',
+    defaultScheme: 'SBFC Business Loan',
+    tagline: 'SBFC • Business Loan',
+    templateFormat: 'standard'
   }
 ];
