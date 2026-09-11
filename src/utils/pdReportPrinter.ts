@@ -144,6 +144,7 @@ export interface PDReportPrintData {
   loanType?: string;
   loanPurpose?: string;
   residenceAddress?: string;
+  additionalAddresses?: string[];
   businessAddress?: string;
   meetingAddress?: string;
   metPersonName?: string;
@@ -778,6 +779,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="bold">Address of the business (applicant)</td>
       <td colspan="3">${data.businessAddress || data.residenceAddress || 'Not Provided'}</td>
     </tr>
+    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    <tr>
+      <td class="bold">Additional Address ${idx + 1}</td>
+      <td colspan="3">${addr}</td>
+    </tr>
+    `).join('') : ''}
     <tr>
       <td class="bold">Met person during visit time</td>
       <td>${data.metPersonName || 'Not Provided'}</td>
@@ -1719,6 +1726,12 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>Address of the business (applicant)</td>
       <td colspan="3"><strong>${data.businessAddress || 'Not Provided'}</strong></td>
     </tr>
+    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    <tr>
+      <td>Additional Address ${idx + 1}</td>
+      <td colspan="3"><strong>${addr}</strong></td>
+    </tr>
+    `).join('') : ''}
     <tr>
       <td>Met person during visit time.</td>
       <td colspan="3">${data.metPersonName || data.applicantName + ' (Self)'}</td>
@@ -2349,6 +2362,9 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr><td colspan="2">Applicant Qualification</td><td colspan="2">${data.applicantQualification || '12th passed'}</td></tr>
     <tr><td colspan="2">Firm's Name</td><td colspan="2">${data.firmName || '-'}</td></tr>
     <tr><td colspan="2">Business Address</td><td colspan="2">${data.businessAddress || '-'}</td></tr>
+    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    <tr><td colspan="2">Additional Address ${idx + 1}</td><td colspan="2">${addr}</td></tr>
+    `).join('') : ''}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
     <tr><td colspan="2">Documents Seen</td><td colspan="2">PAN Card, Udyam Certificate, GST Certificate, Manual Records.</td></tr>
     <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
@@ -2705,6 +2721,12 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bg-green">Add Provided</td>
       <td colspan="3">${data.businessAddress || ''}</td>
     </tr>
+    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    <tr>
+      <td class="bg-green">Addl. Address ${idx + 1}</td>
+      <td colspan="5">${addr}</td>
+    </tr>
+    `).join('') : ''}
     <tr>
       <td class="bg-green">Designation of person met</td>
       <td>${data.metPersonIdProof ? 'Owner' : 'Self'}</td>

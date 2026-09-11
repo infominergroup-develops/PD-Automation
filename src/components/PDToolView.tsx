@@ -832,6 +832,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   });
   const [otherSolarPurpose, setOtherSolarPurpose] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
+  const [additionalAddresses, setAdditionalAddresses] = useState<string[]>([]);
   const [personsMet, setPersonsMet] = useState<string[]>([]);
   const [personsMetOtherName, setPersonsMetOtherName] = useState('');
   const [personsMetOtherRelation, setPersonsMetOtherRelation] = useState('');
@@ -1184,6 +1185,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
         powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
         businessAddress,
+        additionalAddresses,
         personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName,
         businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
         premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
@@ -1603,6 +1605,7 @@ ${qaPairs.join('\n\n')}`;
       loanPurpose: solarPurposeGeneratedText || 'Not provided',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
+      additionalAddresses,
       meetingAddress: finalMeetingAddress,
       locatingPremisesType: locatingPremisesType === 'Other' ? locatingPremisesTypeOther : locatingPremisesType,
       metPersonName: applicantName ? `${applicantName} (Self)` : 'Not provided',
@@ -2761,6 +2764,23 @@ ${qaPairs.join('\n\n')}`;
               </div>
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-slate-700">Additional Addresses</label>
+                  <button type="button" onClick={() => setAdditionalAddresses([...additionalAddresses, ''])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center font-semibold">
+                    <Plus className="w-3 h-3 mr-1" /> Add Address
+                  </button>
+                </div>
+                {additionalAddresses.map((addr, idx) => (
+                  <div key={idx} className="flex space-x-2 items-center mb-2">
+                    <input type="text" value={addr} onChange={(e) => { const newAddrs = [...additionalAddresses]; newAddrs[idx] = e.target.value; setAdditionalAddresses(newAddrs); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder={`Additional Address ${idx + 1}`} />
+                    <button type="button" onClick={() => { const newAddrs = additionalAddresses.filter((_, i) => i !== idx); setAdditionalAddresses(newAddrs); }} className="text-red-500 hover:text-red-700 p-1">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
               </div>
             </div>
 
