@@ -184,7 +184,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     .exec-subtitle { font-size: 10pt; color: #64748b; text-transform: uppercase; letter-spacing: 3px; margin-bottom: 10px; }
     .exec-title { font-size: 32pt; font-weight: 800; color: #1e3a8a; line-height: 1.1; margin-bottom: 15px; }
     .exec-client { font-size: 12pt; color: #ea580c; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
-    ${getUniversalCoverPageCSS()}style>
+    ${getUniversalCoverPageCSS()}</style>
 </head>
 <body>
   <!-- Print Controls -->
