@@ -590,6 +590,36 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  ${(data.hasCollateral && data.clientBankName?.toLowerCase().includes('ambit')) ? `
+  <table class="report-table" style="margin-top: 15px;">
+    <tr><td colspan="2" class="sec-head">Collateral Property details</td></tr>
+    <tr>
+      <td class="bold" style="width: 30%;">Collateral Address</td>
+      <td>${data.collateralAddress || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Property Type</td>
+      <td>The property type is <span style="color:#d9534f;">${data.collateralPropertyType?.toLowerCase() || ''}</span></td>
+    </tr>
+    <tr>
+      <td class="bold">Approx. Property Area</td>
+      <td>The property area is approximately <span style="color:#d9534f;">${data.collateralPropertyArea || ''}</span> sq. feet (as per verbal confirmation)</td>
+    </tr>
+    <tr>
+      <td class="bold">Property Usage</td>
+      <td>${data.collateralPropertyUsage || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Approx Property Valuation</td>
+      <td>The property valuation is approximately in Rs. <span style="color:#d9534f;">${data.collateralValuation || ''} Lakh.</span> (as per verbal confirmation)</td>
+    </tr>
+    <tr>
+      <td class="bold">Remarks</td>
+      <td>Ownership -<br/>${data.collateralRemarks || 'Not Provided'}</td>
+    </tr>
+  </table>
+  ` : ''}
+
   <!-- PAGE BREAK FOR CLEAN SECTION SPLIT -->
   <div class="page-break"></div>
 
@@ -1539,6 +1569,36 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td colspan="5">${data.residenceStatus || 'Not Provided'}</td>
     </tr>
   </table>
+
+  ${(data.hasCollateral && data.clientBankName?.toLowerCase().includes('ambit')) ? `
+  <table style="margin-top: 15px;">
+    <tr><td colspan="7" class="sec-title">Collateral Property details</td></tr>
+    <tr>
+      <td colspan="2" class="bold" style="width: 30%;">Collateral Address</td>
+      <td colspan="5">${data.collateralAddress || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Property Type</td>
+      <td colspan="5">The property type is <span style="color:#d9534f;">${data.collateralPropertyType?.toLowerCase() || ''}</span></td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Approx. Property Area</td>
+      <td colspan="5">The property area is approximately <span style="color:#d9534f;">${data.collateralPropertyArea || ''}</span> sq. feet (as per verbal confirmation)</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Property Usage</td>
+      <td colspan="5">${data.collateralPropertyUsage || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Approx Property Valuation</td>
+      <td colspan="5">The property valuation is approximately in Rs. <span style="color:#d9534f;">${data.collateralValuation || ''} Lakh.</span> (as per verbal confirmation)</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Remarks</td>
+      <td colspan="5">Ownership -<br/>${data.collateralRemarks || 'Not Provided'}</td>
+    </tr>
+  </table>
+  ` : ''}
 
   <div class="page-break"></div>
 

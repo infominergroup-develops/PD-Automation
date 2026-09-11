@@ -158,6 +158,15 @@ export interface PDReportPrintData {
   houseDetails?: string;
   shopAreaSqFt?: number | string;
   yearsInBusiness?: number;
+
+  // Collateral (Ambit)
+  hasCollateral?: boolean;
+  collateralAddress?: string;
+  collateralPropertyType?: string;
+  collateralPropertyArea?: string;
+  collateralPropertyUsage?: string;
+  collateralValuation?: string;
+  collateralRemarks?: string;
   shopOwnership?: string;
   solarPurposeUsage?: string;
   purpose?: string;

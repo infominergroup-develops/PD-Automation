@@ -923,6 +923,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // NEW STATES FOR CUSTOMER & SUPPLIER DETAILS
   const [prominentCustomers, setProminentCustomers] = useState<any[]>([{ id: 'c1', name: '', phone: '', feedback: '' }]);
   const [prominentSuppliers, setProminentSuppliers] = useState<any[]>([{ id: 's1', name: '', phone: '', feedback: '' }]);
+  
+  // NEW STATES FOR COLLATERAL PROPERTY (Ambit)
+  const [hasCollateral, setHasCollateral] = useState(false);
+  const [collateralAddress, setCollateralAddress] = useState('');
+  const [collateralPropertyType, setCollateralPropertyType] = useState('Residential');
+  const [collateralPropertyArea, setCollateralPropertyArea] = useState('');
+  const [collateralPropertyUsage, setCollateralPropertyUsage] = useState('');
+  const [collateralValuation, setCollateralValuation] = useState('');
+  const [collateralRemarks, setCollateralRemarks] = useState('');
   const [bankingDetails, setBankingDetails] = useState<any[]>([{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }]);
   const [existingLoans, setExistingLoans] = useState<any[]>([{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]);
   const [currentObligation, setCurrentObligation] = useState('No any existing obligation');
@@ -1203,6 +1212,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
         aataChakkiData,
         prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
+        hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
         businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
         businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId
   };
@@ -1644,6 +1654,13 @@ ${qaPairs.join('\n\n')}`;
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
       currentObligationSummary: currentObligation || 'Not provided',
+      hasCollateral,
+      collateralAddress,
+      collateralPropertyType,
+      collateralPropertyArea,
+      collateralPropertyUsage,
+      collateralValuation,
+      collateralRemarks,
       businessGpsCoords: formattedGps,
       businessLocationRemarks: businessLongitudeRemarks || 'Not provided',
       businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
@@ -3990,6 +4007,53 @@ ${qaPairs.join('\n\n')}`;
                    </table>
                 </div>
               </div>
+
+              {/* Collateral Property Details (Ambit Specific) */}
+              {selectedClient?.name?.toLowerCase().includes('ambit') && (
+                <div className="pt-6 mt-6 border-t border-slate-200">
+                  <div className="flex items-center justify-between mb-4">
+                    <label className="text-sm font-bold text-slate-700">Include Collateral Property Details?</label>
+                    <div className="flex gap-4 text-xs font-semibold">
+                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={hasCollateral} onChange={() => setHasCollateral(true)} className="text-[#eb8a23]" /> Yes</label>
+                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={!hasCollateral} onChange={() => setHasCollateral(false)} className="text-[#eb8a23]" /> No</label>
+                    </div>
+                  </div>
+                  
+                  {hasCollateral && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2 col-span-1 md:col-span-2">
+                        <label className="text-xs font-semibold text-slate-700">Collateral Address</label>
+                        <input type="text" value={collateralAddress} onChange={(e) => setCollateralAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Tajganj Fatehabd Road Agra" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-700">Property Type</label>
+                        <select value={collateralPropertyType} onChange={(e) => setCollateralPropertyType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
+                          <option value="Residential">Residential</option>
+                          <option value="Commercial">Commercial</option>
+                          <option value="Industrial">Industrial</option>
+                          <option value="Agricultural">Agricultural</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-700">Approx. Property Area (sq. feet)</label>
+                        <input type="text" value={collateralPropertyArea} onChange={(e) => setCollateralPropertyArea(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 800-900" />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-700">Property Usage</label>
+                        <input type="text" value={collateralPropertyUsage} onChange={(e) => setCollateralPropertyUsage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. This property is used for residential purposes." />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-semibold text-slate-700">Approx Property Valuation</label>
+                        <input type="text" value={collateralValuation} onChange={(e) => setCollateralValuation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 8-10 Lakh" />
+                      </div>
+                      <div className="space-y-2 col-span-1 md:col-span-2">
+                        <label className="text-xs font-semibold text-slate-700">Remarks</label>
+                        <textarea value={collateralRemarks} onChange={(e) => setCollateralRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Ownership details, etc." rows={2} />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* B. Banking Details */}
