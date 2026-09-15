@@ -314,19 +314,19 @@ export {
 };
 
 export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
-  if (data.clientBankName === 'Moneyboxx Finance Ltd') {
+  if (data.clientBankName?.toLowerCase().includes('moneyboxx')) {
     openPDReportPrintWindow(generateMoneyboxxPDReportHTML(data), data.applicationNumber || 'Moneyboxx');
     return;
   }
-  if (data.clientBankName === 'SBFC Finance LTD') {
+  if (data.clientBankName?.toLowerCase().includes('sbfc')) {
     openPDReportPrintWindow(generateSbfcPDReportHTML(data), data.applicationNumber || 'SBFC');
     return;
   }
-  if (data.clientBankName === 'Godrej Finance Limited') {
+  if (data.clientBankName?.toLowerCase().includes('godrej')) {
     openPDReportPrintWindow(generateGodrejPDReportHTML(data), data.applicationNumber || 'Godrej');
     return;
   }
-  if (data.clientBankName === 'Tata Capital Limited') {
+  if (data.clientBankName?.toLowerCase().includes('tata capital')) {
     openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
     return;
   }

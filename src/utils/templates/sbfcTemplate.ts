@@ -31,9 +31,15 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   // Helper variables for data
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const totalSalesM = data.totalSalesMonthly || 0;
+  const rawTotalSales = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales.reduce((acc, i) => acc + i.monthly, 0) : 0;
+  const totalSalesM = data.totalSalesMonthly || rawTotalSales;
   const totalSalesY = totalSalesM * 12;
-  const netProfM = data.netProfitMonthly || 0;
+  
+  const rawTotalExp = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses.reduce((acc, i) => acc + i.monthly, 0) : 0;
+  const totalExpM = data.totalExpensesMonthly || rawTotalExp;
+  const totalExpY = totalExpM * 12;
+
+  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = netProfM * 12;
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
   const netDisposalM = netProfM - hhExpM;
@@ -255,8 +261,8 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2">Total Expenses (B)</td>
-      <td>${totalSalesM * 0.7}</td>
-      <td>${totalSalesY * 0.7}</td>
+      <td>${totalExpM}</td>
+      <td>${totalExpY}</td>
     </tr>
     <tr>
       <td colspan="2">Net Profit Per month(A- B)</td>

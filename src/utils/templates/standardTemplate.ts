@@ -18,8 +18,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   ];
 
   let rawTotalSales = salesItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalSalesM = data.totalSalesMonthly ?? rawTotalSales;
-  const totalSalesY = data.totalSalesYearly ?? totalSalesM * 12;
+  const totalSalesM = data.totalSalesMonthly || rawTotalSales;
+  const totalSalesY = data.totalSalesYearly || totalSalesM * 12;
 
   if (rawTotalSales > 0 && totalSalesM !== rawTotalSales) {
     const ratio = totalSalesM / rawTotalSales;
@@ -39,8 +39,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   ];
 
   let rawTotalExp = expenseItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalExpM = data.totalExpensesMonthly ?? rawTotalExp;
-  const totalExpY = data.totalExpensesYearly ?? totalExpM * 12;
+  const totalExpM = data.totalExpensesMonthly || rawTotalExp;
+  const totalExpY = data.totalExpensesYearly || totalExpM * 12;
 
   if (rawTotalExp > 0 && totalExpM !== rawTotalExp) {
     const ratio = totalExpM / rawTotalExp;
@@ -51,7 +51,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     }));
   }
 
-  const netProfM = data.netProfitMonthly ?? (totalSalesM - totalExpM);
+  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly ?? (netProfM * 12);
 
   const existEmiM = data.existingEmiMonthly ?? 0;
@@ -188,8 +188,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     }
     .photo-card img {
       width: 100%;
-      height: 180px;
-      object-fit: cover;
+      height: 200px;
+      object-fit: contain;
+      background-color: #f3f4f6;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
     }
     .stamp-badge {
       display: inline-block;
@@ -1170,7 +1173,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const totalExpM = data.totalExpensesMonthly || expenseItems.reduce((acc, i) => acc + i.monthly, 0);
   const totalExpY = data.totalExpensesYearly || totalExpM * 12;
 
-  const netProfM = data.netProfitMonthly || (totalSalesM - totalExpM);
+  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly || (netProfM * 12);
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
@@ -1875,7 +1878,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <!-- Page 5: Monthly Income Assessment -->
   <table>
     <tr>
-      <td colspan="4" class="sec-title">Assessment of the monthly income of the applicant</td>
+      <td colspan="4" class="sec-title">Monthly & Yearly Income Assessment of Customer</td>
     </tr>
     <tr class="sec-title text-center">
       <td style="width:25%;">Particulars</td>

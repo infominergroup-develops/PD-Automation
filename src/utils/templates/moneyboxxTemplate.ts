@@ -24,7 +24,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const totalExpM = data.totalExpensesMonthly || expenseItems.reduce((acc, i) => acc + i.monthly, 0);
   const totalExpY = data.totalExpensesYearly || totalExpM * 12;
 
-  const netProfM = data.netProfitMonthly || (totalSalesM - totalExpM);
+  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly || (netProfM * 12);
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
@@ -699,7 +699,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   <!-- Page 5: Monthly Income Assessment -->
   <table>
     <tr>
-      <td colspan="4" class="sec-title">Assessment of the monthly income of the applicant</td>
+      <td colspan="4" class="sec-title">Calculation of Monthly and Yearly Income Assessment</td>
     </tr>
     <tr class="sec-title text-center">
       <td style="width:25%;">Particulars</td>

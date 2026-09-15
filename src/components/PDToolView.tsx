@@ -319,6 +319,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [agriculturalIncomeText, setAgriculturalIncomeText] = useState('');
   const [solarSavingText, setSolarSavingText] = useState('');
   const [projectedIncomeText, setProjectedIncomeText] = useState('');
+  const [statusOfCase, setStatusOfCase] = useState<string>('Recommended');
 
   const getParsedFieldsFromMarkdown = (markdownText: string) => {
     if (!markdownText) return null;
@@ -1422,7 +1423,7 @@ ${qaPairs.join('\n\n')}`;
 
   // Net Business Operating Income
   const netBusinessIncome = useMemo(() => {
-    return grossProfit - totalOperatingExpenses;
+    return Math.max(0, grossProfit - totalOperatingExpenses);
   }, [grossProfit, totalOperatingExpenses]);
 
   // Total Household Surplus before Proposed EMI
@@ -1598,7 +1599,7 @@ ${qaPairs.join('\n\n')}`;
       },
       clientBankName: selectedClient?.name || 'Moneyboxx Finance Limited',
       applicationNumber: activeAppNumber,
-      statusOfCase: riskAssessment.decision === 'APPROVED' ? 'Recommended' : 'In Review',
+      statusOfCase: statusOfCase,
       caseInitiationDate,
       visitDate,
       reportDate,
@@ -2500,6 +2501,24 @@ ${qaPairs.join('\n\n')}`;
               <User className="w-4 h-4 text-[#eb8a23]" />
               Applicant & Household Details
             </h3>
+
+            {/* Application ID & Status of Case */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Application ID</label>
+                <input type="text" value={activeAppNumber} onChange={(e) => setActiveAppNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. INF/2026/88492" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
+                <select value={statusOfCase} onChange={(e) => setStatusOfCase(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                  <option value="Recommended">Recommended</option>
+                  <option value="Positive">Positive</option>
+                  <option value="Negative">Negative</option>
+                  <option value="In Review">In Review</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
 
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -4744,7 +4763,9 @@ ${qaPairs.join('\n\n')}`;
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Proposed Loan Amount (₹)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Proposed {(selectedClient?.name?.toLowerCase().includes('godrej') || selectedClient?.name?.toLowerCase().includes('tata')) ? 'Quotation' : 'Loan'} Amount (₹)
+                </label>
                 <input
                   type="number"
                   min="0"

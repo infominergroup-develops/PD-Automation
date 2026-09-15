@@ -30,9 +30,15 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
 
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const totalSalesM = data.totalSalesMonthly || 0;
+  const rawTotalSales = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales.reduce((acc, i) => acc + i.monthly, 0) : 0;
+  const totalSalesM = data.totalSalesMonthly || rawTotalSales;
   const totalSalesY = totalSalesM * 12;
-  const netProfM = data.netProfitMonthly || 0;
+
+  const rawTotalExp = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses.reduce((acc, i) => acc + i.monthly, 0) : 0;
+  const totalExpM = data.totalExpensesMonthly || rawTotalExp;
+  const totalExpY = totalExpM * 12;
+
+  const netProfM = data.netProfitMonthly || (totalSalesM > 0 ? (totalSalesM - totalExpM) : 0);
   const netProfY = netProfM * 12;
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
   const netDisposalM = netProfM - hhExpM;
@@ -123,7 +129,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     `).join('') : ''}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
     <tr><td colspan="2">Documents Seen</td><td colspan="2">PAN Card, Udyam Certificate, GST Certificate, Manual Records.</td></tr>
-    <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
+    <tr><td colspan="2">Quotation Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">Proprietorship</td></tr>
@@ -228,6 +234,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
   </table>
 
   <table class="report-table">
+    <tr><td colspan="3" class="sec-head">Monthly & Yearly Income Assessment of Customer</td></tr>
     <tr class="sec-head">
       <td style="width:40%;">Particulars</td>
       <td style="width:40%;">Applicant</td>
@@ -271,8 +278,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td class="sec-head">
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
-            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">0</td>
-            <td style="width:50%; text-align:center; border:none;">0</td>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">${totalExpM}</td>
+            <td style="width:50%; text-align:center; border:none;">${totalExpY}</td>
           </tr>
         </table>
       </td>

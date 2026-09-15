@@ -133,8 +133,8 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td colspan="3">${data.businessVintage || ''}</td>
     </tr>
     <tr>
-      <td class="bg-green">Loan Amount Requested</td>
-      <td>${data.appliedAmount || ''}</td>
+      <td class="bg-green">Quotation Amount Requested</td>
+      <td>${data.appliedAmount || '-'}</td>
       <td class="bg-green">Office Accessibility</td>
       <td colspan="3"></td>
     </tr>
