@@ -1442,10 +1442,17 @@ ${qaPairs.join('\n\n')}`;
     return dailyFootfall * avgTicketValue * workingDays;
   }, [dailyFootfall, avgTicketValue, workingDays]);
 
-  // Adopted Monthly Turnover (Min of Stated and Cross-Check)
+  // Adopted Monthly Turnover (Min of Stated and Cross-Check, or fallback to Itemized Income)
   const adoptedMonthlySales = useMemo(() => {
-    return Math.min(statedMonthlySales, crossCheckMonthlySales);
-  }, [statedMonthlySales, crossCheckMonthlySales]);
+    // If cross check is 0 (not filled out), fallback to stated sales.
+    const baseSales = crossCheckMonthlySales > 0 
+      ? Math.min(statedMonthlySales, crossCheckMonthlySales) 
+      : statedMonthlySales;
+    
+    // If there's an itemized income calculation (like Aata Chakki), ensure we don't drop below it
+    // Or if stated is 0 but they filled the itemized income lines, use itemized income
+    return Math.max(baseSales, itemizedMonthlyIncomeTotal || 0);
+  }, [statedMonthlySales, crossCheckMonthlySales, itemizedMonthlyIncomeTotal]);
 
   // Calculated COGS & Gross Profit
   const cogsAmount = useMemo(() => {
