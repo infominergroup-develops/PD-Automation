@@ -1416,6 +1416,27 @@ ${qaPairs.join('\n\n')}`;
 
   }, [aataChakkiData, currentCategory, workingDays, applicantName, firmName, yearsInBusiness, shopOwnership, shopAreaSqFt]);
 
+  // Auto-Generation for Generic Business Profile (Non-Aata Chakki)
+  useEffect(() => {
+    if (currentCategory?.name?.toLowerCase().includes('atta chakki') || currentCategory?.name?.toLowerCase().includes('aata chakki')) return;
+    
+    // Only generate if we have some meaningful data to show
+    if (adoptedMonthlySales === 0 && yearsInBusiness === 0) return;
+
+    const profileText = `Background & Setup: The applicant, ${applicantName || 'Applicant'}, operates ${firmName || 'the business'} (${currentCategory?.name || 'General Business'}), established ${yearsInBusiness || 0} years ago. The business is conducted from a ${shopOwnership === 'OWN' ? 'self-owned' : 'rented'} premises.
+
+Income Estimation: The business generates an assessed monthly revenue of approximately ₹${adoptedMonthlySales.toLocaleString('en-IN')}. With a gross profit margin of ${grossMarginPct}%, the gross profit is ₹${grossProfit.toLocaleString('en-IN')}. After accounting for operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')} and household expenses of ₹${householdExpenses.toLocaleString('en-IN')}, the net monthly disposable surplus stands at ₹${postLoanSurplus.toLocaleString('en-IN')}.`;
+
+    setBusinessRemark(prev => {
+      if (prev === profileText) return prev;
+      // Protect user edits if they've written their own completely custom text
+      if (prev.trim() && !prev.startsWith('Background & Setup:')) {
+        return prev;
+      }
+      return profileText;
+    });
+  }, [currentCategory, applicantName, firmName, yearsInBusiness, shopOwnership, adoptedMonthlySales, grossMarginPct, grossProfit, totalOperatingExpenses, householdExpenses, postLoanSurplus]);
+
   // Search Results for Autocomplete Dropdown
   const searchedApplications = useMemo(() => {
     if (!appSearchQuery.trim()) return applicantsList;
