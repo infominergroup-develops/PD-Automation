@@ -205,8 +205,9 @@ app.use(async (req, res, next) => {
 
       const result = await mongoDb.collection("applicants").insertOne(newApplicant);
       res.json({ success: true, applicant: { _id: result.insertedId, ...newApplicant } });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to create applicant" });
+    } catch (err: any) {
+      console.error("POST Applicant Error:", err);
+      res.status(500).json({ error: "Failed to create applicant: " + (err.message || String(err)) });
     }
   });
 
@@ -234,8 +235,9 @@ app.use(async (req, res, next) => {
       }
       
       res.json({ success: true, applicant: result });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to update applicant" });
+    } catch (err: any) {
+      console.error("PATCH Applicant Error:", err);
+      res.status(500).json({ error: "Failed to update applicant: " + (err.message || String(err)) });
     }
   });
 
@@ -627,8 +629,9 @@ app.use(async (req, res, next) => {
       };
       await mongoDb.collection("applicants").insertOne(newApplicant);
       res.json({ success: true, applicant: newApplicant });
-    } catch (err) {
-      res.status(500).json({ error: "Failed to save applicant" });
+    } catch (err: any) {
+      console.error("POST Applicant Error:", err);
+      res.status(500).json({ error: "Failed to save applicant: " + (err.message || String(err)) });
     }
   });
 

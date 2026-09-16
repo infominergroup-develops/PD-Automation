@@ -12,6 +12,7 @@ const BASE_URL = '';
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ error: response.statusText }));
+    console.error("API Error Response:", response.status, errorBody);
     throw new Error(errorBody.error || `HTTP Error ${response.status}`);
   }
   return response.json();
