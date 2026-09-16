@@ -1024,8 +1024,16 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     return 'As per applicant no any existing obligation.';
   }, [existingLoans]);
 
-  const handleDeleteApplication = (appNumber: string) => {
+  const handleDeleteApplication = async (appNumber: string) => {
     if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appNumber}?`)) {
+      const applicantToDelete = applicantsList.find(a => a.applicationNumber === appNumber);
+      if (applicantToDelete && applicantToDelete._id && selectedClient) {
+        try {
+          await api.deleteApplicant(selectedClient.id, applicantToDelete._id);
+        } catch (error) {
+          console.error("Failed to delete applicant from DB", error);
+        }
+      }
       setApplicantsList(prev => prev.filter(a => a.applicationNumber !== appNumber));
       setLoadedToastMessage(`Deleted applicant ${appNumber}`);
       setTimeout(() => setLoadedToastMessage(null), 3000);

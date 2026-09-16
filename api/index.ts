@@ -239,6 +239,31 @@ app.use(async (req, res, next) => {
     }
   });
 
+  app.delete("/api/clients/:clientId/applicants/:appId", async (req, res) => {
+    try {
+      if (!mongoDb) {
+        const index = localApplicants.findIndex(a => a._id === req.params.appId && a.clientId === req.params.clientId);
+        if (index === -1) return res.status(404).json({ error: "Applicant not found" });
+        localApplicants.splice(index, 1);
+        saveLocalApplicants();
+        return res.json({ success: true });
+      }
+
+      const result = await mongoDb.collection("applicants").deleteOne({
+        _id: new ObjectId(req.params.appId),
+        clientId: req.params.clientId
+      });
+
+      if (result.deletedCount === 0) {
+        return res.status(404).json({ error: "Applicant not found" });
+      }
+
+      res.json({ success: true });
+    } catch (err) {
+      res.status(500).json({ error: "Failed to delete applicant" });
+    }
+  });
+
   // Auth & Session Endpoints
   app.post("/api/auth/login", async (req, res) => {
     try {

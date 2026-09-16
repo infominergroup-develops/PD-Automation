@@ -133,6 +133,13 @@ export const api = {
     }
   },
 
+  deleteApplicant: async (clientId: string, appId: string): Promise<boolean> => {
+    await handleResponse(
+      await fetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, { method: 'DELETE' })
+    );
+    return true;
+  },
+
   // Categories
   getCategories: async (): Promise<BusinessCategory[]> => {
     const data = await handleResponse<{ categories: BusinessCategory[] }>(
