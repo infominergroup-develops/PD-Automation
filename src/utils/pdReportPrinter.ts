@@ -296,6 +296,23 @@ export interface PDReportPrintData {
 
   // Parsed Credit Report Data
   parsedCreditReport?: any;
+
+  // Godrej Specific Fields
+  alternateMobileNumber?: string;
+  officeAccessibility?: string;
+  tenorRequested?: string;
+  marginsAssessed?: string;
+  customerGstNo?: string;
+  industryType?: string;
+  productType?: string;
+  onLoanStructure?: string;
+  machineryDetailsText?: string;
+  keyEmployeeDetailsText?: string;
+  groupCompanyDetailsText?: string;
+  financialDetailsText?: string;
+  otherBusinessPremisesText?: string;
+  otherStateGstText?: string;
+  familyInvolvedText?: string;
 }
 
 

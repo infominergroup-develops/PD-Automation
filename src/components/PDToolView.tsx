@@ -242,6 +242,25 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
   };
   
+  // Godrej Specific State
+  const [alternateMobileNumber, setAlternateMobileNumber] = useState('');
+  const [officeAccessibility, setOfficeAccessibility] = useState('');
+  const [tenorRequested, setTenorRequested] = useState('');
+  const [marginsAssessed, setMarginsAssessed] = useState('');
+  const [customerGstNo, setCustomerGstNo] = useState('');
+  const [industryType, setIndustryType] = useState('');
+  const [productType, setProductType] = useState('');
+  const [onLoanStructure, setOnLoanStructure] = useState('');
+  const [machineryDetailsText, setMachineryDetailsText] = useState('');
+  const [keyEmployeeDetailsText, setKeyEmployeeDetailsText] = useState('✓ .');
+  const [groupCompanyDetailsText, setGroupCompanyDetailsText] = useState('');
+  const [financialDetailsText, setFinancialDetailsText] = useState('');
+  const [otherBusinessPremisesText, setOtherBusinessPremisesText] = useState('');
+  const [otherStateGstText, setOtherStateGstText] = useState('');
+  const [familyInvolvedText, setFamilyInvolvedText] = useState('');
+  const [applicantQualification, setApplicantQualification] = useState('');
+  const [isGodrejSectionOpen, setIsGodrejSectionOpen] = useState(false);
+
   const [applicantsList, setApplicantsList] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
 
@@ -1120,6 +1139,24 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setDailyFootfall(app.dailyFootfall || 0);
     setAvgTicketValue(app.avgTicketValue || 0);
     setWorkingDays(app.workingDays || 0);
+
+    // Godrej Specific State
+    setAlternateMobileNumber(app.alternateMobileNumber || '');
+    setOfficeAccessibility(app.officeAccessibility || '');
+    setTenorRequested(app.tenorRequested || '');
+    setMarginsAssessed(app.marginsAssessed || '');
+    setCustomerGstNo(app.customerGstNo || '');
+    setIndustryType(app.industryType || '');
+    setProductType(app.productType || '');
+    setOnLoanStructure(app.onLoanStructure || '');
+    setMachineryDetailsText(app.machineryDetailsText || '');
+    setKeyEmployeeDetailsText(app.keyEmployeeDetailsText || '✓ .');
+    setGroupCompanyDetailsText(app.groupCompanyDetailsText || '');
+    setFinancialDetailsText(app.financialDetailsText || '');
+    setOtherBusinessPremisesText(app.otherBusinessPremisesText || '');
+    setOtherStateGstText(app.otherStateGstText || '');
+    setFamilyInvolvedText(app.familyInvolvedText || '');
+    setApplicantQualification(app.applicantQualification || '');
     setNeighborFeedback(app.neighborFeedback || '');
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
@@ -1550,20 +1587,15 @@ ${qaPairs.join('\n\n')}`;
 
     try {
       if (activeAppIdRef.current) {
-        await fetch(`/api/clients/${selectedClient.id}/applicants/${activeAppIdRef.current}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        await api.updateApplicant(selectedClient.id, activeAppIdRef.current, payload);
+        setApplicantsList(prev => prev.map(a => a._id === activeAppIdRef.current ? { ...a, ...payload } : a));
         alert('Applicant data updated in database successfully!');
       } else {
-        const response = await fetch(`/api/clients/${selectedClient.id}/applicants`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-        setActiveAppId(data._id);
+        const savedApp = await api.createApplicant(selectedClient.id, payload);
+        if (savedApp && savedApp._id) {
+          setActiveAppId(savedApp._id);
+        }
+        setApplicantsList(prev => [savedApp, ...prev]);
         alert('Applicant data saved to database successfully!');
       }
     } catch (err) {
@@ -1709,7 +1741,24 @@ ${qaPairs.join('\n\n')}`;
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,
-      
+
+      // Godrej Specific Fields
+      alternateMobileNumber,
+      officeAccessibility,
+      tenorRequested,
+      marginsAssessed,
+      customerGstNo,
+      industryType,
+      productType,
+      onLoanStructure,
+      machineryDetailsText,
+      keyEmployeeDetailsText,
+      groupCompanyDetailsText,
+      financialDetailsText,
+      otherBusinessPremisesText,
+      otherStateGstText,
+      familyInvolvedText,
+      applicantQualification,
       
       riskScore: riskAssessment.score,
       riskLevel: riskAssessment.decision,
@@ -2488,6 +2537,94 @@ ${qaPairs.join('\n\n')}`;
             </div>
           )}
 
+          {/* GODREJ SPECIFIC DETAILS */}
+          {selectedClient?.name?.toLowerCase().includes('godrej') && (
+            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 shadow-sm mt-6 mb-6">
+              <button
+                type="button"
+                className="w-full flex justify-between items-center"
+                onClick={() => setIsGodrejSectionOpen(!isGodrejSectionOpen)}
+              >
+                <h3 className="text-sm font-extrabold text-green-900 uppercase tracking-wider flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-green-600" />
+                  Godrej Specific Details
+                </h3>
+                {isGodrejSectionOpen ? <ChevronLeft className="w-4 h-4 rotate-90" /> : <ChevronRight className="w-4 h-4" />}
+              </button>
+              
+              {isGodrejSectionOpen && (
+                <div className="mt-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Alternate Mobile Number</label>
+                      <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Applicant Qualification</label>
+                      <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Office Accessibility</label>
+                      <input type="text" value={officeAccessibility} onChange={(e) => setOfficeAccessibility(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Easy, Difficult" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                      <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                      <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                      <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Industry Type</label>
+                      <input type="text" value={industryType} onChange={(e) => setIndustryType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Manufacturing, Retail" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Product Type</label>
+                      <input type="text" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Garments, Hardware" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">On Loan Structure</label>
+                      <input type="text" value={onLoanStructure} onChange={(e) => setOnLoanStructure(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Machinery Details</label>
+                    <textarea value={machineryDetailsText} onChange={(e) => setMachineryDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List machinery details..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Key Employee Details</label>
+                    <textarea value={keyEmployeeDetailsText} onChange={(e) => setKeyEmployeeDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List key employees..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Group Company Details</label>
+                    <textarea value={groupCompanyDetailsText} onChange={(e) => setGroupCompanyDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="Name, Relation, Brief business details..." />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Financial Details Summary</label>
+                    <textarea value={financialDetailsText} onChange={(e) => setFinancialDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Other Business Premises</label>
+                    <textarea value={otherBusinessPremisesText} onChange={(e) => setOtherBusinessPremisesText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Other State GST Registration</label>
+                    <input type="text" value={otherStateGstText} onChange={(e) => setOtherStateGstText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Family Members Involved</label>
+                    <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {renderTabNavigationFooter()}
         </div>

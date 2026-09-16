@@ -117,7 +117,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bg-green">Alternate mobile no.</td>
-      <td></td>
+      <td>${data.alternateMobileNumber || ''}</td>
       <td colspan="4" style="border-top:none;"></td>
     </tr>
     <tr>
@@ -136,19 +136,19 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bg-green">Quotation Amount Requested</td>
       <td>${data.appliedAmount || '-'}</td>
       <td class="bg-green">Office Accessibility</td>
-      <td colspan="3"></td>
+      <td colspan="3">${data.officeAccessibility || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Tenor Requested</td>
-      <td></td>
+      <td>${data.tenorRequested || ''}</td>
       <td class="bg-green">Business Vintage</td>
       <td colspan="3">${data.businessVintage || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Margins assessed</td>
-      <td></td>
+      <td>${data.marginsAssessed || ''}</td>
       <td class="bg-green">GST No. of Customer</td>
-      <td colspan="3"></td>
+      <td colspan="3">${data.customerGstNo || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Company Name Board Seen</td>
@@ -170,9 +170,9 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bg-green" style="width:20%;">Nature of Business</td>
       <td style="width:30%;">${data.businessNature || ''}</td>
       <td class="bg-green" style="width:15%;">Industry</td>
-      <td style="width:15%;"></td>
+      <td style="width:15%;">${data.industryType || ''}</td>
       <td class="bg-green" style="width:10%;">Product</td>
-      <td style="width:10%;"></td>
+      <td style="width:10%;">${data.productType || ''}</td>
     </tr>
   </table>
 
@@ -193,7 +193,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
           <tr>
             <td>${data.applicantName || ''}</td>
             <td style="text-align:center;">100%</td>
-            <td></td>
+            <td>${data.onLoanStructure || ''}</td>
           </tr>
         </table>
       </td>
@@ -212,11 +212,11 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   <table class="report-table">
     <tr>
       <td class="bg-green" style="width:25%;">Machinery details (Wherever applicable)</td>
-      <td style="width:75%;"></td>
+      <td style="width:75%;">${data.machineryDetailsText || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Key employee details</td>
-      <td>✓ .</td>
+      <td>${data.keyEmployeeDetailsText || '✓ .'}</td>
     </tr>
     <tr>
       <td class="bg-green">Group Co. details</td>
@@ -228,35 +228,30 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
             <td class="bold" style="border:none; border-bottom:1px solid #a3a3a3; width:34%;">Brief business details</td>
           </tr>
           <tr>
-            <td style="border:none; border-right:1px solid #a3a3a3;">✓</td>
-            <td style="border:none; border-right:1px solid #a3a3a3;"></td>
-            <td style="border:none;"></td>
+            <td style="border:none; border-right:1px solid #a3a3a3; padding: 5px;" colspan="3">${data.groupCompanyDetailsText || ''}</td>
           </tr>
         </table>
       </td>
     </tr>
     <tr>
       <td class="bg-green">Other Source of Income</td>
-      <td></td>
+      <td>${data.otherSourceIncomeDetails !== 'Not provided' ? data.otherSourceIncomeDetails : ''}</td>
     </tr>
     <tr>
-      <td class="bg-green" rowspan="2">Financial details</td>
-      <td></td>
-    </tr>
-    <tr>
-      <td></td>
+      <td class="bg-green">Financial details</td>
+      <td>${data.financialDetailsText || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Other business premises details</td>
-      <td></td>
+      <td>${data.otherBusinessPremisesText || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Other state GST Registration taken</td>
-      <td></td>
+      <td>${data.otherStateGstText || ''}</td>
     </tr>
     <tr>
-      <td class="bg-green">Family member/s involved inbusiness</td>
-      <td></td>
+      <td class="bg-green">Family member/s involved in business</td>
+      <td>${data.familyInvolvedText || ''}</td>
     </tr>
   </table>
 
