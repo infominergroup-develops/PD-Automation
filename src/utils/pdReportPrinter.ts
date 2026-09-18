@@ -285,6 +285,12 @@ export interface PDReportPrintData {
   // AI Narrative Summary
   aiExecutiveSummary?: string;
 
+  // Executive Appraisal Synthesis
+  executiveSummary_BorrowerProfile?: string;
+  executiveSummary_SalesWaterfall?: string;
+  executiveSummary_DebtService?: string;
+  executiveSummary_Community?: string;
+
   // Photos
   photos?: Array<{
     id: string;

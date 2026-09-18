@@ -30,8 +30,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
-  const netDisposalM = data.netDisposalIncomeMonthly || (netProfM - existEmiM - hhExpM);
-  const netDisposalY = data.netDisposalIncomeYearly || (netDisposalM * 12);
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = netProfY - existEmiY - hhExpY;
 
   return `
 <!DOCTYPE html>
@@ -774,13 +774,16 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   <!-- Detailed Summary Section -->
   <div style="margin-top: 20px; border: 1px solid #000; padding: 15px; background: #fafafa;">
-    <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Detailed Summary</h3>
+    <h3 style="margin-top: 0; color: #333; text-transform: uppercase; font-size: 11pt; border-bottom: 2px solid #ccc; padding-bottom: 5px;">Executive Appraisal Summary & Credit Synthesis</h3>
     <p style="text-align: justify; font-size: 9.5pt; line-height: 1.6;">
-      <strong>Business Overview:</strong> The applicant, ${data.applicantName}, operates <strong>${data.firmName || 'Not Provided'}</strong> and has been engaged in this line of work for over ${data.yearsInBusiness || 0} years. The business is conducted from a ${data.shopOwnership === 'OWNED' ? 'self-owned' : 'rented'} premises.
+      ${data.briefBusinessProfile ? `<strong>Detailed Business Profile & Summary:</strong> ${data.briefBusinessProfile}<br/><br/>` : ''}
+      <strong>Borrower & Vintage Profile:</strong> ${data.executiveSummary_BorrowerProfile || 'Not Provided'}
       <br/><br/>
-      <strong>Purpose & Utilization:</strong> The primary purpose of this facility is <strong>${data.solarPurposeUsage || data.purpose || 'Not Provided'}</strong>. This investment is expected to directly reduce operational overheads (like diesel/electricity costs) and improve net margins.
+      <strong>Sales & Cash Flow Waterfall:</strong> ${data.executiveSummary_SalesWaterfall || 'Not Provided'}
       <br/><br/>
-      <strong>Financial Health:</strong> The stated monthly turnover is ₹${Number(totalSalesM).toLocaleString('en-IN')} with an estimated net profit margin of around ${Math.round((netProfM / (totalSalesM || 1)) * 100)}%. The household expenses and existing obligations are comfortably covered by the net disposable income of ₹${Number(netDisposalM).toLocaleString('en-IN')}, leaving sufficient room to service the proposed EMI of approximately ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')}.
+      <strong>Debt Service Capacity & Policy Compliance:</strong> ${data.executiveSummary_DebtService || 'Not Provided'}
+      <br/><br/>
+      <strong>Community Verification:</strong> ${data.executiveSummary_Community || 'Not Provided'}
     </p>
   </div>
 

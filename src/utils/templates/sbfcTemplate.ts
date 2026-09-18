@@ -42,7 +42,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = netProfM * 12;
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
-  const netDisposalM = netProfM - hhExpM;
+  const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = netDisposalM * 12;
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];

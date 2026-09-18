@@ -24,6 +24,14 @@ export const DashboardView: React.FC = () => {
 
   useEffect(() => {
     fetchMetrics();
+    const interval = setInterval(() => {
+      // Fetch without triggering the full loading state overlay if we already have data
+      fetch('/api/dashboard')
+        .then(res => res.json())
+        .then(result => setData(result))
+        .catch(err => console.error('Error fetching dashboard data:', err));
+    }, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const riskColors = ['#10b981', '#f59e0b', '#ef4444'];

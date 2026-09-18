@@ -13,7 +13,7 @@ const data = {
 };
 
 try {
-  const html = generateStandardPDReportHTML(data as any, 'APP123');
+  const html = generateStandardPDReportHTML(data as any);
   console.log('HTML length:', html.length);
   console.log('Success!');
 } catch (e) {

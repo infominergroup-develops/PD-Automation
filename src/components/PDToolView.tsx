@@ -8,21 +8,21 @@ import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
 import { openStandardPDReportPrintWindow } from '../utils/pdReportPrinter';
-import { 
-  Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2, 
-  AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight, 
+import {
+  Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2,
+  AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
   Loader2, Bot
 } from 'lucide-react';
-import { 
-  extractTextFromPdfFile, 
-  parseCrifApplicant, 
-  parseCrifSummary, 
-  parseCrifAccounts, 
-  parseCibilApplicant, 
-  parseCibilSummary, 
-  parseCibilAccounts 
+import {
+  extractTextFromPdfFile,
+  parseCrifApplicant,
+  parseCrifSummary,
+  parseCrifAccounts,
+  parseCibilApplicant,
+  parseCibilSummary,
+  parseCibilAccounts
 } from '../services/clientPdfExtractor';
 import { AccountDetailsTable } from './AccountDetailsTable';
 
@@ -124,7 +124,7 @@ const numberToWordsIndian = (num: number): string => {
   str += (n[3] != '00') ? (a[Number(n[3])] || b[Number(n[3][0])] + ' ' + a[Number(n[3][1])]) + 'Thousand ' : '';
   str += (n[4] != '0') ? (a[Number(n[4])] || b[Number(n[4][0])] + ' ' + a[Number(n[4][1])]) + 'Hundred ' : '';
   str += (n[5] != '00') ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[Number(n[5][0])] + ' ' + a[Number(n[5][1])]) : '';
-  
+
   return str.trim() + ' Rupees';
 };
 
@@ -165,10 +165,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const activeAppIdRef = useRef(activeAppId);
   useEffect(() => { activeAppIdRef.current = activeAppId; }, [activeAppId]);
-  
+
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  
+
   // Credit Report Extraction State
   const [creditReportType, setCreditReportType] = useState('NONE');
   const [creditReportFiles, setCreditReportFiles] = useState<File[]>([]);
@@ -184,7 +184,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       let activeAccounts = 0;
       let totalCurrentBalance = 0;
       let totalAmountOverdue = 0;
-      
+
       let primaryApplicantInfo = null;
       let provider = 'CRIF';
       let flags: string[] = [];
@@ -193,7 +193,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         const text = await extractTextFromPdfFile(file);
         const isCibil = creditReportType === 'CIBIL' || (creditReportType !== 'CRIF' && text.includes('CIBIL'));
         provider = isCibil ? 'CIBIL' : 'CRIF';
-        
+
         let applicantInfo, summary, accounts;
         if (provider === 'CIBIL') {
           applicantInfo = parseCibilApplicant(text);
@@ -206,19 +206,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         }
 
         if (!primaryApplicantInfo) primaryApplicantInfo = applicantInfo;
-        
+
         totalAccounts += summary.totalAccounts || 0;
         activeAccounts += summary.activeAccounts || 0;
         totalCurrentBalance += summary.totalCurrentBalance || 0;
         totalAmountOverdue += summary.totalAmountOverdue || 0;
-        
+
         if (summary.totalAmountOverdue > 0) {
           flags.push(`File ${file.name} - Overdue: ₹${summary.totalAmountOverdue.toLocaleString('en-IN')}`);
         }
         if (summary.overdueAccounts > 0) {
           flags.push(`File ${file.name} - ${summary.overdueAccounts} account(s) overdue`);
         }
-        
+
         combinedAccounts = [...combinedAccounts, ...accounts];
       }
 
@@ -233,7 +233,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         flags: flags,
         accounts: combinedAccounts
       });
-      
+
     } catch (err) {
       console.error(err);
       alert('Failed to parse report. Make sure you uploaded valid PDFs.');
@@ -241,7 +241,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       setIsParsingCreditReport(false);
     }
   };
-  
+
   // Godrej Specific State
   const [alternateMobileNumber, setAlternateMobileNumber] = useState('');
   const [officeAccessibility, setOfficeAccessibility] = useState('');
@@ -270,13 +270,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const fetchApps = async (showLoading = false) => {
       if (!selectedClient?.id) return;
       if (showLoading) setLoadingApplicants(true);
-      
+
       try {
         const data = await api.getApplicants(selectedClient.id);
         // React handles state updates efficiently, but we can do a deep equality check if needed.
         // For now, we will just set it so it updates the gallery in real-time.
         setApplicantsList(data);
-        
+
         // Auto-load last active app if one isn't currently loaded
         if (!activeAppIdRef.current) {
           const lastId = localStorage.getItem('lastActiveAppId');
@@ -342,30 +342,30 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   const getParsedFieldsFromMarkdown = (markdownText: string) => {
     if (!markdownText) return null;
-    
+
     const extractTableValue = (key: string) => {
-       const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-       
-       // Try markdown table format: `| key | value |` or `| **key** | value |`
-       const tableRegex = new RegExp(`\\|\\s*(?:\\*\\*)?${escapedKey}(?:\\*\\*)?\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
-       let match = markdownText.match(tableRegex);
-       
-       if (!match) {
-         // Try key-value format: `key: value` or `key - value`
-         const kvRegex = new RegExp(`${escapedKey}\\s*[:\\-]\\s*(.+)`, 'i');
-         match = markdownText.match(kvRegex);
-       }
-       
-       if (match && match[1]) {
-           let val = match[1].replace(/\\*\\*/g, '').trim();
-           val = val.replace(/\\|$/, '').trim(); // clean up trailing pipe if any
-           return val;
-       }
-       return '';
+      const escapedKey = key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+      // Try markdown table format: `| key | value |` or `| **key** | value |`
+      const tableRegex = new RegExp(`\\|\\s*(?:\\*\\*)?${escapedKey}(?:\\*\\*)?\\s*\\|\\s*(.*?)\\s*\\|`, 'i');
+      let match = markdownText.match(tableRegex);
+
+      if (!match) {
+        // Try key-value format: `key: value` or `key - value`
+        const kvRegex = new RegExp(`${escapedKey}\\s*[:\\-]\\s*(.+)`, 'i');
+        match = markdownText.match(kvRegex);
+      }
+
+      if (match && match[1]) {
+        let val = match[1].replace(/\\*\\*/g, '').trim();
+        val = val.replace(/\\|$/, '').trim(); // clean up trailing pipe if any
+        return val;
+      }
+      return '';
     };
 
     const parsed: any = {};
-    
+
     const parsedVintage = extractTableValue('Vintage of the business');
     if (parsedVintage) parsed['Business Vintage'] = parsedVintage;
 
@@ -401,21 +401,21 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     const profileMatch = markdownText.match(/### Business Profile\\n([\\s\\S]*?)### Business Profile/);
     if (profileMatch && profileMatch[1]) {
-       parsed['Brief Business Profile'] = profileMatch[1].trim();
+      parsed['Brief Business Profile'] = profileMatch[1].trim();
     }
-    
+
     // Parse Vintage
     const vintageMatch = markdownText.match(/vintage.*?(\\d+)\\s*years/i) || markdownText.match(/(\\d+)\\s*years/i);
     if (vintageMatch && vintageMatch[1]) {
       parsed['Years in Business'] = parseInt(vintageMatch[1]);
     }
-    
+
     // Parse Business Investment
     const invMatch = markdownText.match(/₹(\\d+)\\s*lakh/i) || markdownText.match(/investment.*?₹(\\d+)\\s*lakh/i);
     if (invMatch && invMatch[1]) {
       parsed['Initial Investment'] = parseInt(invMatch[1]) * 100000;
     }
-    
+
     // Parse Agriculture
     if (markdownText.match(/Agricultural Income Details/i) && markdownText.match(/bighas/i)) {
       parsed['Has Agriculture Land'] = true;
@@ -428,7 +428,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         parsed['Agri Income Max'] = parseInt(agriIncMatch[1]) * 100000;
       }
     }
-    
+
     // Parse Kirana store
     if (markdownText.match(/Kirana Store/i) || markdownText.match(/Other Source Income/i)) {
       parsed['Has Other Income'] = true;
@@ -438,12 +438,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     // Solar saving
     const solarMatch = markdownText.match(/(\\d+)–(\\d+)\\s*units.*?₹(\\d+)/i) || markdownText.match(/(\\d+)\\s*units.*?₹(\\d+)/i);
     if (solarMatch) {
-       parsed['Power Source'] = 'Electricity';
-       if (solarMatch.length === 4) {
-         parsed['Monthly Energy Expense'] = parseInt(solarMatch[2]) * parseInt(solarMatch[3]) * 30;
-       } else if (solarMatch.length === 3) {
-         parsed['Monthly Energy Expense'] = parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30;
-       }
+      parsed['Power Source'] = 'Electricity';
+      if (solarMatch.length === 4) {
+        parsed['Monthly Energy Expense'] = parseInt(solarMatch[2]) * parseInt(solarMatch[3]) * 30;
+      } else if (solarMatch.length === 3) {
+        parsed['Monthly Energy Expense'] = parseInt(solarMatch[1]) * parseInt(solarMatch[2]) * 30;
+      }
     }
     return parsed;
   };
@@ -457,13 +457,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         setBusinessAgeYears(Number(match[1]));
       }
     }
-    
+
     if (parsed['Staff Count'] !== undefined) {
       setStaffCountText(parsed['Staff Count']);
       const match = parsed['Staff Count'].match(/(\\d+)/);
       if (match && match[1]) setExternalStaffCount(Number(match[1]));
     }
-    
+
     if (parsed['Premise Ownership'] !== undefined) {
       setPremiseOwnershipText(parsed['Premise Ownership']);
       const txt = parsed['Premise Ownership'].toLowerCase();
@@ -471,9 +471,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       else if (txt.includes('rent')) setShopOwnership('RENTED');
       else if (txt.includes('family')) setShopOwnership('FAMILY');
     }
-    
+
     if (parsed['Factory Infrastructure'] !== undefined) setFactoryInfrastructureText(parsed['Factory Infrastructure']);
-    
+
     if (parsed['Stock Details'] !== undefined) {
       setStockDetailsValueText(parsed['Stock Details']);
       const match = parsed['Stock Details'].match(/₹?([\\d,]+)/);
@@ -482,7 +482,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         if (!isNaN(val) && val > 0) setInventoryValue(val);
       }
     }
-    
+
     if (parsed['Asset Analysis'] !== undefined) setFixedAndCurrentAssetAnalysisText(parsed['Asset Analysis']);
     if (parsed['Asset Creation'] !== undefined) setAssetCreationText(parsed['Asset Creation']);
     if (parsed['Business Investment (Text)'] !== undefined) {
@@ -490,14 +490,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       if (parsed['Initial Investment'] === undefined) {
         const invMatch = parsed['Business Investment (Text)'].match(/₹?([\\d,]+)\\s*lakh/i);
         if (invMatch && invMatch[1]) {
-           const val = Number(invMatch[1].replace(/,/g, ''));
-           if (!isNaN(val)) setInitialInvestment(val * 100000);
+          const val = Number(invMatch[1].replace(/,/g, ''));
+          if (!isNaN(val)) setInitialInvestment(val * 100000);
         } else {
-           const rawMatch = parsed['Business Investment (Text)'].match(/₹?([\\d,]+)/);
-           if (rawMatch && rawMatch[1]) {
-             const val = Number(rawMatch[1].replace(/,/g, ''));
-             if (!isNaN(val) && val > 0) setInitialInvestment(val);
-           }
+          const rawMatch = parsed['Business Investment (Text)'].match(/₹?([\\d,]+)/);
+          if (rawMatch && rawMatch[1]) {
+            const val = Number(rawMatch[1].replace(/,/g, ''));
+            if (!isNaN(val) && val > 0) setInitialInvestment(val);
+          }
         }
       }
     }
@@ -510,11 +510,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
           setHasAgricultureLand(true);
           if (text.includes('bigha')) setAgriLandUnit('Bigha');
           else if (text.includes('acre')) setAgriLandUnit('Acre');
-          
+
           const areaMatch = text.match(/(\\d+)\\s*(bigha|acre)/i);
           if (areaMatch && areaMatch[1]) setAgriLandArea(Number(areaMatch[1]));
         }
-        
+
         const amtMatch = parsed['Agricultural Income'].match(/₹?([\\d,]+)\\s*lakh/i);
         if (amtMatch && amtMatch[1]) {
           const val = Number(amtMatch[1].replace(/,/g, '')) * 100000;
@@ -536,15 +536,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (parsed['Solar Saving'] !== undefined) {
       setSolarSavingText(parsed['Solar Saving']);
       if (parsed['Monthly Energy Expense'] === undefined) {
-         const solarMatch = parsed['Solar Saving'].match(/(\\d+)–(\\d+)\\s*units.*?₹?([\\d,]+)/i) || parsed['Solar Saving'].match(/(\\d+)\\s*units.*?₹?([\\d,]+)/i);
-         if (solarMatch) {
-            setPowerSource('Electricity');
-            if (solarMatch.length === 4) {
-              setMonthlyEnergyExpense(parseInt(solarMatch[2]) * parseInt(solarMatch[3].replace(/,/g, '')) * 30);
-            } else if (solarMatch.length === 3) {
-              setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2].replace(/,/g, '')) * 30);
-            }
-         }
+        const solarMatch = parsed['Solar Saving'].match(/(\\d+)–(\\d+)\\s*units.*?₹?([\\d,]+)/i) || parsed['Solar Saving'].match(/(\\d+)\\s*units.*?₹?([\\d,]+)/i);
+        if (solarMatch) {
+          setPowerSource('Electricity');
+          if (solarMatch.length === 4) {
+            setMonthlyEnergyExpense(parseInt(solarMatch[2]) * parseInt(solarMatch[3].replace(/,/g, '')) * 30);
+          } else if (solarMatch.length === 3) {
+            setMonthlyEnergyExpense(parseInt(solarMatch[1]) * parseInt(solarMatch[2].replace(/,/g, '')) * 30);
+          }
+        }
       }
     }
 
@@ -598,10 +598,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         console.error('Failed to sync catalog', error);
       }
     };
-    
+
     // Initial fetch
     fetchCatalog();
-    
+
     // Poll every 15 seconds for real-time updates
     const interval = setInterval(fetchCatalog, 15000);
     return () => {
@@ -617,14 +617,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Product Mapping State
   const [productsList, setProductsList] = useState<CategoryProduct[]>([{
-       id: `custom-${Date.now()}`,
-       categoryId: 'custom',
-       productName: '',
-       productCategory: 'Custom',
-       revenueContributionPct: 0,
-       price: '',
-       quantity: '',
-       total: 0
+    id: `custom-${Date.now()}`,
+    categoryId: 'custom',
+    productName: '',
+    productCategory: 'Custom',
+    revenueContributionPct: 0,
+    price: '',
+    quantity: '',
+    total: 0
   } as any]);
 
   // Itemized Income and Expenditure Lines (Price x Quantity x Days Format)
@@ -674,7 +674,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   const handleAddIncomeLine = () => {
     const newId = `inc-custom-${Date.now()}`;
-    setIncomeLines(prev => [...prev, { 
+    setIncomeLines(prev => [...prev, {
       id: newId,
       particulars: 'New Goods / Service Product Line',
       monthlyAmount: 3000
@@ -801,7 +801,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setCategoriesList(prev => [...prev, newCat]);
     setAllProducts(prev => [...prev, ...finalProducts]);
-    
+
     // Switch to new category
     setSelectedCategoryId(newCatId);
     setProductsList(finalProducts);
@@ -943,7 +943,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // NEW STATES FOR CUSTOMER & SUPPLIER DETAILS
   const [prominentCustomers, setProminentCustomers] = useState<any[]>([{ id: 'c1', name: '', phone: '', feedback: '' }]);
   const [prominentSuppliers, setProminentSuppliers] = useState<any[]>([{ id: 's1', name: '', phone: '', feedback: '' }]);
-  
+
   // NEW STATES FOR COLLATERAL PROPERTY (Ambit)
   const [hasCollateral, setHasCollateral] = useState(false);
   const [collateralAddress, setCollateralAddress] = useState('');
@@ -1043,7 +1043,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // CREATE NEW APPLICANT
   const handleCreateNewApplicant = async () => {
     if (!selectedClient) return;
-    const newAppNumber = `INF/2026/${Math.floor(Math.random() * 90000) + 10000}`;
+    const newAppNumber = '';
     const newApplicant = {
       applicationNumber: newAppNumber,
       applicantName: '',
@@ -1109,7 +1109,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const handleLoadSampleApp = (dbApp: any) => {
     let app = { ...dbApp, ...(dbApp.formData || {}) };
     let isRecovered = false;
-    
+
     // Attempt to recover offline draft if it exists
     try {
       const draftStr = localStorage.getItem(`offline_draft_${dbApp._id}`);
@@ -1189,7 +1189,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setExpenseLines(app.expenseLines || defaultLines.expense);
 
     setCaseInitiationDate(app.caseInitiationDate || new Date().toISOString().split('T')[0]);
-    
+
     if (app.coApplicants && Array.isArray(app.coApplicants)) {
       setCoApplicants(app.coApplicants);
     } else if (app.hasCoApplicant) {
@@ -1208,7 +1208,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setActiveAppNumber(app.applicationNumber);
     setActiveAppId(app._id);
-    
+
     if (isRecovered) {
       setLoadedToastMessage(`Application #${app.applicationNumber} recovered from unsaved offline draft for ${app.applicantName}.`);
     } else {
@@ -1231,52 +1231,52 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Keep the ref updated with the latest state without triggering re-renders
   updateDataRef.current = {
-        applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
-        dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
-        shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
-        landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
-        salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
-        photos, incomeLines, expenseLines, productsList,
-        caseInitiationDate, visitDate, reportDate, coApplicants,
-        hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
-        powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
-        businessAddress,
-        additionalAddresses,
-        personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName, tataCapitalDistance,
-        businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
-        premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
-        businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
-        investmentSource, investmentSourceOther, hasAgricultureLand, agriLandArea, agriLandUnit, agriLandOwnership, agriLandOwnershipOther,
-        agriCrops, agriCropsOther, agriIncomeMin, agriIncomeMax, agriOwnershipDoc, hasOtherIncome, otherIncomeSources,
-        expectedSolarCostReductionPct, expectedSolarMonthlySaving, meetingAddressSource, meetingAddress,
-        locatingPremisesType, locatingPremisesTypeOther, propertyOwnership, propertyOwnershipOther,
-        propertyRentAmount, propertyOwnerName, propertyArea, propertyValue, propertyOwnershipDoc, houseFloors, houseRooms, houseStructureType,
-        houseStructureTypeOther, houseFloorPosition, houseFloorPositionOther, houseAdditionalDetails, monthlyHouseholdExpensesAmount,
-        hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
-        hasResElectricityConnection, resElectricityConnectionType, resElectricityConnectionTypeOther, resElectricityConsumerNumber, resElectricityMonthlyExpense,
-        neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
-        neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
-        aataChakkiData,
-        prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
-        hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
-        businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
-        businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId
+    applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
+    dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
+    shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
+    landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
+    photos, incomeLines, expenseLines, productsList,
+    caseInitiationDate, visitDate, reportDate, coApplicants,
+    hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
+    powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
+    businessAddress,
+    additionalAddresses,
+    personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName, tataCapitalDistance,
+    businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
+    premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
+    businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
+    investmentSource, investmentSourceOther, hasAgricultureLand, agriLandArea, agriLandUnit, agriLandOwnership, agriLandOwnershipOther,
+    agriCrops, agriCropsOther, agriIncomeMin, agriIncomeMax, agriOwnershipDoc, hasOtherIncome, otherIncomeSources,
+    expectedSolarCostReductionPct, expectedSolarMonthlySaving, meetingAddressSource, meetingAddress,
+    locatingPremisesType, locatingPremisesTypeOther, propertyOwnership, propertyOwnershipOther,
+    propertyRentAmount, propertyOwnerName, propertyArea, propertyValue, propertyOwnershipDoc, houseFloors, houseRooms, houseStructureType,
+    houseStructureTypeOther, houseFloorPosition, houseFloorPositionOther, houseAdditionalDetails, monthlyHouseholdExpensesAmount,
+    hasElectricityConnection, electricityConnectionType, electricityConnectionTypeOther, electricityConsumerNumber, electricityMonthlyExpense,
+    hasResElectricityConnection, resElectricityConnectionType, resElectricityConnectionTypeOther, resElectricityConsumerNumber, resElectricityMonthlyExpense,
+    neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
+    neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
+    aataChakkiData,
+    prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
+    hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
+    businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
+    businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId
   };
 
   useEffect(() => {
     if (!selectedClient?.id) return;
-    
+
     // Auto-save loop that checks for changes every 1.5 seconds independently of state re-renders
     const interval = setInterval(() => {
       if (!updateDataRef.current) return;
-      
+
       const currentData = updateDataRef.current;
       const currentStr = JSON.stringify(currentData);
-      
+
       // Save local draft as a fallback instantly
       const storageKey = activeAppId ? `offline_draft_${activeAppId}` : 'offline_draft_new';
       localStorage.setItem(storageKey, currentStr);
-      
+
       if (lastSavedStrRef.current !== currentStr) {
         api.saveApplicantDraft(selectedClient.id, { ...currentData, _id: activeAppId })
           .then((savedApp) => {
@@ -1286,6 +1286,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               setActiveAppId(savedApp._id);
               if (savedApp.applicationNumber) setActiveAppNumber(savedApp.applicationNumber);
             }
+            // Sync with applicantsList so UI updates immediately
+            setApplicantsList(prev => {
+              const exists = prev.some(a => a._id === savedApp._id);
+              if (exists) return prev.map(a => a._id === savedApp._id ? savedApp : a);
+              return [savedApp, ...prev];
+            });
           })
           .catch(err => console.error('Failed to auto-save:', err));
       }
@@ -1356,7 +1362,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
 
     const monthlyIncome = dailyTotalIncome * workingDays;
-    
+
     // Calculate Expenses (Power Source)
     let dailyExpense = 0;
     const consumption = Number(aataChakkiData.powerDetails.consumption) || 0;
@@ -1365,8 +1371,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     if (consumption > 0) {
       dailyExpense = consumption * rate;
-      engineInfo = aataChakkiData.powerSource === 'Diesel' 
-        ? `Diesel Engine consuming ${consumption} litres/day @ ₹${rate}/litre` 
+      engineInfo = aataChakkiData.powerSource === 'Diesel'
+        ? `Diesel Engine consuming ${consumption} litres/day @ ₹${rate}/litre`
         : `Electric Motor consuming ${consumption} units/day @ ₹${rate}/unit`;
       qaPairs.push(`Q: What is the power consumption and cost?\nA: The facility uses a ${aataChakkiData.powerSource} source, consuming ${consumption} ${aataChakkiData.powerSource === 'Diesel' ? 'litres' : 'units'} daily at a rate of ₹${rate} per ${aataChakkiData.powerSource === 'Diesel' ? 'litre' : 'unit'}.`);
     }
@@ -1420,7 +1426,7 @@ ${qaPairs.join('\n\n')}`;
   const searchedApplications = useMemo(() => {
     if (!appSearchQuery.trim()) return applicantsList;
     const query = appSearchQuery.toLowerCase();
-    return applicantsList.filter(app => 
+    return applicantsList.filter(app =>
       app.applicationNumber?.toLowerCase().includes(query) ||
       app.applicantName?.toLowerCase().includes(query) ||
       app.firmName?.toLowerCase().includes(query)
@@ -1445,10 +1451,10 @@ ${qaPairs.join('\n\n')}`;
   // Adopted Monthly Turnover (Min of Stated and Cross-Check, or fallback to Itemized Income)
   const adoptedMonthlySales = useMemo(() => {
     // If cross check is 0 (not filled out), fallback to stated sales.
-    const baseSales = crossCheckMonthlySales > 0 
-      ? Math.min(statedMonthlySales, crossCheckMonthlySales) 
+    const baseSales = crossCheckMonthlySales > 0
+      ? Math.min(statedMonthlySales, crossCheckMonthlySales)
       : statedMonthlySales;
-    
+
     // If there's an itemized income calculation (like Aata Chakki), ensure we don't drop below it
     // Or if stated is 0 but they filled the itemized income lines, use itemized income
     return Math.max(baseSales, itemizedMonthlyIncomeTotal || 0);
@@ -1515,7 +1521,7 @@ ${qaPairs.join('\n\n')}`;
   // Auto-Generation for Generic Business Profile (Non-Aata Chakki)
   useEffect(() => {
     if (currentCategory?.name?.toLowerCase().includes('atta chakki') || currentCategory?.name?.toLowerCase().includes('aata chakki')) return;
-    
+
     // Only generate if we have some meaningful data to show
     if (adoptedMonthlySales === 0 && yearsInBusiness === 0) return;
 
@@ -1673,7 +1679,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       applicantName,
       applicantPhone: mobileNumber,
       coApplicants,
-      femaleCandidateDetails: hasFemaleCandidate 
+      femaleCandidateDetails: hasFemaleCandidate
         ? `Yes, the female candidate is already included in the application as ${femaleCandidateName || 'Not provided'}, ${femaleCandidateRelation === 'Other' ? (femaleCandidateOtherRelation || 'Not provided') : femaleCandidateRelation.toLowerCase()} of the applicant.`
         : "Not provided",
       firmName: firmName || 'Not provided',
@@ -1771,11 +1777,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       householdExpensesYearly: householdExpenses * 12,
       householdExpensesNotes: householdExpensesNotes,
       comfortableEmiNotes: comfortableEmiNotes,
-      netDisposalIncomeMonthly: postLoanSurplus,
-      netDisposalIncomeYearly: postLoanSurplus * 12,
+      netDisposalIncomeMonthly: netFamilySurplusBeforeEmi,
+      netDisposalIncomeYearly: netFamilySurplusBeforeEmi * 12,
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,
+
+      executiveSummary_BorrowerProfile: `${businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}`,
+      executiveSummary_SalesWaterfall: `The business generates an assessed monthly revenue of ₹${adoptedMonthlySales.toLocaleString('en-IN')}. Gross profit margin is assessed at ${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')}). After total business operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')}, existing obligations of ₹${existingEmis.toLocaleString('en-IN')}, and household living costs of ₹${householdExpenses.toLocaleString('en-IN')}, net monthly disposable surplus stands at ₹${(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}.`,
+      executiveSummary_DebtService: `The requested micro-lending facility of ₹${appliedAmount.toLocaleString('en-IN')} at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of ₹${proposedEmi.toLocaleString('en-IN')}. The post-loan DSCR is calculated at ${dscrRatio}x (policy threshold ≥ 1.25x) with FOIR at ${foirPct}% (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}`,
+      executiveSummary_Community: `${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
 
       // Godrej Specific Fields
       alternateMobileNumber,
@@ -1794,7 +1805,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       otherStateGstText,
       familyInvolvedText,
       applicantQualification,
-      
+
       riskScore: riskAssessment.score,
       riskLevel: riskAssessment.decision,
       strengths: riskAssessment.strengths,
@@ -1826,7 +1837,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Failed to extract');
-      
+
       const payload = data.data;
       if (payload) {
         setPendingWhatsappPayload(payload);
@@ -1842,61 +1853,61 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   const handleApproveWhatsAppExtraction = () => {
     const payload = pendingWhatsappPayload;
     if (!payload) return;
-    
+
     if (payload.generatedMarkdownProfile) {
       parseMarkdownToFields(payload.generatedMarkdownProfile);
     }
-    
+
     // Map payload to existing state variables safely
-        if (payload.BorrowerAndLoanDetails) {
-          const bld = payload.BorrowerAndLoanDetails;
-          if (bld.applicantName) setApplicantName(bld.applicantName);
-          if (bld.mobileNumber) setMobileNumber(bld.mobileNumber);
-          if (bld.panNumber) setPanNumber(bld.panNumber);
-          if (bld.residenceAddress) setResidenceAddress(bld.residenceAddress);
-          if (bld.residenceOwnership) setResidenceOwnership(bld.residenceOwnership);
-          if (bld.yearsAtResidence) setYearsAtResidence(Number(bld.yearsAtResidence));
-          if (bld.dependentsCount) setDependentsCount(Number(bld.dependentsCount));
-          if (bld.businessRemark) setBusinessRemark(bld.businessRemark);
-          if (bld.caseInitiationDate) setCaseInitiationDate(bld.caseInitiationDate);
-          if (bld.visitDate) setVisitDate(bld.visitDate);
-          if (bld.reportDate) setReportDate(bld.reportDate);
-          if (bld.loanType) setLoanType(bld.loanType);
-          if (bld.otherLoanType) setOtherLoanType(bld.otherLoanType);
-          if (bld.powerSource) setPowerSource(bld.powerSource);
-          if (bld.otherPowerSource) setOtherPowerSource(bld.otherPowerSource);
-          if (bld.monthlyEnergyExpense) setMonthlyEnergyExpense(Number(bld.monthlyEnergyExpense));
-          if (bld.solarPurposes) setSolarPurposes(bld.solarPurposes);
-          
-          if (bld.residenceAddressDetails) {
-             const r = bld.residenceAddressDetails;
-             if (r.residenceAddress) setResidenceAddress(r.residenceAddress);
-          }
-          if (bld.businessAddressDetails) {
-             const b = bld.businessAddressDetails;
-             if (b.businessAddress) setBusinessAddress(b.businessAddress);
-          }
+    if (payload.BorrowerAndLoanDetails) {
+      const bld = payload.BorrowerAndLoanDetails;
+      if (bld.applicantName) setApplicantName(bld.applicantName);
+      if (bld.mobileNumber) setMobileNumber(bld.mobileNumber);
+      if (bld.panNumber) setPanNumber(bld.panNumber);
+      if (bld.residenceAddress) setResidenceAddress(bld.residenceAddress);
+      if (bld.residenceOwnership) setResidenceOwnership(bld.residenceOwnership);
+      if (bld.yearsAtResidence) setYearsAtResidence(Number(bld.yearsAtResidence));
+      if (bld.dependentsCount) setDependentsCount(Number(bld.dependentsCount));
+      if (bld.businessRemark) setBusinessRemark(bld.businessRemark);
+      if (bld.caseInitiationDate) setCaseInitiationDate(bld.caseInitiationDate);
+      if (bld.visitDate) setVisitDate(bld.visitDate);
+      if (bld.reportDate) setReportDate(bld.reportDate);
+      if (bld.loanType) setLoanType(bld.loanType);
+      if (bld.otherLoanType) setOtherLoanType(bld.otherLoanType);
+      if (bld.powerSource) setPowerSource(bld.powerSource);
+      if (bld.otherPowerSource) setOtherPowerSource(bld.otherPowerSource);
+      if (bld.monthlyEnergyExpense) setMonthlyEnergyExpense(Number(bld.monthlyEnergyExpense));
+      if (bld.solarPurposes) setSolarPurposes(bld.solarPurposes);
 
-          if (bld.personsMet) setPersonsMet(bld.personsMet);
-        }
+      if (bld.residenceAddressDetails) {
+        const r = bld.residenceAddressDetails;
+        if (r.residenceAddress) setResidenceAddress(r.residenceAddress);
+      }
+      if (bld.businessAddressDetails) {
+        const b = bld.businessAddressDetails;
+        if (b.businessAddress) setBusinessAddress(b.businessAddress);
+      }
 
-        if (payload.BusinessAndResidenceVerification) {
-          const brv = payload.BusinessAndResidenceVerification;
-          if (brv.businessAgeYears) setBusinessAgeYears(Number(brv.businessAgeYears));
-          if (brv.previousOccupation) setPreviousOccupation(brv.previousOccupation);
-          if (brv.reasonToLeave) setReasonToLeave(brv.reasonToLeave);
-          if (brv.externalStaffCount) setExternalStaffCount(Number(brv.externalStaffCount));
-          if (brv.businessManagedBy) setBusinessManagedBy(brv.businessManagedBy);
-          if (brv.premiseOwnership) setPremiseOwnership(brv.premiseOwnership);
-          if (brv.hasStock !== null) setHasStock(brv.hasStock);
-          if (brv.initialInvestment) setInitialInvestment(Number(brv.initialInvestment));
-          if (brv.monthlyHouseholdExpensesAmount) setMonthlyHouseholdExpensesAmount(Number(brv.monthlyHouseholdExpensesAmount));
-        }
-      
-      setIsWhatsAppModalOpen(false);
-      setRawWhatsappText('');
-      setPendingWhatsappPayload(null);
-      alert(`WhatsApp data mapped successfully! Confidence: ${payload._confidence_score || 'N/A'}`);
+      if (bld.personsMet) setPersonsMet(bld.personsMet);
+    }
+
+    if (payload.BusinessAndResidenceVerification) {
+      const brv = payload.BusinessAndResidenceVerification;
+      if (brv.businessAgeYears) setBusinessAgeYears(Number(brv.businessAgeYears));
+      if (brv.previousOccupation) setPreviousOccupation(brv.previousOccupation);
+      if (brv.reasonToLeave) setReasonToLeave(brv.reasonToLeave);
+      if (brv.externalStaffCount) setExternalStaffCount(Number(brv.externalStaffCount));
+      if (brv.businessManagedBy) setBusinessManagedBy(brv.businessManagedBy);
+      if (brv.premiseOwnership) setPremiseOwnership(brv.premiseOwnership);
+      if (brv.hasStock !== null) setHasStock(brv.hasStock);
+      if (brv.initialInvestment) setInitialInvestment(Number(brv.initialInvestment));
+      if (brv.monthlyHouseholdExpensesAmount) setMonthlyHouseholdExpensesAmount(Number(brv.monthlyHouseholdExpensesAmount));
+    }
+
+    setIsWhatsAppModalOpen(false);
+    setRawWhatsappText('');
+    setPendingWhatsappPayload(null);
+    alert(`WhatsApp data mapped successfully! Confidence: ${payload._confidence_score || 'N/A'}`);
   };
 
   const renderTabNavigationFooter = () => {
@@ -1965,7 +1976,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     );
   };
 
-  const filteredCategoriesModal = categoriesList.filter(c => 
+  const filteredCategoriesModal = categoriesList.filter(c =>
     c.name.toLowerCase().includes(categorySearch.toLowerCase()) ||
     c.description.toLowerCase().includes(categorySearch.toLowerCase()) ||
     c.industryGroup.toLowerCase().includes(categorySearch.toLowerCase())
@@ -1973,7 +1984,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   const formProgress = useMemo(() => {
     const fields = [
       applicantName, mobileNumber, panNumber, residenceAddress, firmName, yearsInBusiness,
-      shopOwnership, appliedAmount, personsMet.length > 0, executiveName, 
+      shopOwnership, appliedAmount, personsMet.length > 0, executiveName,
       briefBusinessProfile, previousOccupation, reasonToLeave, photos.length > 0
     ];
     let filled = 0;
@@ -2176,38 +2187,38 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
             <p className="text-[10px] text-slate-500 font-medium">Include CRIF/CIBIL data in the final report</p>
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-6">
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
-                <input type="radio" value="NONE" checked={creditReportType === 'NONE'} onChange={() => setCreditReportType('NONE')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                <input type="radio" value="NONE" checked={creditReportType === 'NONE'} onChange={() => setCreditReportType('NONE')} className="text-[#eb8a23] focus:ring-[#eb8a23]" />
                 None
               </label>
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
-                <input type="radio" value="CRIF" checked={creditReportType === 'CRIF'} onChange={() => setCreditReportType('CRIF')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                <input type="radio" value="CRIF" checked={creditReportType === 'CRIF'} onChange={() => setCreditReportType('CRIF')} className="text-[#eb8a23] focus:ring-[#eb8a23]" />
                 CRIF
               </label>
               <label className="flex items-center gap-2 text-xs font-bold cursor-pointer text-slate-700">
-                <input type="radio" value="CIBIL" checked={creditReportType === 'CIBIL'} onChange={() => setCreditReportType('CIBIL')} className="text-[#eb8a23] focus:ring-[#eb8a23]" /> 
+                <input type="radio" value="CIBIL" checked={creditReportType === 'CIBIL'} onChange={() => setCreditReportType('CIBIL')} className="text-[#eb8a23] focus:ring-[#eb8a23]" />
                 CIBIL
               </label>
             </div>
-            
+
             {creditReportType !== 'NONE' && (
               <div className="flex items-center gap-3">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   multiple
-                  accept=".pdf" 
+                  accept=".pdf"
                   onChange={(e) => {
                     if (e.target.files) {
                       setCreditReportFiles(Array.from(e.target.files));
                     }
-                  }} 
-                  className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer" 
+                  }}
+                  className="text-xs file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-bold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
                 />
-                <button 
-                  onClick={handleParseCreditReport} 
+                <button
+                  onClick={handleParseCreditReport}
                   disabled={isParsingCreditReport || creditReportFiles.length === 0}
                   className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs font-bold disabled:opacity-50 transition shadow-sm"
                 >
@@ -2215,7 +2226,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
               </div>
             )}
-            
+
             {parsedCreditReport && (
               <div className="w-full mt-4 bg-slate-50 border border-emerald-200 rounded-lg p-3">
                 <div className="text-xs text-emerald-700 font-bold flex items-center gap-1.5 mb-2">
@@ -2288,11 +2299,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${
-                isActive
+              className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${isActive
                   ? 'bg-[#384c5e] text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-              }`}
+                }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-[#eb8a23]' : 'text-slate-400'}`} />
               {tab.label}
@@ -2384,7 +2394,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
               </div>
-              
+
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Business Remark</label>
                 <textarea
@@ -2416,22 +2426,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <Settings className="w-4 h-4 text-[#eb8a23]" />
                 Aata Chakki Setup & Details
               </h3>
-              
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">Select Available Machines</label>
                 <div className="flex flex-wrap gap-4">
                   {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine', 'Engine', 'Motor'].map(machine => (
                     <label key={machine} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={aataChakkiData.machines.includes(machine)}
                         onChange={(e) => {
-                          const newMachines = e.target.checked 
+                          const newMachines = e.target.checked
                             ? [...aataChakkiData.machines, machine]
                             : aataChakkiData.machines.filter(m => m !== machine);
                           setAataChakkiData({ ...aataChakkiData, machines: newMachines });
                         }}
-                        className="accent-[#eb8a23]" 
+                        className="accent-[#eb8a23]"
                       />
                       {machine}
                     </label>
@@ -2557,7 +2567,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <input type="radio" checked={aataChakkiData.powerSource === 'Electricity'} onChange={() => setAataChakkiData({ ...aataChakkiData, powerSource: 'Electricity' })} className="accent-[#eb8a23]" /> Electricity
                   </label>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Consumption ({aataChakkiData.powerSource === 'Diesel' ? 'Litres' : 'Units'})</label>
@@ -2586,7 +2596,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </h3>
                 {isGodrejSectionOpen ? <ChevronLeft className="w-4 h-4 rotate-90" /> : <ChevronRight className="w-4 h-4" />}
               </button>
-              
+
               {isGodrejSectionOpen && (
                 <div className="mt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2684,10 +2694,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
                 <select value={statusOfCase} onChange={(e) => setStatusOfCase(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   <option value="Recommended">Recommended</option>
-                  <option value="Positive">Positive</option>
-                  <option value="Negative">Negative</option>
-                  <option value="In Review">In Review</option>
-                  <option value="Rejected">Rejected</option>
+                  <option value="Positive">Not Recommended</option>
+                  <option value="Negative">Recommended subject to demerits</option>
                 </select>
               </div>
             </div>
@@ -2746,11 +2754,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   + Add Co-applicant
                 </button>
               </div>
-              
+
               {coApplicants.length === 0 && (
                 <div className="text-xs font-semibold text-slate-500 italic p-3 text-center border border-dashed border-slate-300 rounded-lg">No Co-applicants Added</div>
               )}
-              
+
               {coApplicants.map((coApp, idx) => (
                 <div key={idx} className="relative p-4 bg-white border border-slate-200 rounded-lg shadow-sm">
                   <button type="button" onClick={() => setCoApplicants(coApplicants.filter((_, i) => i !== idx))} className="absolute top-2 right-2 text-red-500 hover:text-red-700 text-xs font-bold">
@@ -2847,7 +2855,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {!hasFemaleCandidate && (
                 <div className="mt-3 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                   Generated: We need to collect KYC documents and live photograph of the female candidate.
+                  Generated: We need to collect KYC documents and live photograph of the female candidate.
                 </div>
               )}
             </div>
@@ -2859,13 +2867,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
-                    <input 
-                      type="number" 
-                      value={appliedAmount ? appliedAmount / 1000 : ''} 
-                      onChange={(e) => setAppliedAmount(Number(e.target.value) * 1000)} 
-                      className="w-full pl-7 pr-7 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" 
-                      placeholder="Amount in '000s" 
-                      disabled={appliedAmount === null} 
+                    <input
+                      type="number"
+                      value={appliedAmount ? appliedAmount / 1000 : ''}
+                      onChange={(e) => setAppliedAmount(Number(e.target.value) * 1000)}
+                      className="w-full pl-7 pr-7 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                      placeholder="Amount in '000s"
+                      disabled={appliedAmount === null}
                     />
                     <span className="absolute right-3 top-2 text-slate-400 font-bold text-[10px]">k</span>
                   </div>
@@ -2898,7 +2906,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {loanType === 'Commercial Solar Loan' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Current Power / Energy Source</label>
@@ -2911,7 +2919,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <option value="Other">Other</option>
                     </select>
                     {powerSource === 'Other' && (
-                       <input type="text" value={otherPowerSource} onChange={(e) => setOtherPowerSource(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Power Source" />
+                      <input type="text" value={otherPowerSource} onChange={(e) => setOtherPowerSource(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Power Source" />
                     )}
                   </div>
                   <div>
@@ -2937,21 +2945,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     ))}
                   </div>
                   {solarPurposes.includes('Other') && (
-                     <input type="text" value={otherSolarPurpose} onChange={(e) => setOtherSolarPurpose(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Purpose" />
+                    <input type="text" value={otherSolarPurpose} onChange={(e) => setOtherSolarPurpose(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Purpose" />
                   )}
                 </div>
 
                 <div className="p-3 bg-white border border-orange-200 rounded-lg space-y-2">
-                   <div className="flex justify-between items-center">
-                     <span className="text-[10px] uppercase font-bold text-slate-500">Generated Statement</span>
-                     <button type="button" onClick={() => {
-                        const finalSource = powerSource === 'Other' ? otherPowerSource : powerSource;
-                        const finalPurposes = solarPurposes.map(p => p === 'Other' ? otherSolarPurpose : p).filter(Boolean);
-                        const purposeText = finalPurposes.length > 1 ? finalPurposes.slice(0, -1).join(', ') + ' and ' + finalPurposes.slice(-1) : finalPurposes[0] || '';
-                        setSolarPurposeGeneratedText(`The applicant currently operates the business using ${finalSource.toLowerCase()}, which incurs an approximate monthly expense of ₹${monthlyEnergyExpense || 0}. Therefore, the applicant is planning to install a solar setup to ${purposeText.toLowerCase()}.`);
-                     }} className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold hover:bg-orange-200">Auto-Generate</button>
-                   </div>
-                   <textarea value={solarPurposeGeneratedText} onChange={(e) => setSolarPurposeGeneratedText(e.target.value)} className="w-full text-xs font-semibold text-slate-700 border-none outline-none resize-none bg-transparent" rows={3} placeholder="Click Auto-Generate to preview..." />
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Generated Statement</span>
+                    <button type="button" onClick={() => {
+                      const finalSource = powerSource === 'Other' ? otherPowerSource : powerSource;
+                      const finalPurposes = solarPurposes.map(p => p === 'Other' ? otherSolarPurpose : p).filter(Boolean);
+                      const purposeText = finalPurposes.length > 1 ? finalPurposes.slice(0, -1).join(', ') + ' and ' + finalPurposes.slice(-1) : finalPurposes[0] || '';
+                      setSolarPurposeGeneratedText(`The applicant currently operates the business using ${finalSource.toLowerCase()}, which incurs an approximate monthly expense of ₹${monthlyEnergyExpense || 0}. Therefore, the applicant is planning to install a solar setup to ${purposeText.toLowerCase()}.`);
+                    }} className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold hover:bg-orange-200">Auto-Generate</button>
+                  </div>
+                  <textarea value={solarPurposeGeneratedText} onChange={(e) => setSolarPurposeGeneratedText(e.target.value)} className="w-full text-xs font-semibold text-slate-700 border-none outline-none resize-none bg-transparent" rows={3} placeholder="Click Auto-Generate to preview..." />
                 </div>
               </div>
             )}
@@ -2975,7 +2983,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold text-slate-700">Additional Addresses</label>
@@ -3010,40 +3018,40 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
               {personsMet.includes('Other') && (
                 <div className="flex gap-2">
-                   <input type="text" value={personsMetOtherName} onChange={(e) => setPersonsMetOtherName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Other Name" />
-                   <input type="text" value={personsMetOtherRelation} onChange={(e) => setPersonsMetOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Other Relationship" />
+                  <input type="text" value={personsMetOtherName} onChange={(e) => setPersonsMetOtherName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Other Name" />
+                  <input type="text" value={personsMetOtherRelation} onChange={(e) => setPersonsMetOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Other Relationship" />
                 </div>
               )}
-              
+
               <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold text-slate-700">
-                 <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Generated View:</span>
-                 {personsMet.map(p => {
-                    if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
-                    if (p === 'Co-applicant') {
-                       const c = coApplicants[0];
-                       if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
-                       return 'Co-applicant';
-                    }
-                    if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
-                    return p;
-                 }).join(' & ') || 'No one selected'}
+                <span className="text-[10px] uppercase font-bold text-slate-500 block mb-1">Generated View:</span>
+                {personsMet.map(p => {
+                  if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
+                  if (p === 'Co-applicant') {
+                    const c = coApplicants[0];
+                    if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
+                    return 'Co-applicant';
+                  }
+                  if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
+                  return p;
+                }).join(' & ') || 'No one selected'}
               </div>
             </div>
 
             {/* 15. Met Person Identity Proof */}
             <div className="pt-4 border-t border-slate-100">
-               <label className="block text-xs font-bold text-slate-700 mb-2">15. Met Person Identity Proof</label>
-               <div className="flex flex-wrap gap-3">
-                 {['Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving Licence', 'Passport', 'Other'].map(proof => (
-                    <label key={proof} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input type="radio" name="identityProof" checked={identityProof === proof} onChange={() => setIdentityProof(proof)} className="accent-[#eb8a23]" />
-                      {proof}
-                    </label>
-                 ))}
-               </div>
-               {identityProof === 'Other' && (
-                  <input type="text" value={otherIdentityProof} onChange={(e) => setOtherIdentityProof(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Identity Proof" />
-               )}
+              <label className="block text-xs font-bold text-slate-700 mb-2">15. Met Person Identity Proof</label>
+              <div className="flex flex-wrap gap-3">
+                {['Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving Licence', 'Passport', 'Other'].map(proof => (
+                  <label key={proof} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <input type="radio" name="identityProof" checked={identityProof === proof} onChange={() => setIdentityProof(proof)} className="accent-[#eb8a23]" />
+                    {proof}
+                  </label>
+                ))}
+              </div>
+              {identityProof === 'Other' && (
+                <input type="text" value={otherIdentityProof} onChange={(e) => setOtherIdentityProof(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Identity Proof" />
+              )}
             </div>
 
             {/* 16. Spouse and Dependencies Details */}
@@ -3120,27 +3128,27 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 17. Executive Name */}
             <div className="pt-6 border-t border-slate-200">
-               <label className="block text-xs font-bold text-slate-700 mb-1">17. Executive Name</label>
-               <input 
-                 type="text" 
-                 value={executiveName} 
-                 onChange={(e) => setExecutiveName(e.target.value)} 
-                 placeholder="Enter Executive Name..." 
-                 className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" 
-               />
+              <label className="block text-xs font-bold text-slate-700 mb-1">17. Executive Name</label>
+              <input
+                type="text"
+                value={executiveName}
+                onChange={(e) => setExecutiveName(e.target.value)}
+                placeholder="Enter Executive Name..."
+                className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
+              />
             </div>
 
             {/* 18. Tata Capital Distance (Conditional) */}
             {selectedClient?.name === 'Tata Capital Limited' && (
               <div className="pt-6 border-t border-slate-200">
-                 <label className="block text-xs font-bold text-slate-700 mb-1">18. Distance from Tata Capital Office (In Km's)</label>
-                 <input 
-                   type="text" 
-                   value={tataCapitalDistance} 
-                   onChange={(e) => setTataCapitalDistance(e.target.value)} 
-                   placeholder="e.g. 5-10 Km (Approx)" 
-                   className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" 
-                 />
+                <label className="block text-xs font-bold text-slate-700 mb-1">18. Distance from Tata Capital Office (In Km's)</label>
+                <input
+                  type="text"
+                  value={tataCapitalDistance}
+                  onChange={(e) => setTataCapitalDistance(e.target.value)}
+                  placeholder="e.g. 5-10 Km (Approx)"
+                  className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
+                />
               </div>
             )}
 
@@ -3164,57 +3172,57 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <label className="block text-xs font-bold text-slate-700">1. Vintage of the Business</label>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
-                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Business Age (Years)</label>
-                   <div className="flex gap-2 items-center">
-                      <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
-                      <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
-                   </div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Business Age (Years)</label>
+                  <div className="flex gap-2 items-center">
+                    <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
+                    <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
+                  </div>
                 </div>
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
-                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                        <option value="">Select...</option>
-                        <option value="Agriculture">Agriculture</option>
-                        <option value="Salaried Employment">Salaried Employment</option>
-                        <option value="Business">Business</option>
-                        <option value="Self-employed">Self-employed</option>
-                        <option value="Labour">Labour</option>
-                        <option value="Student">Student</option>
-                        <option value="Homemaker">Homemaker</option>
-                        <option value="Other">Other</option>
-                     </select>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
+                    <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
+                      <option value="">Select...</option>
+                      <option value="Agriculture">Agriculture</option>
+                      <option value="Salaried Employment">Salaried Employment</option>
+                      <option value="Business">Business</option>
+                      <option value="Self-employed">Self-employed</option>
+                      <option value="Labour">Labour</option>
+                      <option value="Student">Student</option>
+                      <option value="Homemaker">Homemaker</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
-                       {previousOccupation === 'Business' ? 'What was it about?' : 
-                        previousOccupation === 'Salaried Employment' ? 'Company and Position' : 
-                        'Specify Previous Occupation'}
-                     </label>
-                     <input type="text" value={previousOccupationOther} onChange={(e) => setPreviousOccupationOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder={
-                       previousOccupation === 'Business' ? 'Nature of business' : 
-                       previousOccupation === 'Salaried Employment' ? 'e.g., Manager at XYZ Corp' : 
-                       'Specify'
-                     } />
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
+                      {previousOccupation === 'Business' ? 'What was it about?' :
+                        previousOccupation === 'Salaried Employment' ? 'Company and Position' :
+                          'Specify Previous Occupation'}
+                    </label>
+                    <input type="text" value={previousOccupationOther} onChange={(e) => setPreviousOccupationOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder={
+                      previousOccupation === 'Business' ? 'Nature of business' :
+                        previousOccupation === 'Salaried Employment' ? 'e.g., Manager at XYZ Corp' :
+                          'Specify'
+                    } />
                   </div>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
-                     <select 
-                       value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')} 
-                       onChange={(e) => setReasonToLeave(e.target.value === 'Not informed' ? 'Not informed' : (e.target.value === 'Informed' ? ' ' : ''))} 
-                       className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
-                     >
-                        <option value="">Select...</option>
-                        <option value="Not informed">Not informed</option>
-                        <option value="Informed">Informed</option>
-                     </select>
-                     {(reasonToLeave !== '' && reasonToLeave !== 'Not informed') && (
-                       <input type="text" value={reasonToLeave.trim()} onChange={(e) => setReasonToLeave(e.target.value || ' ')} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
-                     )}
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
+                    <select
+                      value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')}
+                      onChange={(e) => setReasonToLeave(e.target.value === 'Not informed' ? 'Not informed' : (e.target.value === 'Informed' ? ' ' : ''))}
+                      className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
+                    >
+                      <option value="">Select...</option>
+                      <option value="Not informed">Not informed</option>
+                      <option value="Informed">Informed</option>
+                    </select>
+                    {(reasonToLeave !== '' && reasonToLeave !== 'Not informed') && (
+                      <input type="text" value={reasonToLeave.trim()} onChange={(e) => setReasonToLeave(e.target.value || ' ')} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
+                    )}
                   </div>
                 )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
@@ -3232,28 +3240,28 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <label className="block text-xs font-bold text-slate-700">2. Number of Staffs</label>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of External Staff / Labour</label>
-                   <div className="flex gap-2">
-                     <input type="number" value={externalStaffCount} onChange={(e) => setExternalStaffCount(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-                     <button type="button" onClick={() => setExternalStaffCount(0)} className="px-3 py-1.5 text-[10px] bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 whitespace-nowrap">No External Staff</button>
-                   </div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of External Staff / Labour</label>
+                  <div className="flex gap-2">
+                    <input type="number" value={externalStaffCount} onChange={(e) => setExternalStaffCount(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                    <button type="button" onClick={() => setExternalStaffCount(0)} className="px-3 py-1.5 text-[10px] bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 whitespace-nowrap">No External Staff</button>
+                  </div>
                 </div>
                 <div>
-                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Who manages the business?</label>
-                   <div className="flex flex-wrap gap-2">
-                      {['Applicant', 'Family Members', 'Co-applicant', 'Other'].map(opt => (
-                        <label key={opt} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                          <input type="checkbox" checked={businessManagedBy.includes(opt)} onChange={(e) => {
-                            if (e.target.checked) setBusinessManagedBy([...businessManagedBy, opt]);
-                            else setBusinessManagedBy(businessManagedBy.filter(m => m !== opt));
-                          }} className="accent-[#eb8a23]" />
-                          {opt}
-                        </label>
-                      ))}
-                   </div>
-                   {businessManagedBy.includes('Other') && (
-                     <input type="text" value={businessManagedByOther} onChange={(e) => setBusinessManagedByOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                   )}
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Who manages the business?</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['Applicant', 'Family Members', 'Co-applicant', 'Other'].map(opt => (
+                      <label key={opt} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+                        <input type="checkbox" checked={businessManagedBy.includes(opt)} onChange={(e) => {
+                          if (e.target.checked) setBusinessManagedBy([...businessManagedBy, opt]);
+                          else setBusinessManagedBy(businessManagedBy.filter(m => m !== opt));
+                        }} className="accent-[#eb8a23]" />
+                        {opt}
+                      </label>
+                    ))}
+                  </div>
+                  {businessManagedBy.includes('Other') && (
+                    <input type="text" value={businessManagedByOther} onChange={(e) => setBusinessManagedByOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
+                  )}
                 </div>
                 <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
@@ -3267,25 +3275,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 3. Is Office Premise Rented / Owned */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-2">3. Is Office Premise Rented / Owned</label>
-               <div className="flex flex-wrap gap-3">
-                 {['Self-Owned', 'Rented', 'Leased', 'Residence cum business', 'Other'].map(opt => (
-                    <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input type="radio" checked={premiseOwnership === opt} onChange={() => setPremiseOwnership(opt)} className="accent-[#eb8a23]" />
-                      {opt}
-                    </label>
-                 ))}
-               </div>
-               {premiseOwnership === 'Other' && (
-                  <input type="text" value={premiseOwnershipOther} onChange={(e) => setPremiseOwnershipOther(e.target.value)} className="w-full md:w-1/2 mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-               )}
-               <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                 <div className="flex justify-between items-center">
-                   <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                   <button type="button" onClick={() => setPremiseOwnershipText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
-                 </div>
-                 <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
-               </div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">3. Is Office Premise Rented / Owned</label>
+              <div className="flex flex-wrap gap-3">
+                {['Self-Owned', 'Rented', 'Leased', 'Residence cum business', 'Other'].map(opt => (
+                  <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <input type="radio" checked={premiseOwnership === opt} onChange={() => setPremiseOwnership(opt)} className="accent-[#eb8a23]" />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+              {premiseOwnership === 'Other' && (
+                <input type="text" value={premiseOwnershipOther} onChange={(e) => setPremiseOwnershipOther(e.target.value)} className="w-full md:w-1/2 mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
+              )}
+              <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                  <button type="button" onClick={() => setPremiseOwnershipText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                </div>
+                <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+              </div>
             </div>
 
             {/* 4. Details of Office / Factory Infrastructure */}
@@ -3301,32 +3309,32 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
               </div>
               <div className="space-y-2">
-                 {businessAssets.map((asset, idx) => (
-                    <div key={asset.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                       <input type="text" value={asset.name} onChange={(e) => { const arr = [...businessAssets]; arr[idx].name = e.target.value; setBusinessAssets(arr); }} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                       <input type="number" value={asset.quantity} onChange={(e) => { const arr = [...businessAssets]; arr[idx].quantity = Number(e.target.value); setBusinessAssets(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                       <input type="text" value={asset.size} onChange={(e) => { const arr = [...businessAssets]; arr[idx].size = e.target.value; setBusinessAssets(arr); }} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                       <select value={asset.condition} onChange={(e) => { const arr = [...businessAssets]; arr[idx].condition = e.target.value; setBusinessAssets(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
-                          <option value="Operational">Operational</option>
-                          <option value="Non-Operational">Non-Operational</option>
-                          <option value="Needs Repair">Needs Repair</option>
-                       </select>
-                       <div className="flex items-center gap-1">
-                          <input type="text" value={asset.remarks} onChange={(e) => { const arr = [...businessAssets]; arr[idx].remarks = e.target.value; setBusinessAssets(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                          <button onClick={() => { const arr = [...businessAssets]; arr.splice(idx, 1); setBusinessAssets(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
-                       </div>
+                {businessAssets.map((asset, idx) => (
+                  <div key={asset.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
+                    <input type="text" value={asset.name} onChange={(e) => { const arr = [...businessAssets]; arr[idx].name = e.target.value; setBusinessAssets(arr); }} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="number" value={asset.quantity} onChange={(e) => { const arr = [...businessAssets]; arr[idx].quantity = Number(e.target.value); setBusinessAssets(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="text" value={asset.size} onChange={(e) => { const arr = [...businessAssets]; arr[idx].size = e.target.value; setBusinessAssets(arr); }} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <select value={asset.condition} onChange={(e) => { const arr = [...businessAssets]; arr[idx].condition = e.target.value; setBusinessAssets(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                      <option value="Operational">Operational</option>
+                      <option value="Non-Operational">Non-Operational</option>
+                      <option value="Needs Repair">Needs Repair</option>
+                    </select>
+                    <div className="flex items-center gap-1">
+                      <input type="text" value={asset.remarks} onChange={(e) => { const arr = [...businessAssets]; arr[idx].remarks = e.target.value; setBusinessAssets(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <button onClick={() => { const arr = [...businessAssets]; arr.splice(idx, 1); setBusinessAssets(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                     </div>
-                 ))}
-                 {businessAssets.length === 0 && <div className="text-xs text-slate-500 italic p-2">No assets added.</div>}
-                 {businessAssets.length > 0 && (
-                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                        <button type="button" onClick={() => setFactoryInfrastructureText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
-                      </div>
-                      <textarea value={factoryInfrastructureText || `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.`} onChange={(e) => setFactoryInfrastructureText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  </div>
+                ))}
+                {businessAssets.length === 0 && <div className="text-xs text-slate-500 italic p-2">No assets added.</div>}
+                {businessAssets.length > 0 && (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                      <button type="button" onClick={() => setFactoryInfrastructureText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                     </div>
-                 )}
+                    <textarea value={factoryInfrastructureText || `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.`} onChange={(e) => setFactoryInfrastructureText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -3335,184 +3343,184 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">5. Stock Details with Estimated Value</h4>
                 <div className="flex items-center gap-3">
-                   <label className="text-[10px] font-bold text-slate-500">Stock Available?</label>
-                   <div className="flex gap-1">
-                      <button type="button" onClick={() => setHasStock(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
-                      <button type="button" onClick={() => setHasStock(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
-                   </div>
-                   {hasStock && (
-                     <button type="button" onClick={() => setStockDetails([...stockDetails, { id: Date.now(), name: '', quantity: 0, unit: 'kg', value: 0, remarks: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
-                       <Plus className="w-3 h-3" /> Add Stock
-                     </button>
-                   )}
+                  <label className="text-[10px] font-bold text-slate-500">Stock Available?</label>
+                  <div className="flex gap-1">
+                    <button type="button" onClick={() => setHasStock(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
+                    <button type="button" onClick={() => setHasStock(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
+                  </div>
+                  {hasStock && (
+                    <button type="button" onClick={() => setStockDetails([...stockDetails, { id: Date.now(), name: '', quantity: 0, unit: 'kg', value: 0, remarks: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
+                      <Plus className="w-3 h-3" /> Add Stock
+                    </button>
+                  )}
                 </div>
               </div>
-              
+
               {!hasStock ? (
-                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                   <div className="flex justify-between items-center">
-                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                     <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
-                   </div>
-                   <textarea value={stockDetailsValueText || 'No significant stock maintained received from customers for processing.'} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
-                 </div>
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                  </div>
+                  <textarea value={stockDetailsValueText || 'No significant stock maintained received from customers for processing.'} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                </div>
               ) : (
-                 <div className="space-y-2">
-                    {stockDetails.map((stock, idx) => (
-                       <div key={stock.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                          <input type="text" value={stock.name} onChange={(e) => { const arr = [...stockDetails]; arr[idx].name = e.target.value; setStockDetails(arr); }} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                          <input type="number" value={stock.quantity} onChange={(e) => { const arr = [...stockDetails]; arr[idx].quantity = Number(e.target.value); setStockDetails(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                          <input type="text" value={stock.unit} onChange={(e) => { const arr = [...stockDetails]; arr[idx].unit = e.target.value; setStockDetails(arr); }} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                          <div className="relative">
-                             <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                             <input type="number" value={stock.value} onChange={(e) => { const arr = [...stockDetails]; arr[idx].value = Number(e.target.value); setStockDetails(arr); }} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                          </div>
-                          <div className="flex items-center gap-1">
-                             <input type="text" value={stock.remarks} onChange={(e) => { const arr = [...stockDetails]; arr[idx].remarks = e.target.value; setStockDetails(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                             <button onClick={() => { const arr = [...stockDetails]; arr.splice(idx, 1); setStockDetails(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
-                          </div>
-                       </div>
-                    ))}
-                    {stockDetails.length > 0 && (
-                       <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                         <div className="flex justify-between items-center">
-                           <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                           <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
-                         </div>
-                         <textarea value={stockDetailsValueText || `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.`} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
-                       </div>
-                    )}
-                 </div>
+                <div className="space-y-2">
+                  {stockDetails.map((stock, idx) => (
+                    <div key={stock.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
+                      <input type="text" value={stock.name} onChange={(e) => { const arr = [...stockDetails]; arr[idx].name = e.target.value; setStockDetails(arr); }} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="number" value={stock.quantity} onChange={(e) => { const arr = [...stockDetails]; arr[idx].quantity = Number(e.target.value); setStockDetails(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={stock.unit} onChange={(e) => { const arr = [...stockDetails]; arr[idx].unit = e.target.value; setStockDetails(arr); }} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <div className="relative">
+                        <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                        <input type="number" value={stock.value} onChange={(e) => { const arr = [...stockDetails]; arr[idx].value = Number(e.target.value); setStockDetails(arr); }} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <input type="text" value={stock.remarks} onChange={(e) => { const arr = [...stockDetails]; arr[idx].remarks = e.target.value; setStockDetails(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <button onClick={() => { const arr = [...stockDetails]; arr.splice(idx, 1); setStockDetails(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                  {stockDetails.length > 0 && (
+                    <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                        <button type="button" onClick={() => setStockDetailsValueText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                      </div>
+                      <textarea value={stockDetailsValueText || `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.`} onChange={(e) => setStockDetailsValueText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                    </div>
+                  )}
+                </div>
               )}
             </div>
 
             {/* 6. Details and confirmation of business by neighbor */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">6. Details and confirmation of business by neighbor</label>
-               <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
-                  <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
-               </div>
-               <div>
-                  <div className="flex items-center justify-between mb-1">
-                     <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
-                     <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
-                  </div>
-                  <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
-               </div>
+              <label className="block text-xs font-bold text-slate-700">6. Details and confirmation of business by neighbor</label>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
+                <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
+                  <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
+                </div>
+                <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
+              </div>
             </div>
 
             {/* 7. Fixed & Current Asset Analysis */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">7. Fixed & Current Asset Analysis</label>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                     <h5 className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 pb-1 mb-2">Fixed Assets (Auto-populated)</h5>
-                     {businessAssets.length === 0 ? <span className="text-xs italic text-slate-400">None added in Infrastructure section</span> : (
-                        <ul className="list-disc pl-4 text-xs font-semibold text-slate-700">
-                           {businessAssets.map(a => <li key={a.id}>{a.name}</li>)}
-                        </ul>
-                     )}
-                  </div>
-                  <div>
-                     <h5 className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 pb-1 mb-2">Current Assets</h5>
-                     <div className="flex flex-wrap gap-2">
-                        {['Working Capital', 'Stock / Inventory', 'Raw Material', 'Finished Goods', 'Other'].map(asset => (
-                           <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                             <input type="checkbox" checked={currentAssets.includes(asset)} onChange={(e) => {
-                               if (e.target.checked) setCurrentAssets([...currentAssets, asset]);
-                               else setCurrentAssets(currentAssets.filter(a => a !== asset));
-                             }} className="accent-[#eb8a23]" />
-                             {asset}
-                           </label>
-                        ))}
-                     </div>
-                      {currentAssets.includes('Other') && (
-                         <input type="text" value={currentAssetsOther} onChange={(e) => setCurrentAssetsOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Other Current Assets" />
-                      )}
-                   </div>
+              <label className="block text-xs font-bold text-slate-700">7. Fixed & Current Asset Analysis</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h5 className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 pb-1 mb-2">Fixed Assets (Auto-populated)</h5>
+                  {businessAssets.length === 0 ? <span className="text-xs italic text-slate-400">None added in Infrastructure section</span> : (
+                    <ul className="list-disc pl-4 text-xs font-semibold text-slate-700">
+                      {businessAssets.map(a => <li key={a.id}>{a.name}</li>)}
+                    </ul>
+                  )}
                 </div>
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                    <button type="button" onClick={() => setFixedAndCurrentAssetAnalysisText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                <div>
+                  <h5 className="text-[10px] uppercase font-bold text-slate-500 border-b border-slate-200 pb-1 mb-2">Current Assets</h5>
+                  <div className="flex flex-wrap gap-2">
+                    {['Working Capital', 'Stock / Inventory', 'Raw Material', 'Finished Goods', 'Other'].map(asset => (
+                      <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+                        <input type="checkbox" checked={currentAssets.includes(asset)} onChange={(e) => {
+                          if (e.target.checked) setCurrentAssets([...currentAssets, asset]);
+                          else setCurrentAssets(currentAssets.filter(a => a !== asset));
+                        }} className="accent-[#eb8a23]" />
+                        {asset}
+                      </label>
+                    ))}
                   </div>
-                  <textarea value={fixedAndCurrentAssetAnalysisText || `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`} onChange={(e) => setFixedAndCurrentAssetAnalysisText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  {currentAssets.includes('Other') && (
+                    <input type="text" value={currentAssetsOther} onChange={(e) => setCurrentAssetsOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Other Current Assets" />
+                  )}
                 </div>
-             </div>
+              </div>
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                  <button type="button" onClick={() => setFixedAndCurrentAssetAnalysisText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                </div>
+                <textarea value={fixedAndCurrentAssetAnalysisText || `Fixed assets comprise ${businessAssets.length > 0 ? businessAssets.map(a => a.name).join(', ') : 'standard fixtures'}. Current assets include ${currentAssets.length > 0 ? currentAssets.join(', ') : 'working capital'}.`} onChange={(e) => setFixedAndCurrentAssetAnalysisText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+              </div>
+            </div>
 
             {/* 8. Asset Creation Through Business */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">8. Asset Creation Through Business</label>
-               <div className="flex items-center gap-4">
-                 <span className="text-xs font-semibold text-slate-600">Has business income been used for asset creation?</span>
-                 <button type="button" onClick={() => setBusinessIncomeAssetCreation(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${businessIncomeAssetCreation ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                 <button type="button" onClick={() => { setBusinessIncomeAssetCreation(false); setCreatedAssets([]); }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${!businessIncomeAssetCreation ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
-               </div>
+              <label className="block text-xs font-bold text-slate-700">8. Asset Creation Through Business</label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-600">Has business income been used for asset creation?</span>
+                <button type="button" onClick={() => setBusinessIncomeAssetCreation(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${businessIncomeAssetCreation ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                <button type="button" onClick={() => { setBusinessIncomeAssetCreation(false); setCreatedAssets([]); }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${!businessIncomeAssetCreation ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+              </div>
 
-               {businessIncomeAssetCreation && (
-                  <div className="space-y-4 mt-2">
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">What assets were created?</label>
-                        <div className="flex flex-wrap gap-2">
-                           {['Residential House', 'Land', 'Vehicle', 'Business Expansion', 'Machinery', 'Other'].map(asset => (
-                              <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                                 <input type="checkbox" checked={createdAssets.includes(asset)} onChange={(e) => {
-                                    if (e.target.checked) setCreatedAssets([...createdAssets, asset]);
-                                    else setCreatedAssets(createdAssets.filter(a => a !== asset));
-                                 }} className="accent-[#eb8a23]" />
-                                 {asset}
-                              </label>
-                           ))}
-                        </div>
-                        {createdAssets.includes('Other') && (
-                           <input type="text" value={createdAssetsOther} onChange={(e) => setCreatedAssetsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Created Assets" />
-                        )}
-                     </div>
-
-                     <div className="flex items-center gap-4 pt-2 border-t border-slate-200">
-                        <span className="text-xs font-semibold text-slate-600">Other Household / Personal Expenses?</span>
-                        <button type="button" onClick={() => setOtherHouseholdExpenses(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${otherHouseholdExpenses ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                        <button type="button" onClick={() => { setOtherHouseholdExpenses(false); setOtherHouseholdExpensesDesc(''); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!otherHouseholdExpenses ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
-                     </div>
-                     {otherHouseholdExpenses && (
-                        <input type="text" value={otherHouseholdExpensesDesc} onChange={(e) => setOtherHouseholdExpensesDesc(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Optional description..." />
-                     )}
-
-                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                       <div className="flex justify-between items-center">
-                         <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                         <button type="button" onClick={() => setAssetCreationText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
-                       </div>
-                       <textarea value={assetCreationText || `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`} onChange={(e) => setAssetCreationText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
-                     </div>
+              {businessIncomeAssetCreation && (
+                <div className="space-y-4 mt-2">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">What assets were created?</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Residential House', 'Land', 'Vehicle', 'Business Expansion', 'Machinery', 'Other'].map(asset => (
+                        <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+                          <input type="checkbox" checked={createdAssets.includes(asset)} onChange={(e) => {
+                            if (e.target.checked) setCreatedAssets([...createdAssets, asset]);
+                            else setCreatedAssets(createdAssets.filter(a => a !== asset));
+                          }} className="accent-[#eb8a23]" />
+                          {asset}
+                        </label>
+                      ))}
+                    </div>
+                    {createdAssets.includes('Other') && (
+                      <input type="text" value={createdAssetsOther} onChange={(e) => setCreatedAssetsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Created Assets" />
+                    )}
                   </div>
-               )}
+
+                  <div className="flex items-center gap-4 pt-2 border-t border-slate-200">
+                    <span className="text-xs font-semibold text-slate-600">Other Household / Personal Expenses?</span>
+                    <button type="button" onClick={() => setOtherHouseholdExpenses(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${otherHouseholdExpenses ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                    <button type="button" onClick={() => { setOtherHouseholdExpenses(false); setOtherHouseholdExpensesDesc(''); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!otherHouseholdExpenses ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+                  </div>
+                  {otherHouseholdExpenses && (
+                    <input type="text" value={otherHouseholdExpensesDesc} onChange={(e) => setOtherHouseholdExpensesDesc(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Optional description..." />
+                  )}
+
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                      <button type="button" onClick={() => setAssetCreationText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                    </div>
+                    <textarea value={assetCreationText || `As informed by the applicant, the income generated from the business has been utilized for ${createdAssets.length > 0 ? createdAssets.map(a => a === 'Other' ? createdAssetsOther : a.toLowerCase()).join(', ') : 'asset creation'}${otherHouseholdExpenses ? ', along with meeting household expenses.' : '.'}`} onChange={(e) => setAssetCreationText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 9. Business Investment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">9. Business Investment (Initial)</label>
-                  <div className="relative">
-                     <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                     <input type="number" value={initialInvestment} onChange={(e) => setInitialInvestment(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" />
-                  </div>
-               </div>
-               <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Investment Source</label>
-                  <select value={investmentSource} onChange={(e) => setInvestmentSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                     <option value="">Select...</option>
-                     <option value="Own Funds">Own Funds</option>
-                     <option value="Loan">Loan</option>
-                     <option value="Family Funds">Family Funds</option>
-                     <option value="Combination">Combination</option>
-                     <option value="Other">Other</option>
-                  </select>
-                  {investmentSource === 'Other' && (
-                     <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
-                  )}
-               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">9. Business Investment (Initial)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                  <input type="number" value={initialInvestment} onChange={(e) => setInitialInvestment(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Investment Source</label>
+                <select value={investmentSource} onChange={(e) => setInvestmentSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
+                  <option value="">Select...</option>
+                  <option value="Own Funds">Own Funds</option>
+                  <option value="Loan">Loan</option>
+                  <option value="Family Funds">Family Funds</option>
+                  <option value="Combination">Combination</option>
+                  <option value="Other">Other</option>
+                </select>
+                {investmentSource === 'Other' && (
+                  <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
+                )}
+              </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
               <div className="flex justify-between items-center">
@@ -3524,217 +3532,217 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 10. Agricultural Income Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">10. Agricultural Income Details</label>
-               <div className="flex items-center gap-4">
-                 <span className="text-xs font-semibold text-slate-600">Agricultural Land?</span>
-                 <button type="button" onClick={() => setHasAgricultureLand(true)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${hasAgricultureLand ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                 <button type="button" onClick={() => setHasAgricultureLand(false)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${!hasAgricultureLand ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
-               </div>
+              <label className="block text-xs font-bold text-slate-700">10. Agricultural Income Details</label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-600">Agricultural Land?</span>
+                <button type="button" onClick={() => setHasAgricultureLand(true)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${hasAgricultureLand ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                <button type="button" onClick={() => setHasAgricultureLand(false)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${!hasAgricultureLand ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+              </div>
 
-               {hasAgricultureLand && (
-                  <div className="space-y-4 mt-3 border-t border-slate-200 pt-4">
-                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Land Area & Unit</label>
-                           <div className="flex gap-2">
-                              <input type="number" value={agriLandArea} onChange={(e) => setAgriLandArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Area" />
-                              <select value={agriLandUnit} onChange={(e) => setAgriLandUnit(e.target.value)} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                                 <option value="Bigha">Bigha</option>
-                                 <option value="Acre">Acre</option>
-                                 <option value="Hectare">Hectare</option>
-                                 <option value="Other">Other</option>
-                              </select>
-                           </div>
-                        </div>
-                        <div>
-                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership</label>
-                           <select value={agriLandOwnership} onChange={(e) => setAgriLandOwnership(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                              <option value="Self-owned">Self-owned</option>
-                              <option value="Family-owned">Family-owned</option>
-                              <option value="Leased">Leased</option>
-                              <option value="Other">Other</option>
-                           </select>
-                        </div>
-                        <div>
-                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Document Available?</label>
-                           <select value={agriOwnershipDoc} onChange={(e) => setAgriOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                              <option value="Yes">Yes</option>
-                              <option value="No">No</option>
-                              <option value="Not Provided">Not Provided</option>
-                           </select>
-                        </div>
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Crops</label>
-                        <div className="flex flex-wrap gap-2">
-                           {['Wheat', 'Sugarcane', 'Rice', 'Mustard', 'Vegetables', 'Other'].map(crop => (
-                              <label key={crop} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
-                                 <input type="checkbox" checked={agriCrops.includes(crop)} onChange={(e) => {
-                                    if (e.target.checked) setAgriCrops([...agriCrops, crop]);
-                                    else setAgriCrops(agriCrops.filter(c => c !== crop));
-                                 }} className="accent-[#eb8a23]" />
-                                 {crop}
-                              </label>
-                           ))}
-                        </div>
-                        {agriCrops.includes('Other') && (
-                           <input type="text" value={agriCropsOther} onChange={(e) => setAgriCropsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Crops" />
-                        )}
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Annual Agricultural Income</label>
-                        <div className="flex items-center gap-2 max-w-md">
-                           <div className="relative flex-1">
-                              <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                              <input type="number" value={agriIncomeMin} onChange={(e) => setAgriIncomeMin(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Min" />
-                           </div>
-                           <span className="text-xs font-bold text-slate-400">to</span>
-                           <div className="relative flex-1">
-                              <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                              <input type="number" value={agriIncomeMax} onChange={(e) => setAgriIncomeMax(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Max" />
-                           </div>
-                        </div>
-                     </div>
-                  </div>
-               )}
-               {hasAgricultureLand && (
-                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
-                      <button type="button" onClick={() => setAgriculturalIncomeText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+              {hasAgricultureLand && (
+                <div className="space-y-4 mt-3 border-t border-slate-200 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Land Area & Unit</label>
+                      <div className="flex gap-2">
+                        <input type="number" value={agriLandArea} onChange={(e) => setAgriLandArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Area" />
+                        <select value={agriLandUnit} onChange={(e) => setAgriLandUnit(e.target.value)} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                          <option value="Bigha">Bigha</option>
+                          <option value="Acre">Acre</option>
+                          <option value="Hectare">Hectare</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
                     </div>
-                    <textarea value={agriculturalIncomeText || `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`} onChange={(e) => setAgriculturalIncomeText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership</label>
+                      <select value={agriLandOwnership} onChange={(e) => setAgriLandOwnership(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                        <option value="Self-owned">Self-owned</option>
+                        <option value="Family-owned">Family-owned</option>
+                        <option value="Leased">Leased</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Document Available?</label>
+                      <select value={agriOwnershipDoc} onChange={(e) => setAgriOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Not Provided">Not Provided</option>
+                      </select>
+                    </div>
                   </div>
-               )}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Crops</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['Wheat', 'Sugarcane', 'Rice', 'Mustard', 'Vegetables', 'Other'].map(crop => (
+                        <label key={crop} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
+                          <input type="checkbox" checked={agriCrops.includes(crop)} onChange={(e) => {
+                            if (e.target.checked) setAgriCrops([...agriCrops, crop]);
+                            else setAgriCrops(agriCrops.filter(c => c !== crop));
+                          }} className="accent-[#eb8a23]" />
+                          {crop}
+                        </label>
+                      ))}
+                    </div>
+                    {agriCrops.includes('Other') && (
+                      <input type="text" value={agriCropsOther} onChange={(e) => setAgriCropsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Crops" />
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Annual Agricultural Income</label>
+                    <div className="flex items-center gap-2 max-w-md">
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                        <input type="number" value={agriIncomeMin} onChange={(e) => setAgriIncomeMin(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Min" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-400">to</span>
+                      <div className="relative flex-1">
+                        <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                        <input type="number" value={agriIncomeMax} onChange={(e) => setAgriIncomeMax(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Max" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              {hasAgricultureLand && (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setAgriculturalIncomeText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
+                  </div>
+                  <textarea value={agriculturalIncomeText || `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`} onChange={(e) => setAgriculturalIncomeText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                </div>
+              )}
             </div>
 
             {/* 10. Other Source Income */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-700">10. Other source income</label>
-                  <div className="flex items-center gap-2">
-                     <button type="button" onClick={() => setHasOtherIncome(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
-                     <button type="button" onClick={() => setHasOtherIncome(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
-                  </div>
-               </div>
-               
-               {!hasOtherIncome ? (
-                  <div className="text-xs font-semibold text-slate-500 italic">No other source of income reported.</div>
-               ) : (
-                  <div className="space-y-3 pt-3 border-t border-slate-200">
-                     <button type="button" onClick={() => setOtherIncomeSources([...otherIncomeSources, { id: Date.now(), source: 'Salary', frequency: 'Monthly', amount: 0, remarks: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
-                        <Plus className="w-3 h-3" /> Add Income Source
-                     </button>
-                     {otherIncomeSources.map((inc, idx) => (
-                        <div key={inc.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 border border-slate-200 rounded-lg bg-white items-center">
-                           <select value={inc.source} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].source = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
-                              <option value="Salary">Salary</option>
-                              <option value="Rent">Rent</option>
-                              <option value="Agriculture">Agriculture</option>
-                              <option value="Pension">Pension</option>
-                              <option value="Business">Business</option>
-                              <option value="Investment">Investment</option>
-                              <option value="Other">Other</option>
-                           </select>
-                           <select value={inc.frequency} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].frequency = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
-                              <option value="Monthly">Monthly</option>
-                              <option value="Annual">Annual</option>
-                           </select>
-                           <div className="relative">
-                              <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                              <input type="number" value={inc.amount} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].amount = Number(e.target.value); setOtherIncomeSources(arr); }} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                           </div>
-                           <div className="flex items-center gap-1 col-span-2">
-                              <input type="text" value={inc.remarks} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].remarks = e.target.value; setOtherIncomeSources(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                              <button onClick={() => { const arr = [...otherIncomeSources]; arr.splice(idx, 1); setOtherIncomeSources(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-               )}
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-slate-700">10. Other source income</label>
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={() => setHasOtherIncome(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
+                  <button type="button" onClick={() => setHasOtherIncome(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
+                </div>
+              </div>
+
+              {!hasOtherIncome ? (
+                <div className="text-xs font-semibold text-slate-500 italic">No other source of income reported.</div>
+              ) : (
+                <div className="space-y-3 pt-3 border-t border-slate-200">
+                  <button type="button" onClick={() => setOtherIncomeSources([...otherIncomeSources, { id: Date.now(), source: 'Salary', frequency: 'Monthly', amount: 0, remarks: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
+                    <Plus className="w-3 h-3" /> Add Income Source
+                  </button>
+                  {otherIncomeSources.map((inc, idx) => (
+                    <div key={inc.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 border border-slate-200 rounded-lg bg-white items-center">
+                      <select value={inc.source} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].source = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                        <option value="Salary">Salary</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Agriculture">Agriculture</option>
+                        <option value="Pension">Pension</option>
+                        <option value="Business">Business</option>
+                        <option value="Investment">Investment</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <select value={inc.frequency} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].frequency = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                        <option value="Monthly">Monthly</option>
+                        <option value="Annual">Annual</option>
+                      </select>
+                      <div className="relative">
+                        <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                        <input type="number" value={inc.amount} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].amount = Number(e.target.value); setOtherIncomeSources(arr); }} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      </div>
+                      <div className="flex items-center gap-1 col-span-2">
+                        <input type="text" value={inc.remarks} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].remarks = e.target.value; setOtherIncomeSources(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <button onClick={() => { const arr = [...otherIncomeSources]; arr.splice(idx, 1); setOtherIncomeSources(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* 11. Solar Saving Analysis */}
             <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-orange-900">11. Solar Saving Analysis</label>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Reduction in Operational Cost</label>
-                     <div className="relative">
-                        <input type="number" value={expectedSolarCostReductionPct} onChange={(e) => setExpectedSolarCostReductionPct(Number(e.target.value))} className="w-full pr-7 pl-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Percentage" />
-                        <span className="absolute right-3 top-2 text-slate-500 font-bold">%</span>
-                     </div>
+              <label className="block text-xs font-bold text-orange-900">11. Solar Saving Analysis</label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Reduction in Operational Cost</label>
+                  <div className="relative">
+                    <input type="number" value={expectedSolarCostReductionPct} onChange={(e) => setExpectedSolarCostReductionPct(Number(e.target.value))} className="w-full pr-7 pl-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Percentage" />
+                    <span className="absolute right-3 top-2 text-slate-500 font-bold">%</span>
                   </div>
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Monthly Saving</label>
-                     <div className="relative">
-                        <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
-                        <input type="number" value={expectedSolarMonthlySaving} onChange={(e) => setExpectedSolarMonthlySaving(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
-                     </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Monthly Saving</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
+                    <input type="number" value={expectedSolarMonthlySaving} onChange={(e) => setExpectedSolarMonthlySaving(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                   </div>
-                  <div className="md:col-span-2 p-3 bg-white border border-orange-200 rounded-lg flex flex-col gap-1">
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] uppercase font-bold text-orange-800">Generated Narrative (Editable)</span>
-                      <button type="button" onClick={() => setSolarSavingText('')} className="text-[9px] text-orange-600 hover:underline font-bold">Auto-Generate</button>
-                    </div>
-                    <textarea value={solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`} onChange={(e) => setSolarSavingText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-orange-900 focus:ring-0 resize-none" rows={2} />
+                </div>
+                <div className="md:col-span-2 p-3 bg-white border border-orange-200 rounded-lg flex flex-col gap-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] uppercase font-bold text-orange-800">Generated Narrative (Editable)</span>
+                    <button type="button" onClick={() => setSolarSavingText('')} className="text-[9px] text-orange-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-               </div>
+                  <textarea value={solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`} onChange={(e) => setSolarSavingText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-orange-900 focus:ring-0 resize-none" rows={2} />
+                </div>
+              </div>
             </div>
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <div>
-                  <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
-               </div>
-               
-               <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
-                     <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
+              <div>
+                <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
+              </div>
+
+              <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
+                  <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Income Assessment Details</label>
+                  <div className="flex items-center gap-6">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input type="radio" name="incomeAssessment" value="With Income Assessment" checked={additionalBusinessIncomeAssessment === 'With Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
+                      With Income Assessment
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+                      <input type="radio" name="incomeAssessment" value="Without Income Assessment" checked={additionalBusinessIncomeAssessment === 'Without Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
+                      Without Income Assessment
+                    </label>
                   </div>
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Income Assessment Details</label>
-                     <div className="flex items-center gap-6">
-                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                           <input type="radio" name="incomeAssessment" value="With Income Assessment" checked={additionalBusinessIncomeAssessment === 'With Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
-                           With Income Assessment
-                        </label>
-                        <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
-                           <input type="radio" name="incomeAssessment" value="Without Income Assessment" checked={additionalBusinessIncomeAssessment === 'Without Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
-                           Without Income Assessment
-                        </label>
-                     </div>
-                  </div>
-               </div>
+                </div>
+              </div>
             </div>
 
             {/* RESIDENCE VISIT DETAILS SUB-HEADER */}
             <div className="pt-6 pb-2 border-b border-slate-200">
-               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                 <MapPin className="w-4 h-4 text-[#eb8a23]" />
-                 Residence Visit Details
-               </h3>
+              <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#eb8a23]" />
+                Residence Visit Details
+              </h3>
             </div>
 
             {/* 12. Met Person During Visit Time */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-1">12. Met Person During Visit Time</label>
-               <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex justify-between items-center">
-                  <div className="text-xs font-semibold text-slate-700">
-                     {personsMet.map(p => {
-                        if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
-                        if (p === 'Co-applicant') {
-                           const c = coApplicants[0];
-                           if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
-                           return 'Co-applicant';
-                        }
-                        if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
-                        return p;
-                     }).join(' & ') || 'No persons selected in Applicant Tab.'}
-                  </div>
-                  <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Participants</button>
-               </div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">12. Met Person During Visit Time</label>
+              <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex justify-between items-center">
+                <div className="text-xs font-semibold text-slate-700">
+                  {personsMet.map(p => {
+                    if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
+                    if (p === 'Co-applicant') {
+                      const c = coApplicants[0];
+                      if (c) return `${c.name || 'Co-applicant'} (${c.relation === 'Other' ? c.otherRelation : c.relation})`;
+                      return 'Co-applicant';
+                    }
+                    if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
+                    return p;
+                  }).join(' & ') || 'No persons selected in Applicant Tab.'}
+                </div>
+                <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Participants</button>
+              </div>
             </div>
 
             {/* 13. Address of the Meeting */}
@@ -3763,357 +3771,357 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 14. Locating Premises Type */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-2">14. Locating Premises Type</label>
-               <div className="flex flex-wrap gap-3">
-                 {['Village Area', 'Urban Area', 'Semi-Urban Area', 'Industrial Area', 'Commercial Area', 'Other'].map(opt => (
-                    <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
-                      <input type="radio" checked={locatingPremisesType === opt} onChange={() => setLocatingPremisesType(opt)} className="accent-[#eb8a23]" />
-                      {opt}
-                    </label>
-                 ))}
-               </div>
-               {locatingPremisesType === 'Other' && (
-                  <input type="text" value={locatingPremisesTypeOther} onChange={(e) => setLocatingPremisesTypeOther(e.target.value)} className="w-full md:w-1/2 mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Premises Type" />
-               )}
-               {locatingPremisesType && (
-                 <div className="mt-2 text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">
-                    Generated: The residence premises are located in {locatingPremisesType === 'Other' ? `a ${locatingPremisesTypeOther}` : `a ${locatingPremisesType.toLowerCase()}`}.
-                 </div>
-               )}
+              <label className="block text-xs font-bold text-slate-700 mb-2">14. Locating Premises Type</label>
+              <div className="flex flex-wrap gap-3">
+                {['Village Area', 'Urban Area', 'Semi-Urban Area', 'Industrial Area', 'Commercial Area', 'Other'].map(opt => (
+                  <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                    <input type="radio" checked={locatingPremisesType === opt} onChange={() => setLocatingPremisesType(opt)} className="accent-[#eb8a23]" />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+              {locatingPremisesType === 'Other' && (
+                <input type="text" value={locatingPremisesTypeOther} onChange={(e) => setLocatingPremisesTypeOther(e.target.value)} className="w-full md:w-1/2 mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Premises Type" />
+              )}
+              {locatingPremisesType && (
+                <div className="mt-2 text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">
+                  Generated: The residence premises are located in {locatingPremisesType === 'Other' ? `a ${locatingPremisesTypeOther}` : `a ${locatingPremisesType.toLowerCase()}`}.
+                </div>
+              )}
             </div>
 
             {/* 15. Ownership */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">15. Ownership</label>
-               <div className="flex flex-wrap gap-3">
-                 {['Self-Owned', 'Rented', 'Leased', 'Family-Owned', 'Other'].map(opt => (
-                    <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input type="radio" checked={propertyOwnership === opt} onChange={() => setPropertyOwnership(opt)} className="accent-[#eb8a23]" />
-                      {opt}
-                    </label>
-                 ))}
-               </div>
-               
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
-                  {propertyOwnership === 'Rented' && (
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Rent</label>
-                      <div className="relative">
-                         <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                         <input type="number" value={propertyRentAmount} onChange={(e) => setPropertyRentAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
-                      </div>
-                    </div>
-                  )}
-                  {propertyOwnership === 'Self-Owned' && (
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Property Owner Name</label>
-                      <div className="flex gap-2">
-                        <input type="text" value={propertyOwnerName} onChange={(e) => setPropertyOwnerName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Name" />
-                        <button type="button" onClick={() => setPropertyOwnerName(applicantName)} className="text-[10px] whitespace-nowrap bg-slate-200 px-2 py-1 rounded font-bold text-slate-700">Set Applicant</button>
-                      </div>
-                    </div>
-                  )}
-                  
+              <label className="block text-xs font-bold text-slate-700">15. Ownership</label>
+              <div className="flex flex-wrap gap-3">
+                {['Self-Owned', 'Rented', 'Leased', 'Family-Owned', 'Other'].map(opt => (
+                  <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <input type="radio" checked={propertyOwnership === opt} onChange={() => setPropertyOwnership(opt)} className="accent-[#eb8a23]" />
+                    {opt}
+                  </label>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
+                {propertyOwnership === 'Rented' && (
                   <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Area (Sq. Ft.)</label>
-                    <input type="number" value={propertyArea} onChange={(e) => setPropertyArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Sq. Ft." />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Value</label>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Rent</label>
                     <div className="relative">
-                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                       <input type="number" value={propertyValue} onChange={(e) => setPropertyValue(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Value" />
+                      <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                      <input type="number" value={propertyRentAmount} onChange={(e) => setPropertyRentAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
                   </div>
+                )}
+                {propertyOwnership === 'Self-Owned' && (
                   <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership Document Available?</label>
-                     <select value={propertyOwnershipDoc} onChange={(e) => setPropertyOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                        <option value="Yes">Yes</option>
-                        <option value="No">No</option>
-                        <option value="Not Provided">Not Provided</option>
-                     </select>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Property Owner Name</label>
+                    <div className="flex gap-2">
+                      <input type="text" value={propertyOwnerName} onChange={(e) => setPropertyOwnerName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Name" />
+                      <button type="button" onClick={() => setPropertyOwnerName(applicantName)} className="text-[10px] whitespace-nowrap bg-slate-200 px-2 py-1 rounded font-bold text-slate-700">Set Applicant</button>
+                    </div>
                   </div>
-               </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Area (Sq. Ft.)</label>
+                  <input type="number" value={propertyArea} onChange={(e) => setPropertyArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Sq. Ft." />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Value</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                    <input type="number" value={propertyValue} onChange={(e) => setPropertyValue(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Value" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership Document Available?</label>
+                  <select value={propertyOwnershipDoc} onChange={(e) => setPropertyOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                    <option value="Yes">Yes</option>
+                    <option value="No">No</option>
+                    <option value="Not Provided">Not Provided</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             {/* 16. House Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">16. House Details</label>
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Floors</label>
-                    <input type="number" value={houseFloors} onChange={(e) => setHouseFloors(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Floors" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Rooms</label>
-                    <input type="number" value={houseRooms} onChange={(e) => setHouseRooms(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Rooms" />
-                  </div>
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Structure Type</label>
-                     <select value={houseStructureType} onChange={(e) => setHouseStructureType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                        <option value="">Select...</option>
-                        <option value="Single Story">Single Story</option>
-                        <option value="Double Story">Double Story</option>
-                        <option value="Multi Story">Multi Story</option>
-                        <option value="Other">Other</option>
-                     </select>
-                  </div>
-                  <div>
-                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Floor</label>
-                     <select value={houseFloorPosition} onChange={(e) => setHouseFloorPosition(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                        <option value="">Select...</option>
-                        <option value="Ground Floor">Ground Floor</option>
-                        <option value="Ground + 1">Ground + 1</option>
-                        <option value="Ground + 2">Ground + 2</option>
-                        <option value="Other">Other</option>
-                     </select>
-                  </div>
-               </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {houseStructureType === 'Other' && <input type="text" value={houseStructureTypeOther} onChange={(e) => setHouseStructureTypeOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Structure Type" />}
-                  {houseFloorPosition === 'Other' && <input type="text" value={houseFloorPositionOther} onChange={(e) => setHouseFloorPositionOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Floor Position" />}
-               </div>
-               <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Additional Details</label>
-                  <input type="text" value={houseAdditionalDetails} onChange={(e) => setHouseAdditionalDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional details..." />
-               </div>
-               <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                 Generated: This house has {houseRooms || 0} rooms and is a {houseStructureType === 'Other' ? houseStructureTypeOther.toLowerCase() : houseStructureType.toLowerCase()} structure, comprising {houseFloorPosition === 'Other' ? houseFloorPositionOther.toLowerCase() : houseFloorPosition.toLowerCase()}.
-               </div>
+              <label className="block text-xs font-bold text-slate-700">16. House Details</label>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Floors</label>
+                  <input type="number" value={houseFloors} onChange={(e) => setHouseFloors(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Floors" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Rooms</label>
+                  <input type="number" value={houseRooms} onChange={(e) => setHouseRooms(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Rooms" />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Structure Type</label>
+                  <select value={houseStructureType} onChange={(e) => setHouseStructureType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                    <option value="">Select...</option>
+                    <option value="Single Story">Single Story</option>
+                    <option value="Double Story">Double Story</option>
+                    <option value="Multi Story">Multi Story</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Floor</label>
+                  <select value={houseFloorPosition} onChange={(e) => setHouseFloorPosition(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                    <option value="">Select...</option>
+                    <option value="Ground Floor">Ground Floor</option>
+                    <option value="Ground + 1">Ground + 1</option>
+                    <option value="Ground + 2">Ground + 2</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {houseStructureType === 'Other' && <input type="text" value={houseStructureTypeOther} onChange={(e) => setHouseStructureTypeOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Structure Type" />}
+                {houseFloorPosition === 'Other' && <input type="text" value={houseFloorPositionOther} onChange={(e) => setHouseFloorPositionOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Floor Position" />}
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Additional Details</label>
+                <input type="text" value={houseAdditionalDetails} onChange={(e) => setHouseAdditionalDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional details..." />
+              </div>
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
+                Generated: This house has {houseRooms || 0} rooms and is a {houseStructureType === 'Other' ? houseStructureTypeOther.toLowerCase() : houseStructureType.toLowerCase()} structure, comprising {houseFloorPosition === 'Other' ? houseFloorPositionOther.toLowerCase() : houseFloorPosition.toLowerCase()}.
+              </div>
             </div>
 
             {/* 17. Family Background of the Applicant */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-1">17. Family Background of the Applicant</label>
-               <div className="p-4 bg-slate-50 border border-slate-300 rounded-lg">
-                  <div className="flex justify-between items-center mb-3">
-                     <span className="text-xs font-semibold text-slate-600 italic">This table is automatically generated from the Household data.</span>
-                     <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Family Records</button>
-                  </div>
-                  {familyMembers.length === 0 ? (
-                     <div className="text-xs text-slate-400 p-2 text-center bg-white border border-slate-200 rounded">No family members found.</div>
-                  ) : (
-                     <table className="w-full text-left text-xs text-slate-600 border border-slate-200 bg-white">
-                        <thead className="bg-slate-100">
-                           <tr>
-                              <th className="p-2 border-b">Name</th>
-                              <th className="p-2 border-b">Age</th>
-                              <th className="p-2 border-b">Relationship</th>
-                              <th className="p-2 border-b">Qualification</th>
-                              <th className="p-2 border-b">Occupation</th>
-                              <th className="p-2 border-b text-center">Dependent</th>
-                           </tr>
-                        </thead>
-                        <tbody>
-                           {familyMembers.map(member => (
-                              <tr key={member.id} className="border-b border-slate-100">
-                                 <td className="p-2">{member.name || '-'}</td>
-                                 <td className="p-2">{member.age || '-'}</td>
-                                 <td className="p-2">{member.relationship || '-'}</td>
-                                 <td className="p-2">{member.qualification || '-'}</td>
-                                 <td className="p-2">{member.occupation || member.profession || '-'}</td>
-                                 <td className="p-2 text-center">{member.isDependent ? 'Yes' : 'No'}</td>
-                              </tr>
-                           ))}
-                        </tbody>
-                     </table>
-                  )}
-               </div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">17. Family Background of the Applicant</label>
+              <div className="p-4 bg-slate-50 border border-slate-300 rounded-lg">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-xs font-semibold text-slate-600 italic">This table is automatically generated from the Household data.</span>
+                  <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Family Records</button>
+                </div>
+                {familyMembers.length === 0 ? (
+                  <div className="text-xs text-slate-400 p-2 text-center bg-white border border-slate-200 rounded">No family members found.</div>
+                ) : (
+                  <table className="w-full text-left text-xs text-slate-600 border border-slate-200 bg-white">
+                    <thead className="bg-slate-100">
+                      <tr>
+                        <th className="p-2 border-b">Name</th>
+                        <th className="p-2 border-b">Age</th>
+                        <th className="p-2 border-b">Relationship</th>
+                        <th className="p-2 border-b">Qualification</th>
+                        <th className="p-2 border-b">Occupation</th>
+                        <th className="p-2 border-b text-center">Dependent</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {familyMembers.map(member => (
+                        <tr key={member.id} className="border-b border-slate-100">
+                          <td className="p-2">{member.name || '-'}</td>
+                          <td className="p-2">{member.age || '-'}</td>
+                          <td className="p-2">{member.relationship || '-'}</td>
+                          <td className="p-2">{member.qualification || '-'}</td>
+                          <td className="p-2">{member.occupation || member.profession || '-'}</td>
+                          <td className="p-2 text-center">{member.isDependent ? 'Yes' : 'No'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
 
             {/* 18. Monthly Household Expenses */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-1">18. Monthly Household Expenses</label>
-               <div className="relative md:w-1/3">
-                  <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                  <input type="number" value={monthlyHouseholdExpensesAmount} onChange={(e) => setMonthlyHouseholdExpensesAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount / month" />
-               </div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">18. Monthly Household Expenses</label>
+              <div className="relative md:w-1/3">
+                <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                <input type="number" value={monthlyHouseholdExpensesAmount} onChange={(e) => setMonthlyHouseholdExpensesAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount / month" />
+              </div>
             </div>
 
             {/* 19A. Residence Electricity Connection Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">19A. Residence Electricity Connection Details</label>
-               <div className="flex gap-2">
-                 {['Yes', 'No', 'Not Provided'].map(opt => (
-                    <button key={opt} type="button" onClick={() => setHasResElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasResElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
-                 ))}
-               </div>
-               
-               {hasResElectricityConnection === 'Yes' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
-                        <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                           <option value="">Select...</option>
-                           <option value="Domestic">Domestic</option>
-                           <option value="Commercial">Commercial</option>
-                           <option value="Agricultural">Agricultural</option>
-                           <option value="Other">Other</option>
-                        </select>
-                        {resElectricityConnectionType === 'Other' && (
-                           <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
-                        )}
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
-                        <input type="text" value={resElectricityConsumerNumber} onChange={(e) => setResElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
-                        <div className="relative">
-                           <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                           <input type="number" value={resElectricityMonthlyExpense} onChange={(e) => setResElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
-                        </div>
-                     </div>
+              <label className="block text-xs font-bold text-slate-700">19A. Residence Electricity Connection Details</label>
+              <div className="flex gap-2">
+                {['Yes', 'No', 'Not Provided'].map(opt => (
+                  <button key={opt} type="button" onClick={() => setHasResElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasResElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
+                ))}
+              </div>
+
+              {hasResElectricityConnection === 'Yes' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                    <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                      <option value="">Select...</option>
+                      <option value="Domestic">Domestic</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Agricultural">Agricultural</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {resElectricityConnectionType === 'Other' && (
+                      <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
+                    )}
                   </div>
-               )}
-               {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                    <input type="text" value={resElectricityConsumerNumber} onChange={(e) => setResElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                      <input type="number" value={resElectricityMonthlyExpense} onChange={(e) => setResElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
             </div>
 
             {/* 19B. Business Electricity Connection Details */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">19B. Business Electricity Connection Details</label>
-               <div className="flex gap-2">
-                 {['Yes', 'No', 'Not Provided'].map(opt => (
-                    <button key={opt} type="button" onClick={() => setHasElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
-                 ))}
-               </div>
-               
-               {hasElectricityConnection === 'Yes' && (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
-                        <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                           <option value="">Select...</option>
-                           <option value="Domestic">Domestic</option>
-                           <option value="Commercial">Commercial</option>
-                           <option value="Agricultural">Agricultural</option>
-                           <option value="Other">Other</option>
-                        </select>
-                        {electricityConnectionType === 'Other' && (
-                           <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
-                        )}
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
-                        <input type="text" value={electricityConsumerNumber} onChange={(e) => setElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
-                        <div className="relative">
-                           <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                           <input type="number" value={electricityMonthlyExpense} onChange={(e) => setElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
-                        </div>
-                     </div>
+              <label className="block text-xs font-bold text-slate-700">19B. Business Electricity Connection Details</label>
+              <div className="flex gap-2">
+                {['Yes', 'No', 'Not Provided'].map(opt => (
+                  <button key={opt} type="button" onClick={() => setHasElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
+                ))}
+              </div>
+
+              {hasElectricityConnection === 'Yes' && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                    <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                      <option value="">Select...</option>
+                      <option value="Domestic">Domestic</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Agricultural">Agricultural</option>
+                      <option value="Other">Other</option>
+                    </select>
+                    {electricityConnectionType === 'Other' && (
+                      <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
+                    )}
                   </div>
-               )}
-               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                    <input type="text" value={electricityConsumerNumber} onChange={(e) => setElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
+                      <input type="number" value={electricityMonthlyExpense} onChange={(e) => setElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
             </div>
 
             {/* 20. Neighbor Name */}
             <div className="space-y-3">
-               <div className="flex justify-between items-center">
-                  <label className="block text-xs font-bold text-slate-700">20. Neighbor Name</label>
-                  <button type="button" onClick={() => setNeighbors([{ id: Date.now(), name: 'Adjoining neighbors', remark: '' }])} className="text-[10px] bg-slate-100 px-2 py-1 rounded border border-slate-300 font-bold hover:bg-slate-200">No Specific Neighbor Provided</button>
-               </div>
-               
-               <div className="space-y-2">
-                  <button type="button" onClick={() => setNeighbors([...neighbors, { id: Date.now(), name: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
-                     <Plus className="w-3 h-3" /> Add Neighbor
-                  </button>
-                  {neighbors.map((neighbor, idx) => (
-                     <div key={neighbor.id} className="flex items-center gap-2">
-                        <input type="text" value={neighbor.name} onChange={(e) => { const arr = [...neighbors]; arr[idx].name = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
-                        <input type="text" value={neighbor.remark} onChange={(e) => { const arr = [...neighbors]; arr[idx].remark = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
-                        <button onClick={() => { const arr = [...neighbors]; arr.splice(idx, 1); setNeighbors(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
-                     </div>
-                  ))}
-               </div>
+              <div className="flex justify-between items-center">
+                <label className="block text-xs font-bold text-slate-700">20. Neighbor Name</label>
+                <button type="button" onClick={() => setNeighbors([{ id: Date.now(), name: 'Adjoining neighbors', remark: '' }])} className="text-[10px] bg-slate-100 px-2 py-1 rounded border border-slate-300 font-bold hover:bg-slate-200">No Specific Neighbor Provided</button>
+              </div>
+
+              <div className="space-y-2">
+                <button type="button" onClick={() => setNeighbors([...neighbors, { id: Date.now(), name: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
+                  <Plus className="w-3 h-3" /> Add Neighbor
+                </button>
+                {neighbors.map((neighbor, idx) => (
+                  <div key={neighbor.id} className="flex items-center gap-2">
+                    <input type="text" value={neighbor.name} onChange={(e) => { const arr = [...neighbors]; arr[idx].name = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
+                    <input type="text" value={neighbor.remark} onChange={(e) => { const arr = [...neighbors]; arr[idx].remark = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
+                    <button onClick={() => { const arr = [...neighbors]; arr.splice(idx, 1); setNeighbors(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* 21. Neighbor Feedback */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-               <label className="block text-xs font-bold text-slate-700">21. Neighbor Feedback</label>
-               <div className="flex items-center gap-4">
-                 <span className="text-xs font-semibold text-slate-600">Neighbor Verification Conducted?</span>
-                 <button type="button" onClick={() => setNeighborVerificationConducted(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${neighborVerificationConducted ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                 <button type="button" onClick={() => setNeighborVerificationConducted(false)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${!neighborVerificationConducted ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
-               </div>
+              <label className="block text-xs font-bold text-slate-700">21. Neighbor Feedback</label>
+              <div className="flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-600">Neighbor Verification Conducted?</span>
+                <button type="button" onClick={() => setNeighborVerificationConducted(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${neighborVerificationConducted ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                <button type="button" onClick={() => setNeighborVerificationConducted(false)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${!neighborVerificationConducted ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+              </div>
 
-               {neighborVerificationConducted && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Residence Confirmation</label>
-                        <select value={neighborResidenceConfirmed} onChange={(e) => setNeighborResidenceConfirmed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                           <option value="">Select...</option>
-                           <option value="Confirmed">Confirmed</option>
-                           <option value="Not Confirmed">Not Confirmed</option>
-                           <option value="Partially Confirmed">Partially Confirmed</option>
-                        </select>
-                     </div>
-                     <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Behaviour Feedback</label>
-                        <select value={neighborBehaviourFeedback} onChange={(e) => setNeighborBehaviourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                           <option value="">Select...</option>
-                           <option value="Positive">Positive</option>
-                           <option value="Neutral">Neutral</option>
-                           <option value="Negative">Negative</option>
-                           <option value="Not Provided">Not Provided</option>
-                        </select>
-                     </div>
-                     <div className="md:col-span-2 flex items-center gap-4">
-                        <span className="text-[10px] uppercase font-bold text-slate-500">Any Negative Information?</span>
-                        <button type="button" onClick={() => setNeighborNegativeFeedback(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${neighborNegativeFeedback ? 'bg-red-500 text-white border-red-500' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
-                        <button type="button" onClick={() => { setNeighborNegativeFeedback(false); setNeighborNegativeDetails(''); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!neighborNegativeFeedback ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
-                     </div>
-                     {neighborNegativeFeedback && (
-                        <div className="md:col-span-2">
-                           <textarea value={neighborNegativeDetails} onChange={(e) => setNeighborNegativeDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-red-300 rounded-lg focus:ring-red-500" placeholder="Details of negative information..." rows={2} />
-                        </div>
-                     )}
-                     <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                        Generated: Neighbour verification was conducted, wherein neighbours {neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was {neighborBehaviourFeedback.toLowerCase()} regarding their behaviour.
-                     </div>
+              {neighborVerificationConducted && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Residence Confirmation</label>
+                    <select value={neighborResidenceConfirmed} onChange={(e) => setNeighborResidenceConfirmed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                      <option value="">Select...</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Not Confirmed">Not Confirmed</option>
+                      <option value="Partially Confirmed">Partially Confirmed</option>
+                    </select>
                   </div>
-               )}
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Behaviour Feedback</label>
+                    <select value={neighborBehaviourFeedback} onChange={(e) => setNeighborBehaviourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
+                      <option value="">Select...</option>
+                      <option value="Positive">Positive</option>
+                      <option value="Neutral">Neutral</option>
+                      <option value="Negative">Negative</option>
+                      <option value="Not Provided">Not Provided</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2 flex items-center gap-4">
+                    <span className="text-[10px] uppercase font-bold text-slate-500">Any Negative Information?</span>
+                    <button type="button" onClick={() => setNeighborNegativeFeedback(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${neighborNegativeFeedback ? 'bg-red-500 text-white border-red-500' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
+                    <button type="button" onClick={() => { setNeighborNegativeFeedback(false); setNeighborNegativeDetails(''); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!neighborNegativeFeedback ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
+                  </div>
+                  {neighborNegativeFeedback && (
+                    <div className="md:col-span-2">
+                      <textarea value={neighborNegativeDetails} onChange={(e) => setNeighborNegativeDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-red-300 rounded-lg focus:ring-red-500" placeholder="Details of negative information..." rows={2} />
+                    </div>
+                  )}
+                  <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
+                    Generated: Neighbour verification was conducted, wherein neighbours {neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was {neighborBehaviourFeedback.toLowerCase()} regarding their behaviour.
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 22. Latitude & Longitude */}
             <div>
-               <label className="block text-xs font-bold text-slate-700 mb-2">22. Latitude & Longitude of the business premises</label>
-               <div className="flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={() => {
-                     if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                           (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
-                           (err) => { alert('Geolocation error: ' + err.message); }
-                        );
-                     } else {
-                        alert("Geolocation is not supported by this browser.");
-                     }
-                  }} className="flex items-center gap-2 px-4 py-2 bg-[#2d3e50] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition">
-                     <MapPin className="w-3.5 h-3.5" /> Get Current Location
-                  </button>
-                  <div className="flex items-center gap-2">
-                     <input type="number" step="any" value={gpsLat} onChange={(e) => setGpsLat(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lat (e.g. 25.6)" />
-                     <input type="number" step="any" value={gpsLng} onChange={(e) => setGpsLng(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lng (e.g. 86.1)" />
-                  </div>
-               </div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">22. Latitude & Longitude of the business premises</label>
+              <div className="flex flex-wrap items-center gap-3">
+                <button type="button" onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
+                      (err) => { alert('Geolocation error: ' + err.message); }
+                    );
+                  } else {
+                    alert("Geolocation is not supported by this browser.");
+                  }
+                }} className="flex items-center gap-2 px-4 py-2 bg-[#2d3e50] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition">
+                  <MapPin className="w-3.5 h-3.5" /> Get Current Location
+                </button>
+                <div className="flex items-center gap-2">
+                  <input type="number" step="any" value={gpsLat} onChange={(e) => setGpsLat(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lat (e.g. 25.6)" />
+                  <input type="number" step="any" value={gpsLng} onChange={(e) => setGpsLng(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lng (e.g. 86.1)" />
+                </div>
+              </div>
             </div>
 
             {/* 23. Residence Status */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-               <label className="block text-xs font-bold text-slate-700">23. Residence Status</label>
-               <div className="flex flex-wrap gap-2">
-                 {['Recommended', 'Not Recommended', 'Recommended subjects to demerits'].map(opt => (
-                    <button key={opt} type="button" onClick={() => setResidenceStatus(opt)} className={`px-4 py-2 text-xs font-bold rounded-lg border ${residenceStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600' : opt === 'Not Recommended' ? 'bg-red-600 text-white border-red-600' : 'bg-[#eb8a23] text-white border-[#eb8a23]') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
-                      {opt}
-                    </button>
-                 ))}
-               </div>
-               {(residenceStatus === 'Not Recommended' || residenceStatus === 'Recommended subjects to demerits') && (
-                  <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
-               )}
+              <label className="block text-xs font-bold text-slate-700">23. Residence Status</label>
+              <div className="flex flex-wrap gap-2">
+                {['Recommended', 'Not Recommended', 'Recommended subjects to demerits'].map(opt => (
+                  <button key={opt} type="button" onClick={() => setResidenceStatus(opt)} className={`px-4 py-2 text-xs font-bold rounded-lg border ${residenceStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600' : opt === 'Not Recommended' ? 'bg-red-600 text-white border-red-600' : 'bg-[#eb8a23] text-white border-[#eb8a23]') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+              {(residenceStatus === 'Not Recommended' || residenceStatus === 'Recommended subjects to demerits') && (
+                <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
+              )}
             </div>
 
           </div>
@@ -4134,68 +4142,68 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {/* Prominent Customers */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                   <h5 className="font-bold text-xs text-slate-700">Prominent Customers</h5>
-                   <button type="button" onClick={() => setProminentCustomers([...prominentCustomers, { id: 'c'+Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                      <Plus className="w-3 h-3" /> Add Customer
-                   </button>
+                  <h5 className="font-bold text-xs text-slate-700">Prominent Customers</h5>
+                  <button type="button" onClick={() => setProminentCustomers([...prominentCustomers, { id: 'c' + Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
+                    <Plus className="w-3 h-3" /> Add Customer
+                  </button>
                 </div>
                 <div className="overflow-x-auto p-3 bg-white">
-                   <table className="w-full text-xs text-left text-slate-600">
-                     <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                       <tr>
-                         <th className="pb-2 w-10 text-center">Sr. No.</th>
-                         <th className="pb-2">Prominent Customers (Name)</th>
-                         <th className="pb-2">Customers Ph. No.</th>
-                         <th className="pb-2">Feedback (Remark)</th>
-                         <th className="pb-2 w-10 text-center">Action</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100">
-                        {prominentCustomers.map((cust, idx) => (
-                           <tr key={cust.id}>
-                             <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                             <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].name = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
-                             <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                             <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].feedback = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
-                             <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentCustomers]; arr.splice(idx, 1); setProminentCustomers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                           </tr>
-                        ))}
-                     </tbody>
-                   </table>
+                  <table className="w-full text-xs text-left text-slate-600">
+                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                      <tr>
+                        <th className="pb-2 w-10 text-center">Sr. No.</th>
+                        <th className="pb-2">Prominent Customers (Name)</th>
+                        <th className="pb-2">Customers Ph. No.</th>
+                        <th className="pb-2">Feedback (Remark)</th>
+                        <th className="pb-2 w-10 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {prominentCustomers.map((cust, idx) => (
+                        <tr key={cust.id}>
+                          <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].name = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].feedback = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentCustomers]; arr.splice(idx, 1); setProminentCustomers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
               {/* Prominent Suppliers */}
               <div className="border border-slate-200 rounded-xl overflow-hidden">
                 <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                   <h5 className="font-bold text-xs text-slate-700">Prominent Suppliers</h5>
-                   <button type="button" onClick={() => setProminentSuppliers([...prominentSuppliers, { id: 's'+Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                      <Plus className="w-3 h-3" /> Add Supplier
-                   </button>
+                  <h5 className="font-bold text-xs text-slate-700">Prominent Suppliers</h5>
+                  <button type="button" onClick={() => setProminentSuppliers([...prominentSuppliers, { id: 's' + Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
+                    <Plus className="w-3 h-3" /> Add Supplier
+                  </button>
                 </div>
                 <div className="overflow-x-auto p-3 bg-white">
-                   <table className="w-full text-xs text-left text-slate-600">
-                     <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                       <tr>
-                         <th className="pb-2 w-10 text-center">Sr. No.</th>
-                         <th className="pb-2">Prominent Suppliers (Name)</th>
-                         <th className="pb-2">Supplier Ph. No.</th>
-                         <th className="pb-2">Feedback (Remark)</th>
-                         <th className="pb-2 w-10 text-center">Action</th>
-                       </tr>
-                     </thead>
-                     <tbody className="divide-y divide-slate-100">
-                        {prominentSuppliers.map((sup, idx) => (
-                           <tr key={sup.id}>
-                             <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                             <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].name = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
-                             <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                             <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].feedback = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
-                             <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentSuppliers]; arr.splice(idx, 1); setProminentSuppliers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                           </tr>
-                        ))}
-                     </tbody>
-                   </table>
+                  <table className="w-full text-xs text-left text-slate-600">
+                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                      <tr>
+                        <th className="pb-2 w-10 text-center">Sr. No.</th>
+                        <th className="pb-2">Prominent Suppliers (Name)</th>
+                        <th className="pb-2">Supplier Ph. No.</th>
+                        <th className="pb-2">Feedback (Remark)</th>
+                        <th className="pb-2 w-10 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {prominentSuppliers.map((sup, idx) => (
+                        <tr key={sup.id}>
+                          <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].name = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].feedback = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentSuppliers]; arr.splice(idx, 1); setProminentSuppliers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
 
@@ -4209,7 +4217,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={!hasCollateral} onChange={() => setHasCollateral(false)} className="text-[#eb8a23]" /> No</label>
                     </div>
                   </div>
-                  
+
                   {hasCollateral && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2 col-span-1 md:col-span-2">
@@ -4249,180 +4257,180 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* B. Banking Details */}
             <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
-               <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                  <h5 className="font-bold text-xs text-slate-700">Banking Details and Limit OD and CC limit with bank</h5>
-                  <button type="button" onClick={() => setBankingDetails([...bankingDetails, { id: 'b'+Date.now(), bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: 'The account belongs to applicant' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                     <Plus className="w-3 h-3" /> Add Bank
-                  </button>
-               </div>
-               <div className="overflow-x-auto p-3 bg-white">
-                  <table className="w-full text-xs text-left text-slate-600">
-                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                      <tr>
-                        <th className="pb-2">Bank Name</th>
-                        <th className="pb-2">Branch Name</th>
-                        <th className="pb-2">Account Types</th>
-                        <th className="pb-2">CC/OD Limit</th>
-                        <th className="pb-2">Account No.</th>
-                        <th className="pb-2">Remark</th>
-                        <th className="pb-2 w-10 text-center"></th>
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                <h5 className="font-bold text-xs text-slate-700">Banking Details and Limit OD and CC limit with bank</h5>
+                <button type="button" onClick={() => setBankingDetails([...bankingDetails, { id: 'b' + Date.now(), bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: 'The account belongs to applicant' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
+                  <Plus className="w-3 h-3" /> Add Bank
+                </button>
+              </div>
+              <div className="overflow-x-auto p-3 bg-white">
+                <table className="w-full text-xs text-left text-slate-600">
+                  <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="pb-2">Bank Name</th>
+                      <th className="pb-2">Branch Name</th>
+                      <th className="pb-2">Account Types</th>
+                      <th className="pb-2">CC/OD Limit</th>
+                      <th className="pb-2">Account No.</th>
+                      <th className="pb-2">Remark</th>
+                      <th className="pb-2 w-10 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {bankingDetails.map((bank, idx) => (
+                      <tr key={bank.id}>
+                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].bankName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].branchName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
+                        <td className="py-2 pr-2">
+                          <select value={bank.accountType} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountType = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
+                            <option value="Saving Account">Saving Account</option>
+                            <option value="Current Account">Current Account</option>
+                            <option value="OD">OD</option>
+                            <option value="CC">CC</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </td>
+                        <td className="py-2 pr-2">
+                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
+                          <datalist id="limit-options">
+                            <option value="NA" />
+                            <option value="Not Disclosed" />
+                          </datalist>
+                        </td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountNo = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].remark = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
+                        <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                       {bankingDetails.map((bank, idx) => (
-                          <tr key={bank.id}>
-                            <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].bankName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].branchName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
-                            <td className="py-2 pr-2">
-                               <select value={bank.accountType} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountType = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
-                                  <option value="Saving Account">Saving Account</option>
-                                  <option value="Current Account">Current Account</option>
-                                  <option value="OD">OD</option>
-                                  <option value="CC">CC</option>
-                                  <option value="Other">Other</option>
-                               </select>
-                            </td>
-                            <td className="py-2 pr-2">
-                               <input list="limit-options" type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
-                               <datalist id="limit-options">
-                                 <option value="NA" />
-                                 <option value="Not Disclosed" />
-                               </datalist>
-                            </td>
-                            <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountNo = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].remark = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
-                            <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                          </tr>
-                       ))}
-                    </tbody>
-                  </table>
-               </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* C. Existing Loans / Liabilities */}
             <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
-               <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                  <h5 className="font-bold text-xs text-slate-700">Existing Loans / Liabilities</h5>
-                  <button type="button" onClick={() => setExistingLoans([...existingLoans, { id: 'l'+Date.now(), typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                     <Plus className="w-3 h-3" /> Add Loan
-                  </button>
-               </div>
-               <div className="overflow-x-auto p-3 bg-white">
-                  <table className="w-full text-xs text-left text-slate-600">
-                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                      <tr>
-                        <th className="pb-2">Type of Loan</th>
-                        <th className="pb-2">Financer Name</th>
-                        <th className="pb-2">Loan Amount (In Lakhs)</th>
-                        <th className="pb-2">EMI (Rs.)</th>
-                        <th className="pb-2">Tenure (Y, M)</th>
-                        <th className="pb-2">Balance Tenure</th>
-                        <th className="pb-2">Remark</th>
-                        <th className="pb-2 w-10 text-center"></th>
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
+                <h5 className="font-bold text-xs text-slate-700">Existing Loans / Liabilities</h5>
+                <button type="button" onClick={() => setExistingLoans([...existingLoans, { id: 'l' + Date.now(), typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
+                  <Plus className="w-3 h-3" /> Add Loan
+                </button>
+              </div>
+              <div className="overflow-x-auto p-3 bg-white">
+                <table className="w-full text-xs text-left text-slate-600">
+                  <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
+                    <tr>
+                      <th className="pb-2">Type of Loan</th>
+                      <th className="pb-2">Financer Name</th>
+                      <th className="pb-2">Loan Amount (In Lakhs)</th>
+                      <th className="pb-2">EMI (Rs.)</th>
+                      <th className="pb-2">Tenure (Y, M)</th>
+                      <th className="pb-2">Balance Tenure</th>
+                      <th className="pb-2">Remark</th>
+                      <th className="pb-2 w-10 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {existingLoans.map((loan, idx) => (
+                      <tr key={loan.id}>
+                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => { const arr = [...existingLoans]; arr[idx].typeOfLoan = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => { const arr = [...existingLoans]; arr[idx].financerName = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => { const arr = [...existingLoans]; arr[idx].amountInLakhs = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => { const arr = [...existingLoans]; arr[idx].emi = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].tenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].balanceTenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => { const arr = [...existingLoans]; arr[idx].remark = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
+                        <td className="py-2 text-center"><button onClick={() => { const arr = [...existingLoans]; arr.splice(idx, 1); setExistingLoans(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                       {existingLoans.map((loan, idx) => (
-                          <tr key={loan.id}>
-                            <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => { const arr = [...existingLoans]; arr[idx].typeOfLoan = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => { const arr = [...existingLoans]; arr[idx].financerName = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                            <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => { const arr = [...existingLoans]; arr[idx].amountInLakhs = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
-                            <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => { const arr = [...existingLoans]; arr[idx].emi = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].tenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].balanceTenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
-                            <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => { const arr = [...existingLoans]; arr[idx].remark = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
-                            <td className="py-2 text-center"><button onClick={() => { const arr = [...existingLoans]; arr.splice(idx, 1); setExistingLoans(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                          </tr>
-                       ))}
-                    </tbody>
-                  </table>
-                  <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-                     <label className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Current Obligation</label>
-                     <input type="text" value={currentObligation} onChange={(e) => setCurrentObligation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. No any existing obligation" />
-                  </div>
-               </div>
+                    ))}
+                  </tbody>
+                </table>
+                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
+                  <label className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Current Obligation</label>
+                  <input type="text" value={currentObligation} onChange={(e) => setCurrentObligation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. No any existing obligation" />
+                </div>
+              </div>
             </div>
 
             {/* D. Co-Applicant Business Details */}
             {coApplicants.length > 0 && (
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-                 <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
-                 {coApplicants.map((coApp, idx) => (
-                   <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
-                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
-                        <div className="flex gap-2">
-                           <button type="button" onClick={() => {
-                             const arr = [...coApplicants];
-                             arr[idx].inBusiness = true;
-                             setCoApplicants(arr);
-                           }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>In Business</button>
-                           <button type="button" onClick={() => {
-                             const arr = [...coApplicants];
-                             arr[idx].inBusiness = false;
-                             setCoApplicants(arr);
-                           }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness === false ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Not involved</button>
-                        </div>
-                     </div>
-                     {coApp.inBusiness && (
-                        <div>
-                           <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
-                           <textarea value={coApp.businessRole || ''} onChange={(e) => {
-                             const arr = [...coApplicants];
-                             arr[idx].businessRole = e.target.value;
-                             setCoApplicants(arr);
-                           }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
-                        </div>
-                     )}
-                   </div>
-                 ))}
+                <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
+                {coApplicants.map((coApp, idx) => (
+                  <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].inBusiness = true;
+                          setCoApplicants(arr);
+                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>In Business</button>
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].inBusiness = false;
+                          setCoApplicants(arr);
+                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness === false ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Not involved</button>
+                      </div>
+                    </div>
+                    {coApp.inBusiness && (
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
+                        <textarea value={coApp.businessRole || ''} onChange={(e) => {
+                          const arr = [...coApplicants];
+                          arr[idx].businessRole = e.target.value;
+                          setCoApplicants(arr);
+                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
             {/* E. Latitude & Longitude Remarks */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-               <label className="block text-xs font-bold text-slate-700">Latitude & Longitude of the Business Premises</label>
-               <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                     <input type="number" step="any" value={gpsLat} onChange={(e) => setGpsLat(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lat (e.g. 25.6)" />
-                     <input type="number" step="any" value={gpsLng} onChange={(e) => setGpsLng(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lng (e.g. 86.1)" />
+              <label className="block text-xs font-bold text-slate-700">Latitude & Longitude of the Business Premises</label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input type="number" step="any" value={gpsLat} onChange={(e) => setGpsLat(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lat (e.g. 25.6)" />
+                  <input type="number" step="any" value={gpsLng} onChange={(e) => setGpsLng(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lng (e.g. 86.1)" />
+                </div>
+                <button type="button" onClick={() => {
+                  if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
+                      (err) => { alert('Geolocation error: ' + err.message); }
+                    );
+                  } else {
+                    alert("Geolocation is not supported by this browser.");
+                  }
+                }} className="flex items-center gap-2 px-3 py-2 bg-[#2d3e50] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition">
+                  <MapPin className="w-3 h-3" /> Get Location
+                </button>
+              </div>
+              <div className="border-t border-slate-200 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-[10px] uppercase font-bold text-slate-500">Location Verified by GPS?</label>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => { setBusinessLongitudeVerified(true); setBusinessLongitudeRemarks("The location was successfully verified using the provided coordinates."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${businessLongitudeVerified ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Yes, Verified</button>
+                    <button type="button" onClick={() => { setBusinessLongitudeVerified(false); setBusinessLongitudeRemarks("The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!businessLongitudeVerified ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>No, Navigation Failed</button>
                   </div>
-                  <button type="button" onClick={() => {
-                     if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                           (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
-                           (err) => { alert('Geolocation error: ' + err.message); }
-                        );
-                     } else {
-                        alert("Geolocation is not supported by this browser.");
-                     }
-                  }} className="flex items-center gap-2 px-3 py-2 bg-[#2d3e50] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition">
-                     <MapPin className="w-3 h-3" /> Get Location
-                  </button>
-               </div>
-               <div className="border-t border-slate-200 pt-3">
-                  <div className="flex items-center justify-between mb-2">
-                     <label className="block text-[10px] uppercase font-bold text-slate-500">Location Verified by GPS?</label>
-                     <div className="flex gap-2">
-                        <button type="button" onClick={() => { setBusinessLongitudeVerified(true); setBusinessLongitudeRemarks("The location was successfully verified using the provided coordinates."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${businessLongitudeVerified ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Yes, Verified</button>
-                        <button type="button" onClick={() => { setBusinessLongitudeVerified(false); setBusinessLongitudeRemarks("The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!businessLongitudeVerified ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>No, Navigation Failed</button>
-                     </div>
-                  </div>
-                  <textarea value={businessLongitudeRemarks} onChange={(e) => setBusinessLongitudeRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} />
-               </div>
+                </div>
+                <textarea value={businessLongitudeRemarks} onChange={(e) => setBusinessLongitudeRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} />
+              </div>
             </div>
 
 
             {/* G. Business Status */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
-               <label className="block text-xs font-bold text-slate-700">Business Status</label>
-               <div className="flex flex-wrap gap-2">
-                 {['Recommended', 'Not Recommended'].map(opt => (
-                    <button key={opt} type="button" onClick={() => setBusinessStatus(opt)} className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${businessStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
-                      {opt}
-                    </button>
-                 ))}
-               </div>
+              <label className="block text-xs font-bold text-slate-700">Business Status</label>
+              <div className="flex flex-wrap gap-2">
+                {['Recommended', 'Not Recommended'].map(opt => (
+                  <button key={opt} type="button" onClick={() => setBusinessStatus(opt)} className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${businessStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
             </div>
 
           </div>
@@ -4477,11 +4485,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <>
                         <Upload className="w-3 h-3 text-white" />
                         Upload {categoryName}
-                        <input 
-                          type="file" 
-                          accept="image/*" 
+                        <input
+                          type="file"
+                          accept="image/*"
                           multiple
-                          className="hidden" 
+                          className="hidden"
                           onChange={async (e) => {
                             const fileList = e.target.files;
                             if (!fileList || fileList.length === 0) return;
@@ -4491,7 +4499,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                             for (const file of files) {
                               let latToUse = parseFloat(exifGpsLat) || 26.9124;
                               let lngToUse = parseFloat(exifGpsLng) || 75.7873;
-                              
+
                               try {
                                 const gps = await exifr.gps(file);
                                 if (gps && gps.latitude && gps.longitude) {
@@ -4513,9 +4521,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                     try {
                                       res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
                                     } catch (apiErr) {
-                                      res = { 
-                                        id: Math.random().toString(), 
-                                        url: base64Data, 
+                                      res = {
+                                        id: Math.random().toString(),
+                                        url: base64Data,
                                         caption: file.name,
                                         gpsCoordinates: { latitude: latToUse, longitude: lngToUse },
                                         gps: { lat: latToUse, lng: lngToUse }
@@ -4535,7 +4543,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                               await readerPromise;
                             }
                             setIsUploadingPhoto(false);
-                          }} 
+                          }}
                         />
                       </>
                     )}
@@ -5045,9 +5053,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               <div className="text-right">
-                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
-                  dscrRatio >= 1.25 && foirPct <= 60 ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
-                }`}>
+                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${dscrRatio >= 1.25 && foirPct <= 60 ? 'bg-emerald-500 text-white' : 'bg-amber-500 text-white'
+                  }`}>
                   {dscrRatio >= 1.25 && foirPct <= 60 ? 'Policy Compliant' : 'Conditional Approval Needed'}
                 </span>
               </div>
@@ -5082,11 +5089,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="relative w-20 h-10 overflow-hidden flex items-end">
                   <svg viewBox="0 0 100 50" className="w-full h-full">
                     <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" 
-                      stroke={riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444'} 
-                      strokeWidth="12" strokeLinecap="round" 
-                      strokeDasharray="125.6" 
-                      strokeDashoffset={125.6 - (riskAssessment.score / 100) * 125.6} 
+                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none"
+                      stroke={riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444'}
+                      strokeWidth="12" strokeLinecap="round"
+                      strokeDasharray="125.6"
+                      strokeDashoffset={125.6 - (riskAssessment.score / 100) * 125.6}
                       className="transition-all duration-1000 ease-out"
                     />
                   </svg>
@@ -5097,13 +5104,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
 
             {/* Decision Recommendation Banner */}
-            <div className={`p-5 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${
-              riskAssessment.decision === 'APPROVED' 
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
+            <div className={`p-5 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${riskAssessment.decision === 'APPROVED'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                 : riskAssessment.decision === 'CONDITIONAL'
-                ? 'bg-amber-50 border-amber-300 text-amber-900'
-                : 'bg-rose-50 border-rose-300 text-rose-900'
-            }`}>
+                  ? 'bg-amber-50 border-amber-300 text-amber-900'
+                  : 'bg-rose-50 border-rose-300 text-rose-900'
+              }`}>
               <div className="flex items-center gap-3">
                 <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
                 <div>
@@ -5140,24 +5146,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                   <button 
-                     onClick={() => alert('Manual Override: Status changed to APPROVED')}
-                     className="px-4 py-2 bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg shadow-sm text-xs font-bold transition"
-                   >
-                     Force Sanction
-                   </button>
-                   <button 
-                     onClick={() => alert('Manual Override: Status changed to REJECTED')}
-                     className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg shadow-sm text-xs font-bold transition"
-                   >
-                     Force Decline
-                   </button>
-                   <button 
-                     onClick={() => alert('File sent back for re-verification')}
-                     className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm text-xs font-bold transition"
-                   >
-                     Request Re-Verification
-                   </button>
+                  <button
+                    onClick={() => alert('Manual Override: Status changed to APPROVED')}
+                    className="px-4 py-2 bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg shadow-sm text-xs font-bold transition"
+                  >
+                    Force Sanction
+                  </button>
+                  <button
+                    onClick={() => alert('Manual Override: Status changed to REJECTED')}
+                    className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg shadow-sm text-xs font-bold transition"
+                  >
+                    Force Decline
+                  </button>
+                  <button
+                    onClick={() => alert('File sent back for re-verification')}
+                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm text-xs font-bold transition"
+                  >
+                    Request Re-Verification
+                  </button>
                 </div>
               </div>
             )}
@@ -5187,7 +5193,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}). {businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}
                 </p>
                 <p>
-                  <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.
+                  <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong>, existing obligations of <strong>₹{existingEmis.toLocaleString('en-IN')}</strong>, and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}</strong>.
                 </p>
                 <p>
                   <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {tenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
@@ -5371,33 +5377,32 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
 
                 <div className="p-6 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {filteredCategoriesModal.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleSelectCategory(cat.id)}
-                  className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${
-                    selectedCategoryId === cat.id
-                      ? 'border-[#eb8a23] bg-amber-50/80 ring-2 ring-[#eb8a23]/30'
-                      : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
-                      {cat.industryGroup}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-xs font-extrabold text-[#2d3e50]">{cat.name}</div>
-                    <div className="text-[10px] text-slate-500 mt-1 line-clamp-2">{cat.description}</div>
-                  </div>
-                  <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] font-bold text-emerald-700 flex items-center justify-between">
-                    <span>Margin: {cat.typicalMarginMin}% - {cat.typicalMarginMax}%</span>
-                    <ArrowRight className="w-3 h-3 text-[#eb8a23]" />
-                  </div>
-                </button>
-              ))}
-            </div>
+                  {filteredCategoriesModal.map((cat) => (
+                    <button
+                      key={cat.id}
+                      onClick={() => handleSelectCategory(cat.id)}
+                      className={`p-3.5 rounded-xl border text-left transition flex flex-col justify-between ${selectedCategoryId === cat.id
+                          ? 'border-[#eb8a23] bg-amber-50/80 ring-2 ring-[#eb8a23]/30'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-2xl">{cat.icon}</span>
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-slate-100 text-slate-700">
+                          {cat.industryGroup}
+                        </span>
+                      </div>
+                      <div>
+                        <div className="text-xs font-extrabold text-[#2d3e50]">{cat.name}</div>
+                        <div className="text-[10px] text-slate-500 mt-1 line-clamp-2">{cat.description}</div>
+                      </div>
+                      <div className="mt-3 pt-2 border-t border-slate-100 text-[10px] font-bold text-emerald-700 flex items-center justify-between">
+                        <span>Margin: {cat.typicalMarginMin}% - {cat.typicalMarginMax}%</span>
+                        <ArrowRight className="w-3 h-3 text-[#eb8a23]" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </>
             )}
           </div>
@@ -5434,11 +5439,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <button
                       key={bId}
                       onClick={() => setSelectedBankFilter(bId)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${
-                        isActive
+                      className={`px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${isActive
                           ? 'bg-[#eb8a23] text-white shadow-xs'
                           : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       {label}
                     </button>
@@ -5447,7 +5451,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               <div className="text-xs text-slate-500 font-medium">
-                Showing <strong>{galleryApplications.length}</strong> applications
+                {loadingApplicants && galleryApplications.length === 0 ? (
+                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border-2 border-[#eb8a23] border-t-transparent animate-spin"></div> Loading...</span>
+                ) : (
+                  <>Showing <strong>{galleryApplications.length}</strong> applications</>
+                )}
               </div>
             </div>
 
@@ -5463,11 +5471,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <span className="font-mono font-black text-xs text-[#eb8a23] bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
                         #{app.applicationNumber}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        app.riskScore >= 80 
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${app.riskScore >= 80
+                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                           : 'bg-amber-100 text-amber-800 border border-amber-300'
-                      }`}>
+                        }`}>
                         {app.riskScore >= 80 ? 'APPROVED' : 'CONDITIONAL'}
                       </span>
                     </div>
@@ -5524,8 +5531,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           <div className="bg-white rounded-2xl shadow-2xl border border-[#eb8a23] w-80 overflow-hidden flex flex-col">
             <div className="bg-[#2d3e50] text-white p-3 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                 <Sparkles className="w-4 h-4 text-[#eb8a23]" />
-                 <span className="font-bold text-sm">AI Autofill Assistant</span>
+                <Sparkles className="w-4 h-4 text-[#eb8a23]" />
+                <span className="font-bold text-sm">AI Autofill Assistant</span>
               </div>
               <button onClick={() => setIsChatbotOpen(false)} className="text-slate-300 hover:text-white"><X className="w-4 h-4" /></button>
             </div>
@@ -5544,13 +5551,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   )}
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => setPendingAutofillFields(null)}
                     className="flex-1 bg-slate-200 text-slate-700 font-bold py-2 rounded shadow hover:bg-slate-300"
                   >
                     Cancel
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       applyParsedFields(pendingAutofillFields);
                       alert('Autofilled fields based on the pasted profile summary and QnA!');
@@ -5567,13 +5574,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             ) : (
               <div className="p-4 flex flex-col gap-3">
                 <p className="text-xs text-slate-600 font-semibold">Paste the Business Profile Summary & QnA below to autofill form fields:</p>
-                <textarea 
-                  value={chatbotText} 
+                <textarea
+                  value={chatbotText}
                   onChange={(e) => setChatbotText(e.target.value)}
-                  className="w-full h-32 p-2 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" 
+                  className="w-full h-32 p-2 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]"
                   placeholder="Paste markdown content here..."
                 />
-                <button 
+                <button
                   onClick={() => {
                     if (!chatbotText) return;
                     const parsed = getParsedFieldsFromMarkdown(chatbotText);
@@ -5587,7 +5594,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
           </div>
         ) : (
-          <button 
+          <button
             onClick={() => setIsChatbotOpen(true)}
             className="bg-[#2d3e50] text-white p-4 rounded-full shadow-xl hover:scale-105 transition-transform flex items-center justify-center border-2 border-[#eb8a23]"
           >
