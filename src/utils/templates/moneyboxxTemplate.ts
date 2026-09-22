@@ -439,69 +439,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         ${data.briefBusinessProfile || 'Not Provided'}
       </td>
     </tr>
-    <tr>
-      <td style="width:30%;">Vintage of the business</td>
-      <td>${data.businessVintage || 'Not Provided'}</td>
-    </tr>
-    ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
-    <tr>
-      <td>Previous Occupation</td>
-      <td>${data.previousOccupation}</td>
-    </tr>
-    ` : ''}
-    ${(data.reasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
-    <tr>
-      <td>Reason to leave the last occupation</td>
-      <td>${data.reasonToLeave}</td>
-    </tr>
-    ` : ''}
-    <tr>
-      <td>Number of staffs</td>
-      <td>${data.staffCount || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Is office premise on rented /owned</td>
-      <td>${data.businessPremiseOwnership || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${data.factoryInfrastructure || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Stock details with estimated value</td>
-      <td>${data.stockDetailsValue || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Fixed & Current Asset Analysis</td>
-      <td>${data.fixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Asset Creation Through Business</td>
-      <td>${data.assetCreationThroughBusiness || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Business Investment</td>
-      <td>${data.initialBusinessInvestment || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Agricultural Income Details</td>
-      <td>${data.agriculturalIncomeDetails || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Other source income</td>
-      <td>${data.otherSourceIncomeDetails || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Solar saving analysis</td>
-      <td>${data.operationalSavingAnalysis || 'Not Provided'}</td>
-    </tr>
-  </table>
 
-  ${data.hasCoApplicantBusiness ? `
-  <div class="page-break"></div>
-
-  <!-- Business Visit Report (Co-Applicant) -->
-  <table>
+    ${data.hasCoApplicantBusiness ? `
     <tr>
       <td colspan="2" class="sec-title">Business visit of co-applicant ${data.coApplicantBusinessName ? '(' + data.coApplicantBusinessName + ')' : ''}</td>
     </tr>
@@ -569,8 +508,65 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>Solar saving analysis</td>
       <td>${data.coApplicantOperationalSavingAnalysis || 'Not Provided'}</td>
     </tr>
+    ` : ''}
+
+    <tr>
+      <td style="width:30%;">Vintage of the business</td>
+      <td>${data.businessVintage || 'Not Provided'}</td>
+    </tr>
+    ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Previous Occupation</td>
+      <td>${data.previousOccupation}</td>
+    </tr>
+    ` : ''}
+    ${(data.reasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Reason to leave the last occupation</td>
+      <td>${data.reasonToLeave}</td>
+    </tr>
+    ` : ''}
+    <tr>
+      <td>Number of staffs</td>
+      <td>${data.staffCount || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Is office premise on rented /owned</td>
+      <td>${data.businessPremiseOwnership || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Details of Office / Factory infrastructure ( Assets )</td>
+      <td>${data.factoryInfrastructure || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Stock details with estimated value</td>
+      <td>${data.stockDetailsValue || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Fixed & Current Asset Analysis</td>
+      <td>${data.fixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Asset Creation Through Business</td>
+      <td>${data.assetCreationThroughBusiness || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Business Investment</td>
+      <td>${data.initialBusinessInvestment || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Agricultural Income Details</td>
+      <td>${data.agriculturalIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Other source income</td>
+      <td>${data.otherSourceIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Solar saving analysis</td>
+      <td>${data.operationalSavingAnalysis || 'Not Provided'}</td>
+    </tr>
   </table>
-  ` : ''}
 
   <div class="page-break"></div>
 
