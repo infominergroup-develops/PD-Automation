@@ -497,6 +497,81 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  ${data.hasCoApplicantBusiness ? `
+  <div class="page-break"></div>
+
+  <!-- Business Visit Report (Co-Applicant) -->
+  <table>
+    <tr>
+      <td colspan="2" class="sec-title">Business visit of co-applicant ${data.coApplicantBusinessName ? '(' + data.coApplicantBusinessName + ')' : ''}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="sec-title">Brief Profile of Business</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
+        ${data.coApplicantBriefBusinessProfile || 'Not Provided'}
+      </td>
+    </tr>
+    <tr>
+      <td style="width:30%;">Vintage of the business</td>
+      <td>${data.coApplicantBusinessVintage || 'Not Provided'}</td>
+    </tr>
+    ${(data.coApplicantPreviousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Previous Occupation</td>
+      <td>${data.coApplicantPreviousOccupation}</td>
+    </tr>
+    ` : ''}
+    ${(data.coApplicantReasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Reason to leave the last occupation</td>
+      <td>${data.coApplicantReasonToLeave}</td>
+    </tr>
+    ` : ''}
+    <tr>
+      <td>Number of staffs</td>
+      <td>${data.coApplicantStaffCount || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Is office premise on rented /owned</td>
+      <td>${data.coApplicantBusinessPremiseOwnership || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Details of Office / Factory infrastructure ( Assets )</td>
+      <td>${data.coApplicantFactoryInfrastructure || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Stock details with estimated value</td>
+      <td>${data.coApplicantStockDetailsValue || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Fixed & Current Asset Analysis</td>
+      <td>${data.coApplicantFixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Asset Creation Through Business</td>
+      <td>${data.coApplicantAssetCreationThroughBusiness || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Business Investment</td>
+      <td>${data.coApplicantInitialBusinessInvestment || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Agricultural Income Details</td>
+      <td>${data.coApplicantAgriculturalIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Other source income</td>
+      <td>${data.coApplicantOtherSourceIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Solar saving analysis</td>
+      <td>${data.coApplicantOperationalSavingAnalysis || 'Not Provided'}</td>
+    </tr>
+  </table>
+  ` : ''}
+
   <div class="page-break"></div>
 
   <!-- Page 4: Suppliers and Banking -->

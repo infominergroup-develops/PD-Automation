@@ -203,6 +203,24 @@ export interface PDReportPrintData {
   otherSourceIncomeDetails?: string;
   operationalSavingAnalysis?: string;
 
+  // Co-applicant Business Visit
+  hasCoApplicantBusiness?: boolean;
+  coApplicantBusinessName?: string;
+  coApplicantBriefBusinessProfile?: string;
+  coApplicantBusinessVintage?: string;
+  coApplicantPreviousOccupation?: string;
+  coApplicantReasonToLeave?: string;
+  coApplicantStaffCount?: string;
+  coApplicantBusinessPremiseOwnership?: string;
+  coApplicantFactoryInfrastructure?: string;
+  coApplicantStockDetailsValue?: string;
+  coApplicantFixedAndCurrentAssetAnalysis?: string;
+  coApplicantAssetCreationThroughBusiness?: string;
+  coApplicantInitialBusinessInvestment?: string;
+  coApplicantAgriculturalIncomeDetails?: string;
+  coApplicantOtherSourceIncomeDetails?: string;
+  coApplicantOperationalSavingAnalysis?: string;
+
   // Customers & Suppliers & Banking & Liabilities
   prominentCustomers?: Array<{ name: string; phone: string; remark: string }>;
   prominentSuppliers?: Array<{ name: string; phone: string; remark: string }>;

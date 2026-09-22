@@ -42,6 +42,7 @@ export interface CoApplicant {
   relation: string;
   otherRelation?: string;
   mobileNumber?: string;
+  profession?: 'Salaried' | 'Business' | 'Other';
   inBusiness?: boolean;
   businessRole?: string;
 }
@@ -317,7 +318,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedClient, categoriesList]);
 
   // Form Section Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'>(
+  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'>(
+
     (localStorage.getItem('lastActiveTab') as any) || 'applicant'
   );
 
@@ -327,6 +329,24 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Editable QnA fields
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
+  
+  // Co-Applicant Business Details States
+  const [coApplicantBusinessName, setCoApplicantBusinessName] = useState('');
+  const [coApplicantBriefBusinessProfile, setCoApplicantBriefBusinessProfile] = useState('');
+  const [coApplicantBusinessVintage, setCoApplicantBusinessVintage] = useState('');
+  const [coApplicantPreviousOccupation, setCoApplicantPreviousOccupation] = useState('Not Applicable');
+  const [coApplicantReasonToLeave, setCoApplicantReasonToLeave] = useState('');
+  const [coApplicantStaffCount, setCoApplicantStaffCount] = useState('');
+  const [coApplicantBusinessPremiseOwnership, setCoApplicantBusinessPremiseOwnership] = useState('Self-Owned');
+  const [coApplicantFactoryInfrastructure, setCoApplicantFactoryInfrastructure] = useState('');
+  const [coApplicantStockDetailsValue, setCoApplicantStockDetailsValue] = useState('');
+  const [coApplicantFixedAndCurrentAssetAnalysis, setCoApplicantFixedAndCurrentAssetAnalysis] = useState('');
+  const [coApplicantAssetCreationThroughBusiness, setCoApplicantAssetCreationThroughBusiness] = useState('');
+  const [coApplicantInitialBusinessInvestment, setCoApplicantInitialBusinessInvestment] = useState('');
+  const [coApplicantAgriculturalIncomeDetails, setCoApplicantAgriculturalIncomeDetails] = useState('');
+  const [coApplicantOtherSourceIncomeDetails, setCoApplicantOtherSourceIncomeDetails] = useState('');
+  const [coApplicantOperationalSavingAnalysis, setCoApplicantOperationalSavingAnalysis] = useState('');
+
   const [businessVintageText, setBusinessVintageText] = useState('');
   const [staffCountText, setStaffCountText] = useState('');
   const [premiseOwnershipText, setPremiseOwnershipText] = useState('');
@@ -1709,6 +1729,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'Not provided'} regarding their behaviour.` : 'Not provided',
 
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
+      
+      hasCoApplicantBusiness: coApplicants.some(c => c.profession === 'Business'),
+      coApplicantBusinessName: coApplicantBusinessName || 'Not provided',
+      coApplicantBriefBusinessProfile: coApplicantBriefBusinessProfile || 'Not provided',
+      coApplicantBusinessVintage: coApplicantBusinessVintage || 'Not provided',
+      coApplicantPreviousOccupation: coApplicantPreviousOccupation || 'Not provided',
+      coApplicantReasonToLeave: coApplicantReasonToLeave || 'Not provided',
+      coApplicantStaffCount: coApplicantStaffCount || 'Not provided',
+      coApplicantBusinessPremiseOwnership: coApplicantBusinessPremiseOwnership || 'Not provided',
+      coApplicantFactoryInfrastructure: coApplicantFactoryInfrastructure || 'Not provided',
+      coApplicantStockDetailsValue: coApplicantStockDetailsValue || 'Not provided',
+      coApplicantFixedAndCurrentAssetAnalysis: coApplicantFixedAndCurrentAssetAnalysis || 'Not provided',
+      coApplicantAssetCreationThroughBusiness: coApplicantAssetCreationThroughBusiness || 'Not provided',
+      coApplicantInitialBusinessInvestment: coApplicantInitialBusinessInvestment || 'Not provided',
+      coApplicantAgriculturalIncomeDetails: coApplicantAgriculturalIncomeDetails || 'Not provided',
+      coApplicantOtherSourceIncomeDetails: coApplicantOtherSourceIncomeDetails || 'Not provided',
+      coApplicantOperationalSavingAnalysis: coApplicantOperationalSavingAnalysis || 'Not provided',
+
       businessVintage: businessVintageText || fbBusinessVintage,
       previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'Not provided') : (previousOccupation || 'Not provided'),
       reasonToLeave: reasonToLeave || 'Not provided',
@@ -1911,12 +1949,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   };
 
   const renderTabNavigationFooter = () => {
-    const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'financials' | 'decision'; label: string }> = [
+    const hasCoAppBusiness = coApplicants.some(c => c.profession === 'Business');
+    const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
       { id: 'verification', label: '2. Business & Residence Verification' },
       { id: 'profile', label: '3. Business Profile' },
       { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
       { id: 'field', label: '5. Field Verification' },
+      ...(hasCoAppBusiness ? [{ id: 'coapp_business' as const, label: '5.1 Co-App Business' }] : []),
       { id: 'financials', label: '6. Financial Analysis' },
       { id: 'decision', label: '7. Risk Score & Summary' },
     ];
@@ -2290,6 +2330,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           { id: 'profile', label: '3. Business Profile', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
           { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
+          ...(coApplicants.some(c => c.profession === 'Business') ? [{ id: 'coapp_business', label: '5.1 Co-App Business', icon: Briefcase }] : []),
           { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
           { id: 'decision', label: '7. Risk Score & Decision', icon: Shield },
         ].map((tab) => {
@@ -2810,6 +2851,26 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         newCoApps[idx].mobileNumber = e.target.value.replace(/\D/g, '');
                         setCoApplicants(newCoApps);
                       }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Profession</label>
+                      <div className="flex gap-2">
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].profession = 'Salaried';
+                          setCoApplicants(arr);
+                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].profession = 'Business';
+                          setCoApplicants(arr);
+                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].profession = 'Other';
+                          setCoApplicants(arr);
+                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4362,17 +4423,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <div className="flex gap-2">
                         <button type="button" onClick={() => {
                           const arr = [...coApplicants];
-                          arr[idx].inBusiness = true;
+                          arr[idx].profession = 'Salaried';
                           setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>In Business</button>
+                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
                         <button type="button" onClick={() => {
                           const arr = [...coApplicants];
-                          arr[idx].inBusiness = false;
+                          arr[idx].profession = 'Business';
                           setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.inBusiness === false ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Not involved</button>
+                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => {
+                          const arr = [...coApplicants];
+                          arr[idx].profession = 'Other';
+                          setCoApplicants(arr);
+                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
                       </div>
                     </div>
-                    {coApp.inBusiness && (
+                    {coApp.profession === 'Business' && (
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
                         <textarea value={coApp.businessRole || ''} onChange={(e) => {
@@ -4588,6 +4654,158 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             ))}
+          </div>
+          {renderTabNavigationFooter()}
+        </div>
+      )}
+
+      {/* TAB 5.1: CO-APPLICANT BUSINESS */}
+      {activeTab === 'coapp_business' && (
+        <div className="space-y-6">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
+              <Briefcase className="w-4 h-4 text-[#eb8a23]" />
+              Co-Applicant Business Visit Details
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Firm / Trade Name</label>
+                <input
+                  type="text"
+                  value={coApplicantBusinessName}
+                  onChange={(e) => setCoApplicantBusinessName(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
+                <select
+                  value={coApplicantBusinessPremiseOwnership}
+                  onChange={(e) => setCoApplicantBusinessPremiseOwnership(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                >
+                  <option value="">Select Ownership</option>
+                  <option value="RENTED">Rented Premises</option>
+                  <option value="OWN">Self Owned Premises</option>
+                  <option value="FAMILY">Family / Ancestral Owned</option>
+                  <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Vintage of Business</label>
+                <input
+                  type="text"
+                  value={coApplicantBusinessVintage}
+                  onChange={(e) => setCoApplicantBusinessVintage(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  placeholder="e.g. 5 Years"
+                />
+              </div>
+
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary</label>
+                <textarea
+                  value={coApplicantBriefBusinessProfile}
+                  onChange={(e) => setCoApplicantBriefBusinessProfile(e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  placeholder="Enter detailed business profile and executive summary..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Number of Staffs</label>
+                <input
+                  type="text"
+                  value={coApplicantStaffCount}
+                  onChange={(e) => setCoApplicantStaffCount(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Factory / Office Infrastructure</label>
+                <input
+                  type="text"
+                  value={coApplicantFactoryInfrastructure}
+                  onChange={(e) => setCoApplicantFactoryInfrastructure(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Stock Details with Estimated Value</label>
+                <input
+                  type="text"
+                  value={coApplicantStockDetailsValue}
+                  onChange={(e) => setCoApplicantStockDetailsValue(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Fixed & Current Asset Analysis</label>
+                <input
+                  type="text"
+                  value={coApplicantFixedAndCurrentAssetAnalysis}
+                  onChange={(e) => setCoApplicantFixedAndCurrentAssetAnalysis(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Asset Creation Through Business</label>
+                <input
+                  type="text"
+                  value={coApplicantAssetCreationThroughBusiness}
+                  onChange={(e) => setCoApplicantAssetCreationThroughBusiness(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Investment</label>
+                <input
+                  type="text"
+                  value={coApplicantInitialBusinessInvestment}
+                  onChange={(e) => setCoApplicantInitialBusinessInvestment(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Agricultural Income Details</label>
+                <input
+                  type="text"
+                  value={coApplicantAgriculturalIncomeDetails}
+                  onChange={(e) => setCoApplicantAgriculturalIncomeDetails(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Other Source Income Details</label>
+                <input
+                  type="text"
+                  value={coApplicantOtherSourceIncomeDetails}
+                  onChange={(e) => setCoApplicantOtherSourceIncomeDetails(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Solar Saving Analysis</label>
+                <input
+                  type="text"
+                  value={coApplicantOperationalSavingAnalysis}
+                  onChange={(e) => setCoApplicantOperationalSavingAnalysis(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                />
+              </div>
+            </div>
           </div>
           {renderTabNavigationFooter()}
         </div>
