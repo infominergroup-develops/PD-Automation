@@ -122,7 +122,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
-    <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">Proprietorship</td></tr>
+    <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>
     <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">Not applicable</td></tr>
     <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
     <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
@@ -135,14 +135,32 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td colspan="2">Is office premise on rented /owned</td>
       <td colspan="2">${data.shopOwnership || '-'}</td>
     </tr>
+    ${data.monthlyRent ? `
+    <tr>
+      <td colspan="2">Monthly Rent</td>
+      <td colspan="2">₹${data.monthlyRent}</td>
+    </tr>
+    ` : ''}
+    ${data.shopAreaSqFt ? `
+    <tr>
+      <td colspan="2">Shop Area (Sq. Ft.)</td>
+      <td colspan="2">${data.shopAreaSqFt}</td>
+    </tr>
+    ` : ''}
     <tr>
       <td colspan="2">Vintage of the business</td>
       <td colspan="2">${data.businessVintage || '-'}</td>
     </tr>
     <tr>
       <td colspan="2">Inventory item details with estimated value</td>
-      <td colspan="2">${data.stockDetailsValue ? 'Stock worth approximately ' + data.stockDetailsValue : 'Not provided'}</td>
+      <td colspan="2">${data.inventoryValue ? '₹' + data.inventoryValue : (data.stockDetailsValue ? 'Stock worth approximately ' + data.stockDetailsValue : 'Not provided')}</td>
     </tr>
+    ${data.businessRemark ? `
+    <tr>
+      <td colspan="2">Business Remarks</td>
+      <td colspan="2">${data.businessRemark}</td>
+    </tr>
+    ` : ''}
   </table>
 
   <div class="page-break"></div>

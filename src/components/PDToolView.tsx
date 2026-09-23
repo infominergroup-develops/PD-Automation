@@ -26,6 +26,7 @@ import {
 } from '../services/clientPdfExtractor';
 import { AccountDetailsTable } from './AccountDetailsTable';
 
+
 export interface ItemizedCalculationLine {
   id: string;
   particulars: string;
@@ -298,13 +299,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     if (selectedClient?.id) {
       fetchApps(true);
-      // Poll every 5 seconds for real-time updates
-      intervalId = setInterval(() => fetchApps(false), 5000);
     }
-
-    return () => {
-      if (intervalId) clearInterval(intervalId);
-    };
   }, [selectedClient]);
 
   // Set default category to Aata Chakki for Moneyboxx
@@ -1065,6 +1060,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (!selectedClient) return;
     const newAppNumber = '';
     const newApplicant = {
+      _id: null,
       applicationNumber: newAppNumber,
       applicantName: '',
       categoryId: 'kirana',
@@ -1115,13 +1111,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       photos: []
     };
     try {
-      const created = await api.createApplicant(selectedClient.id, newApplicant);
-      setApplicantsList(prev => [created, ...prev]);
-      handleLoadSampleApp(created);
-      setLoadedToastMessage(`Created new applicant ${newAppNumber}`);
+      setActiveAppId(null);
+      activeAppIdRef.current = null;
+      handleLoadSampleApp(newApplicant);
+      setLoadedToastMessage(`Started new draft application`);
       setTimeout(() => setLoadedToastMessage(null), 3000);
     } catch (err) {
-      console.error('Failed to create applicant', err);
+      console.error('Failed to init new applicant', err);
     }
   };
 
@@ -1292,33 +1288,35 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
       const currentData = updateDataRef.current;
       const currentStr = JSON.stringify(currentData);
+      
+      const currentAppId = activeAppIdRef.current;
 
       // Save local draft as a fallback instantly
-      const storageKey = activeAppId ? `offline_draft_${activeAppId}` : 'offline_draft_new';
+      const storageKey = currentAppId ? `offline_draft_${currentAppId}` : 'offline_draft_new';
       localStorage.setItem(storageKey, currentStr);
 
       if (lastSavedStrRef.current !== currentStr) {
-        api.saveApplicantDraft(selectedClient.id, { ...currentData, _id: activeAppId })
-          .then((savedApp) => {
-            lastSavedStrRef.current = currentStr;
-            localStorage.removeItem(storageKey); // clear on successful save
-            if (!activeAppId && savedApp._id) {
-              setActiveAppId(savedApp._id);
-              if (savedApp.applicationNumber) setActiveAppNumber(savedApp.applicationNumber);
-            }
-            // Sync with applicantsList so UI updates immediately
-            setApplicantsList(prev => {
-              const exists = prev.some(a => a._id === savedApp._id);
-              if (exists) return prev.map(a => a._id === savedApp._id ? savedApp : a);
-              return [savedApp, ...prev];
-            });
-          })
-          .catch(err => console.error('Failed to auto-save:', err));
+        lastSavedStrRef.current = currentStr;
+        
+        // Only push to DB automatically if it's already an existing entity
+        if (currentAppId) {
+          api.updateApplicant(selectedClient.id, currentAppId, { ...currentData, _id: currentAppId })
+            .then((savedApp) => {
+              localStorage.removeItem(storageKey); // clear on successful save
+              // Sync with applicantsList so UI updates immediately
+              setApplicantsList(prev => {
+                const exists = prev.some(a => a._id === savedApp._id);
+                if (exists) return prev.map(a => a._id === savedApp._id ? savedApp : a);
+                return [savedApp, ...prev];
+              });
+            })
+            .catch(err => console.error('Failed to auto-save:', err));
+        }
       }
     }, 1500);
 
     return () => clearInterval(interval);
-  }, [activeAppId, selectedClient?.id]);
+  }, [selectedClient?.id]);
 
   const lastAataIncomeRef = useRef(0);
   const lastAataExpenseRef = useRef(0);
@@ -1706,6 +1704,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       yearsInBusiness: yearsInBusiness || 0,
       shopOwnership: shopOwnership || 'RENTED',
       loanAmount: appliedAmount || 0,
+      appliedAmount: appliedAmount || 0,
       loanType: loanType === 'Other' ? (otherLoanType || 'Not provided') : loanType,
       loanPurpose: solarPurposeGeneratedText || 'Not provided',
       residenceAddress: finalResidenceAddress,
@@ -1779,6 +1778,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       businessNeighborName: businessNeighbourName || 'Not provided',
       businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
       businessStatus: businessStatus || 'Not provided',
+      constitution,
+      monthlyRent,
+      shopAreaSqFt,
+      inventoryValue,
+      businessRemark,
 
       itemizedSales: incomeLines.map(l => ({
         particulars: l.particulars,
@@ -2759,7 +2763,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
 
 
-            {/* 3. Name of Applicant & 4. Contact Number */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">3. Name of Applicant *</label>
@@ -2771,7 +2774,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
 
-            {/* 5. Business Firm Name */}
             <div>
               <div className="flex justify-between items-center mb-1">
                 <label className="block text-xs font-bold text-slate-700">5. Business Firm Name</label>

@@ -152,12 +152,16 @@ export interface PDReportPrintData {
   metPersonIdProof?: string;
   executiveName?: string;
 
-  // Residence Visit
+  // Residence & Business Details
   locatingPremisesType?: string;
   residenceOwnership?: string;
   houseDetails?: string;
   shopAreaSqFt?: number | string;
   yearsInBusiness?: number;
+  constitution?: string;
+  monthlyRent?: number | string;
+  inventoryValue?: number | string;
+  businessRemark?: string;
 
   // Collateral (Ambit)
   hasCollateral?: boolean;

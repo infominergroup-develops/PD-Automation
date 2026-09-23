@@ -643,6 +643,36 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td style="width: 35%;" class="bold">Vintage of the business</td>
       <td>${data.businessVintage || 'Not Provided'}</td>
     </tr>
+    ${data.constitution ? `
+    <tr>
+      <td class="bold">Constitution</td>
+      <td>${data.constitution}</td>
+    </tr>
+    ` : ''}
+    ${data.monthlyRent ? `
+    <tr>
+      <td class="bold">Monthly Rent</td>
+      <td>₹${data.monthlyRent}</td>
+    </tr>
+    ` : ''}
+    ${data.shopAreaSqFt ? `
+    <tr>
+      <td class="bold">Shop Area (Sq. Ft.)</td>
+      <td>${data.shopAreaSqFt}</td>
+    </tr>
+    ` : ''}
+    ${data.inventoryValue ? `
+    <tr>
+      <td class="bold">Inventory / Stock Value</td>
+      <td>₹${data.inventoryValue}</td>
+    </tr>
+    ` : ''}
+    ${data.businessRemark ? `
+    <tr>
+      <td class="bold">Business Remarks</td>
+      <td>${data.businessRemark}</td>
+    </tr>
+    ` : ''}
     ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td class="bold">Previous Occupation</td>
@@ -1622,6 +1652,36 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td style="width:30%;">Vintage of the business</td>
       <td>${data.businessVintage || 'Not Provided'}</td>
     </tr>
+    ${data.constitution ? `
+    <tr>
+      <td>Constitution</td>
+      <td>${data.constitution}</td>
+    </tr>
+    ` : ''}
+    ${data.monthlyRent ? `
+    <tr>
+      <td>Monthly Rent</td>
+      <td>₹${data.monthlyRent}</td>
+    </tr>
+    ` : ''}
+    ${data.shopAreaSqFt ? `
+    <tr>
+      <td>Shop Area (Sq. Ft.)</td>
+      <td>${data.shopAreaSqFt}</td>
+    </tr>
+    ` : ''}
+    ${data.inventoryValue ? `
+    <tr>
+      <td>Inventory / Stock Value</td>
+      <td>₹${data.inventoryValue}</td>
+    </tr>
+    ` : ''}
+    ${data.businessRemark ? `
+    <tr>
+      <td>Business Remarks</td>
+      <td>${data.businessRemark}</td>
+    </tr>
+    ` : ''}
     ${(data.previousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
     <tr>
       <td>Previous Occupation</td>

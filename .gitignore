@@ -8,3 +8,4 @@ coverage/
 !.env.example
 extractor_temp/
 *.zip
+firebase-service-account.json

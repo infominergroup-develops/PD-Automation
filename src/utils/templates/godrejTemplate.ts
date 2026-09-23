@@ -133,7 +133,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td colspan="3">${data.businessVintage || ''}</td>
     </tr>
     <tr>
-      <td class="bg-green">Quotation Amount Requested</td>
+      <td class="bg-green">Loan Amount applied (as per applicant)</td>
       <td>${data.appliedAmount || '-'}</td>
       <td class="bg-green">Office Accessibility</td>
       <td colspan="3">${data.officeAccessibility || ''}</td>
@@ -162,6 +162,28 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bg-green">PD done by</td>
       <td colspan="3">${data.executiveName || ''}</td>
     </tr>
+    ${data.constitution || data.monthlyRent ? `
+    <tr>
+      <td class="bg-green">Constitution</td>
+      <td>${data.constitution || '-'}</td>
+      <td class="bg-green">Monthly Rent</td>
+      <td colspan="3">₹${data.monthlyRent || '0'}</td>
+    </tr>
+    ` : ''}
+    ${data.shopAreaSqFt || data.inventoryValue ? `
+    <tr>
+      <td class="bg-green">Shop Area (Sq. Ft.)</td>
+      <td>${data.shopAreaSqFt || '-'}</td>
+      <td class="bg-green">Inventory Value</td>
+      <td colspan="3">₹${data.inventoryValue || '0'}</td>
+    </tr>
+    ` : ''}
+    ${data.businessRemark ? `
+    <tr>
+      <td class="bg-green">Business Remarks</td>
+      <td colspan="5">${data.businessRemark}</td>
+    </tr>
+    ` : ''}
   </table>
 
   <div class="sec-title">Detailed business profile & background of the applicant's:</div>
