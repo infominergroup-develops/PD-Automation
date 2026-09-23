@@ -72,7 +72,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     
     .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
     .photo-card { border: 1px solid #000; padding: 5px; text-align: center; }
-    .photo-card img { width: 100%; height: 250px; object-fit: contain; background: #f3f4f6; }
+    .photo-card img { max-width: 100%; max-height: 250px; width: auto; height: auto; display: block; margin: 0 auto; object-fit: contain; background: #f3f4f6; }
     @media print { body { padding: 0; } .no-print { display: none !important; } }
   </style>
 </head>

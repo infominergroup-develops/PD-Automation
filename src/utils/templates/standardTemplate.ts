@@ -187,8 +187,12 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       text-align: center;
     }
     .photo-card img {
-      width: 100%;
-      height: 200px;
+      max-width: 100%;
+      max-height: 200px;
+      width: auto;
+      height: auto;
+      display: block;
+      margin: 0 auto;
       object-fit: contain;
       background-color: #f3f4f6;
       border-radius: 8px;
@@ -732,6 +736,76 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  ${(data.coApplicantBusinessName || data.coApplicantBriefBusinessProfile) ? `
+  <!-- SECTION 3B: CO-APPLICANT BUSINESS VISIT REPORT -->
+  <table class="report-table" style="margin-top: 10px;">
+    <tr>
+      <td colspan="2" class="sec-head">Business visit of Co-Applicant</td>
+    </tr>
+    <tr>
+      <td style="width: 35%;" class="bold">Firm / Trade Name</td>
+      <td>${data.coApplicantBusinessName || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Premises Ownership</td>
+      <td>${data.coApplicantBusinessPremiseOwnership || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Vintage of Business</td>
+      <td>${data.coApplicantBusinessVintage || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="sub-head text-center">Brief Profile of Business</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="padding: 10px; line-height: 1.4;">
+        ${data.coApplicantBriefBusinessProfile || 'Not Provided'}
+      </td>
+    </tr>
+    <tr>
+      <td class="bold">Number of Staffs</td>
+      <td>${data.coApplicantStaffCount || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Factory / Office Infrastructure</td>
+      <td>${data.coApplicantFactoryInfrastructure || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Stock Details with Estimated Value</td>
+      <td>${data.coApplicantStockDetailsValue || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Fixed & Current Asset Analysis</td>
+      <td>${data.coApplicantFixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Asset Creation Through Business</td>
+      <td>${data.coApplicantAssetCreationThroughBusiness || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Business Investment</td>
+      <td>${data.coApplicantInitialBusinessInvestment || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Agricultural Income Details</td>
+      <td>${data.coApplicantAgriculturalIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Other Source Income Details</td>
+      <td>${data.coApplicantOtherSourceIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td class="bold">Operational / Saving analysis</td>
+      <td>${data.coApplicantOperationalSavingAnalysis || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align: center; font-style: italic; font-weight: bold; padding: 10px; background-color: #f8fafc;">
+        All the work details are confirmed by co-applicant
+      </td>
+    </tr>
+  </table>
+  ` : ''}
+
   <!-- SECTION 4: CUSTOMERS, SUPPLIERS, BANKING & LIABILITIES -->
   <table class="report-table" style="margin-top: 10px;">
     <tr>
@@ -1234,7 +1308,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     
     .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
     .photo-card { border: 2px solid #000; padding: 5px; text-align: center; }
-    .photo-card img { width: 100%; height: auto; max-height: 250px; object-fit: contain; }
+    .photo-card img { max-width: 100%; max-height: 250px; width: auto; height: auto; display: block; margin: 0 auto; object-fit: contain; }
     
     .cover-page {
       display: flex;
