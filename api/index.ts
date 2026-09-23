@@ -22,12 +22,34 @@ const app = express();
 
 let db: Firestore | null = null;
 try {
-  db = new Firestore({
-    projectId: 'vouchr-f4d9e',
-    keyFilename: path.join(process.cwd(), 'firebase-service-account.json'),
-    preferRest: true
-  });
-  console.log("[PD System Server] Connected to Firestore!");
+  const serviceAccountPath = path.join(process.cwd(), 'firebase-service-account.json');
+  
+  // 1. Try Environment Variable (For Production / Deployment)
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    db = new Firestore({
+      projectId: credentials.project_id,
+      credentials: {
+        client_email: credentials.client_email,
+        private_key: credentials.private_key
+      },
+      preferRest: true
+    });
+    console.log("[PD System Server] Connected to Firestore via ENV variable!");
+  } 
+  // 2. Try Local File (For Local Development)
+  else if (fs.existsSync(serviceAccountPath)) {
+    db = new Firestore({
+      projectId: 'vouchr-f4d9e',
+      keyFilename: serviceAccountPath,
+      preferRest: true
+    });
+    console.log("[PD System Server] Connected to Firestore via local JSON file!");
+  } 
+  else {
+    console.warn("[PD System Server] WARNING: No Firebase credentials found! Missing FIREBASE_SERVICE_ACCOUNT env var or local JSON file.");
+  }
+
   
   // API Key Status Checks
   const hasGeminiKey = !!process.env.GEMINI_API_KEY;
