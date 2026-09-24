@@ -24,6 +24,19 @@ export interface ClientBank {
 
 export const CLIENT_BANKS: ClientBank[] = [
   {
+    id: 'abhiyan',
+    name: 'Abhiyan Capital',
+    shortCode: 'ABHIYAN',
+    division: 'Abhiyan Micro Lending Division',
+    logoColor: '#F25F22', // Can adjust color later
+    accentColor: '#eb8a23',
+    borderClass: 'border-[#F25F22]',
+    bgGradient: 'from-[#F25F22]/10 to-orange-50',
+    description: 'Micro lending and micro-enterprise credit assessment suite.',
+    defaultScheme: 'Abhiyan Express',
+    tagline: 'Abhiyan • Micro Credit Portal'
+  },
+  {
     id: 'ambit',
     name: 'Ambit Finvest',
     shortCode: 'AMBIT',

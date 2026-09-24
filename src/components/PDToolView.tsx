@@ -261,6 +261,35 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [otherStateGstText, setOtherStateGstText] = useState('');
   const [familyInvolvedText, setFamilyInvolvedText] = useState('');
   const [applicantQualification, setApplicantQualification] = useState('');
+
+  // Observation Fields
+  const [godrejStockLevel, setGodrejStockLevel] = useState('');
+  const [godrejRoughStockValue, setGodrejRoughStockValue] = useState('');
+  const [godrejLocality, setGodrejLocality] = useState('');
+  const [godrejOfficeSetup, setGodrejOfficeSetup] = useState('');
+  const [godrejActivityLevel, setGodrejActivityLevel] = useState('');
+  const [godrejOfficeSize, setGodrejOfficeSize] = useState('');
+  const [godrejEmployeesSeen, setGodrejEmployeesSeen] = useState('No external staff/labour is engaged. Business operations are managed by Applicant.');
+  const [godrejThirdPartyConfirmation, setGodrejThirdPartyConfirmation] = useState('');
+  const [godrejCourtCasePending, setGodrejCourtCasePending] = useState('');
+  const [godrejThirdPartyComment, setGodrejThirdPartyComment] = useState('');
+  const [godrejSeparateDemarcation, setGodrejSeparateDemarcation] = useState('');
+  const [godrejGstDisplayed, setGodrejGstDisplayed] = useState('');
+
+  // Documents Verified Fields
+  const [godrejPanCard, setGodrejPanCard] = useState('');
+  const [godrejGstinLegalName, setGodrejGstinLegalName] = useState('');
+  const [godrejBusinessRegProof, setGodrejBusinessRegProof] = useState('');
+  const [godrejGstinRegDate, setGodrejGstinRegDate] = useState('');
+  const [godrejElectricityBill, setGodrejElectricityBill] = useState('');
+  const [godrejEmployeeRegister, setGodrejEmployeeRegister] = useState('');
+  const [godrejSaleBills, setGodrejSaleBills] = useState('');
+  const [godrejOtherRecords, setGodrejOtherRecords] = useState('');
+
+  // Strengths and Weaknesses
+  const [godrejStrengths, setGodrejStrengths] = useState<Array<{ id: string; text: string }>>([]);
+  const [godrejWeaknesses, setGodrejWeaknesses] = useState<Array<{ id: string; text: string }>>([]);
+  const [finalStatus, setFinalStatus] = useState('POSITIVE');
   const [isGodrejSectionOpen, setIsGodrejSectionOpen] = useState(false);
 
   const [applicantsList, setApplicantsList] = useState<any[]>([]);
@@ -1183,6 +1212,30 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setOtherStateGstText(app.otherStateGstText || '');
     setFamilyInvolvedText(app.familyInvolvedText || '');
     setApplicantQualification(app.applicantQualification || '');
+
+    setGodrejStockLevel(app.godrejStockLevel || '');
+    setGodrejRoughStockValue(app.godrejRoughStockValue || '');
+    setGodrejLocality(app.godrejLocality || '');
+    setGodrejOfficeSetup(app.godrejOfficeSetup || '');
+    setGodrejActivityLevel(app.godrejActivityLevel || '');
+    setGodrejOfficeSize(app.godrejOfficeSize || '');
+    setGodrejEmployeesSeen(app.godrejEmployeesSeen || 'No external staff/labour is engaged. Business operations are managed by Applicant.');
+    setGodrejThirdPartyConfirmation(app.godrejThirdPartyConfirmation || '');
+    setGodrejCourtCasePending(app.godrejCourtCasePending || '');
+    setGodrejThirdPartyComment(app.godrejThirdPartyComment || '');
+    setGodrejSeparateDemarcation(app.godrejSeparateDemarcation || '');
+    setGodrejGstDisplayed(app.godrejGstDisplayed || '');
+    setGodrejPanCard(app.godrejPanCard || '');
+    setGodrejGstinLegalName(app.godrejGstinLegalName || '');
+    setGodrejBusinessRegProof(app.godrejBusinessRegProof || '');
+    setGodrejGstinRegDate(app.godrejGstinRegDate || '');
+    setGodrejElectricityBill(app.godrejElectricityBill || '');
+    setGodrejEmployeeRegister(app.godrejEmployeeRegister || '');
+    setGodrejSaleBills(app.godrejSaleBills || '');
+    setGodrejOtherRecords(app.godrejOtherRecords || '');
+    setGodrejStrengths(app.godrejStrengths || []);
+    setGodrejWeaknesses(app.godrejWeaknesses || []);
+
     setNeighborFeedback(app.neighborFeedback || '');
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
@@ -1434,7 +1487,7 @@ Income Estimation: The facility generates a daily processing revenue of approxim
 ${qaPairs.join('\n\n')}`;
 
       // Only set if different to prevent infinite loops or losing manual edits if unchanged
-      setBusinessRemark(prev => {
+      setBriefBusinessProfile(prev => {
         if (prev === profileText) return prev;
         return profileText;
       });
@@ -1504,6 +1557,16 @@ ${qaPairs.join('\n\n')}`;
     return Math.max(0, grossProfit - totalOperatingExpenses);
   }, [grossProfit, totalOperatingExpenses]);
 
+  // Effective Tenure Months (Parses Godrej 'Tenor Requested' if available)
+  const effectiveTenureMonths = useMemo(() => {
+    let n = tenureMonths;
+    if (tenorRequested) {
+      const match = tenorRequested.match(/\d+/);
+      if (match) n = parseInt(match[0], 10);
+    }
+    return n;
+  }, [tenureMonths, tenorRequested]);
+
   // Total Household Surplus before Proposed EMI
   const netFamilySurplusBeforeEmi = useMemo(() => {
     return (netBusinessIncome + otherIncome) - householdExpenses - existingEmis;
@@ -1511,12 +1574,12 @@ ${qaPairs.join('\n\n')}`;
 
   // Calculated Proposed Monthly EMI Formula: P * r * (1+r)^n / ((1+r)^n - 1)
   const proposedEmi = useMemo(() => {
+    const n = effectiveTenureMonths;
     const r = (interestRatePct / 100) / 12;
-    const n = tenureMonths;
-    if (r === 0 || n === 0) return 0;
+    if (r === 0 || n === 0 || !appliedAmount) return 0;
     const emi = (appliedAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
     return Math.round(emi);
-  }, [appliedAmount, interestRatePct, tenureMonths]);
+  }, [appliedAmount, interestRatePct, effectiveTenureMonths]);
 
   // Post-Loan Net Monthly Surplus
   const postLoanSurplus = useMemo(() => {
@@ -1549,7 +1612,7 @@ ${qaPairs.join('\n\n')}`;
 
 Income Estimation: The business generates an assessed monthly revenue of approximately ₹${adoptedMonthlySales.toLocaleString('en-IN')}. With a gross profit margin of ${grossMarginPct}%, the gross profit is ₹${grossProfit.toLocaleString('en-IN')}. After accounting for operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')} and household expenses of ₹${householdExpenses.toLocaleString('en-IN')}, the net monthly disposable surplus stands at ₹${postLoanSurplus.toLocaleString('en-IN')}.`;
 
-    setBusinessRemark(prev => {
+    setBriefBusinessProfile(prev => {
       if (prev === profileText) return prev;
       // Protect user edits if they've written their own completely custom text
       if (prev.trim() && !prev.startsWith('Background & Setup:')) {
@@ -1714,7 +1777,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       additionalAddresses,
       meetingAddress: finalMeetingAddress,
       locatingPremisesType: locatingPremisesType === 'Other' ? locatingPremisesTypeOther : locatingPremisesType,
-      metPersonName: applicantName ? `${applicantName} (Self)` : 'Not provided',
+      metPersonName: personsMet.length > 0 ? personsMet.map(p => {
+        if (p === 'Applicant') return `${applicantName || 'Applicant'} (Self)`;
+        if (p === 'Co-applicant') return coApplicants.length > 0 ? `${coApplicants[0].name || 'Co-applicant'} (${coApplicants[0].relation === 'Other' ? coApplicants[0].otherRelation : coApplicants[0].relation})` : 'Co-applicant';
+        if (p === 'Other') return `${personsMetOtherName} (${personsMetOtherRelation})`;
+        const fam = familyMembers.find(f => (f.relation || f.relationship) === p);
+        if (fam && fam.name) return `${fam.name} (${p})`;
+        return p;
+      }).join(' & ') : (applicantName ? `${applicantName} (Self)` : 'Not provided'),
+      personMetQualification: applicantQualification || (personsMet.length > 0 ? (() => {
+        const p = personsMet[0];
+        if (p === 'Applicant') return '';
+        if (p === 'Co-applicant') return coApplicants.length > 0 ? (coApplicants[0] as any).qualification || '' : '';
+        const fam = familyMembers.find(f => (f.relation || f.relationship) === p);
+        if (fam && fam.qualification) return fam.qualification;
+        return '';
+      })() : ''),
       metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'Not provided') : (identityProof || 'Not provided'),
       executiveName: executiveName || 'Not provided',
       tataCapitalDistance: tataCapitalDistance || '5-10 Km (Approx)',
@@ -1760,7 +1838,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       assetCreationThroughBusiness: assetCreationText || fbAssetCreation,
       initialBusinessInvestment: businessInvestmentText || fbBusinessInvestment,
       agriculturalIncomeDetails: agriculturalIncomeText || fbAgriIncome,
-      otherSourceIncomeDetails: hasOtherIncome ? `Applicant has other income sources: ${otherIncomeSources.map(s => s.name).join(', ')}` : 'Not provided',
+      otherSourceIncomeDetails: hasOtherIncome && otherIncomeSources.length > 0 ? `Applicant has other income sources: ${otherIncomeSources.map(s => `${s.source} (₹${s.amount.toLocaleString('en-IN')} ${s.frequency})`).join(', ')}` : 'Not provided',
       operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
       prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
@@ -1830,7 +1908,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
       executiveSummary_BorrowerProfile: `${businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}`,
       executiveSummary_SalesWaterfall: `The business generates an assessed monthly revenue of ₹${adoptedMonthlySales.toLocaleString('en-IN')}. Gross profit margin is assessed at ${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')}). After total business operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')}, existing obligations of ₹${existingEmis.toLocaleString('en-IN')}, and household living costs of ₹${householdExpenses.toLocaleString('en-IN')}, net monthly disposable surplus stands at ₹${(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}.`,
-      executiveSummary_DebtService: `The requested micro-lending facility of ₹${appliedAmount.toLocaleString('en-IN')} at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of ₹${proposedEmi.toLocaleString('en-IN')}. The post-loan DSCR is calculated at ${dscrRatio}x (policy threshold ≥ 1.25x) with FOIR at ${foirPct}% (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}`,
+      executiveSummary_DebtService: `The requested micro-lending facility of ₹${appliedAmount.toLocaleString('en-IN')} at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of ₹${proposedEmi.toLocaleString('en-IN')}. The post-loan DSCR is calculated at ${dscrRatio}x (policy threshold ≥ 1.25x) with FOIR at ${foirPct}% (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}`,
       executiveSummary_Community: `${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
 
       // Godrej Specific Fields
@@ -1839,17 +1917,40 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       tenorRequested,
       marginsAssessed,
       customerGstNo,
-      industryType,
-      productType,
+      industryType: industryType || currentCategory?.industryGroup || '',
+      productType: productType || currentCategory?.name || '',
       onLoanStructure,
-      machineryDetailsText,
-      keyEmployeeDetailsText,
+      machineryDetailsText: machineryDetailsText || factoryInfrastructureText || fbFactoryInfra,
+      keyEmployeeDetailsText: (keyEmployeeDetailsText === '✓ .' || !keyEmployeeDetailsText) ? (staffCountText || fbStaffCount) : keyEmployeeDetailsText,
       groupCompanyDetailsText,
       financialDetailsText,
       otherBusinessPremisesText,
       otherStateGstText,
-      familyInvolvedText,
+      familyInvolvedText: familyInvolvedText || (coApplicants.some(c => c.profession === 'Business') ? coApplicants.filter(c => c.profession === 'Business').map(c => `${c.name || 'Co-applicant'} (${c.relation})`).join(', ') : 'No other family member is involved in the business.'),
       applicantQualification,
+      godrejStockLevel: godrejStockLevel || (hasStock ? (stockDetails.length > 0 ? stockDetails.map(s => s.name).join(', ') : 'Adequate') : 'No significant stock'),
+      godrejRoughStockValue: godrejRoughStockValue || (hasStock ? (stockDetails.length > 0 ? `₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0).toLocaleString('en-IN')}` : (inventoryValue ? `₹${inventoryValue.toLocaleString('en-IN')}` : '')) : '₹0'),
+      godrejLocality: godrejLocality || locatingPremisesType || '',
+      godrejOfficeSetup,
+      godrejActivityLevel,
+      godrejOfficeSize: godrejOfficeSize || (shopAreaSqFt ? `${shopAreaSqFt} Sq. Ft.` : ''),
+      godrejEmployeesSeen: (godrejEmployeesSeen === 'No external staff/labour is engaged. Business operations are managed by Applicant.' && externalStaffCount > 0) ? (staffCountText || fbStaffCount) : godrejEmployeesSeen,
+      godrejThirdPartyConfirmation: godrejThirdPartyConfirmation || neighborResidenceConfirmed || '',
+      godrejCourtCasePending,
+      godrejThirdPartyComment: godrejThirdPartyComment || businessNeighbourFeedback || neighborFeedback || neighborBehaviourFeedback || '',
+      godrejSeparateDemarcation: godrejSeparateDemarcation || (shopOwnership === 'RESIDENCE_CUM_BUSINESS' ? 'Yes' : 'NA'),
+      godrejGstDisplayed,
+      godrejPanCard: godrejPanCard || (documentsSeen.includes('PAN Card') ? 'Provided' : 'Not Provided'),
+      godrejGstinLegalName,
+      godrejBusinessRegProof: godrejBusinessRegProof || ((documentsSeen.includes('GST Certificate') || documentsSeen.includes('Udyam Certificate')) ? 'Seen' : 'Not Seen'),
+      godrejGstinRegDate,
+      godrejElectricityBill: godrejElectricityBill || (documentsSeen.includes('Electricity Bill') ? 'Seen' : 'Not Seen'),
+      godrejEmployeeRegister,
+      godrejSaleBills: godrejSaleBills || (documentsSeen.includes('Sale / Purchase Bills') ? 'Seen' : 'Not Seen'),
+      godrejOtherRecords: godrejOtherRecords || (documentsSeen.includes('Other') ? 'Provided' : 'Not Provided'),
+      godrejStrengths,
+      godrejWeaknesses,
+      finalStatus,
 
       riskScore: riskAssessment.score,
       riskLevel: riskAssessment.decision,
@@ -1866,7 +1967,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${tenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
+      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
       parsedCreditReport: parsedCreditReport
     });
   };
@@ -2423,6 +2524,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
 
+              {/* Additional fields requested in Business Profile */}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Legal Trade Name</label>
+                <input type="text" value={godrejGstinLegalName} onChange={(e) => setGodrejGstinLegalName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Date of Registration</label>
+                <input type="text" value={godrejGstinRegDate} onChange={(e) => setGodrejGstinRegDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Employee Register</label>
+                <input type="text" value={godrejEmployeeRegister} onChange={(e) => setGodrejEmployeeRegister(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Carpet Area (Sq. Ft.)</label>
                 <input
@@ -2452,6 +2567,48 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="Enter business remarks..."
                 />
+              </div>
+
+              <div className="md:col-span-3 pt-4 border-t border-slate-200">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Strengths, Weaknesses & Status</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-slate-700">Strengths</label>
+                      <button onClick={() => setGodrejStrengths([...godrejStrengths, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
+                    </div>
+                    {godrejStrengths.map((s, idx) => (
+                      <div key={s.id} className="flex gap-2 mb-2">
+                        <input type="text" value={s.text} onChange={(e) => { const st = [...godrejStrengths]; st[idx].text = e.target.value; setGodrejStrengths(st); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <button onClick={() => { const st = [...godrejStrengths]; st.splice(idx, 1); setGodrejStrengths(st); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="block text-xs font-bold text-slate-700">Weaknesses</label>
+                      <button onClick={() => setGodrejWeaknesses([...godrejWeaknesses, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
+                    </div>
+                    {godrejWeaknesses.map((w, idx) => (
+                      <div key={w.id} className="flex gap-2 mb-2">
+                        <input type="text" value={w.text} onChange={(e) => { const wk = [...godrejWeaknesses]; wk[idx].text = e.target.value; setGodrejWeaknesses(wk); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <button onClick={() => { const wk = [...godrejWeaknesses]; wk.splice(idx, 1); setGodrejWeaknesses(wk); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="mt-4 w-1/3">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Final Status</label>
+                  <select
+                    value={finalStatus}
+                    onChange={(e) => setFinalStatus(e.target.value)}
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  >
+                    <option value="POSITIVE">POSITIVE</option>
+                    <option value="NEGATIVE">NEGATIVE</option>
+                  </select>
+                </div>
               </div>
 
               <div className="md:col-span-3">
@@ -2653,7 +2810,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Applicant Qualification</label>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Person Met Qualification (Overrides Auto)</label>
                       <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
                     </div>
                     <div>
@@ -2714,7 +2871,40 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-xs font-bold text-slate-700 mb-1">Family Members Involved</label>
                     <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
                   </div>
+
+                  {/* Godrej Specific Observation Fields */}
+                  <div className="pt-6 border-t border-slate-200">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Observation</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Stock Level</label><input type="text" value={godrejStockLevel} onChange={(e) => setGodrejStockLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Rough Value of Stock</label><input type="text" value={godrejRoughStockValue} onChange={(e) => setGodrejRoughStockValue(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Locality</label><input type="text" value={godrejLocality} onChange={(e) => setGodrejLocality(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Office Setup</label><input type="text" value={godrejOfficeSetup} onChange={(e) => setGodrejOfficeSetup(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Activity Level</label><input type="text" value={godrejActivityLevel} onChange={(e) => setGodrejActivityLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Size of the office</label><input type="text" value={godrejOfficeSize} onChange={(e) => setGodrejOfficeSize(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">No. of employees seen</label><input type="text" value={godrejEmployeesSeen} onChange={(e) => setGodrejEmployeesSeen(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Confirmation</label><input type="text" value={godrejThirdPartyConfirmation} onChange={(e) => setGodrejThirdPartyConfirmation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Any court case pending</label><input type="text" value={godrejCourtCasePending} onChange={(e) => setGodrejCourtCasePending(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Comment</label><input type="text" value={godrejThirdPartyComment} onChange={(e) => setGodrejThirdPartyComment(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether separate demarcation of office in Resi-cum-Office setup</label><input type="text" value={godrejSeparateDemarcation} onChange={(e) => setGodrejSeparateDemarcation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether GST Number displayed at the premises visited</label><input type="text" value={godrejGstDisplayed} onChange={(e) => setGodrejGstDisplayed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                    </div>
+                  </div>
+
+                  {/* Godrej Specific Documents Verified */}
+                  <div className="pt-6 border-t border-slate-200">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Documents verified during PD</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">PAN Card</label><input type="text" value={godrejPanCard} onChange={(e) => setGodrejPanCard(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Registration Proof Seen or Not Seen</label><input type="text" value={godrejBusinessRegProof} onChange={(e) => setGodrejBusinessRegProof(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Electricity Bill (latest 2 months) Seen/Not Seen</label><input type="text" value={godrejElectricityBill} onChange={(e) => setGodrejElectricityBill(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Sale Bills Seen</label><input type="text" value={godrejSaleBills} onChange={(e) => setGodrejSaleBills(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Other (Kacha Records)</label><input type="text" value={godrejOtherRecords} onChange={(e) => setGodrejOtherRecords(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
+                    </div>
+                  </div>
+
                 </div>
+
               )}
             </div>
           )}
@@ -4380,7 +4570,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               {/* Collateral Property Details (Ambit Specific) */}
-              {(selectedClient?.name || '').toLowerCase().includes('ambit') && (
+              {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan')) && (
                 <div className="pt-6 mt-6 border-t border-slate-200">
                   <div className="flex items-center justify-between mb-4">
                     <label className="text-sm font-bold text-slate-700">Include Collateral Property Details?</label>
@@ -4936,12 +5126,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   Itemized Price × Quantity × Days breakdown matched against category standards for {currentCategory.name}.
                 </p>
               </div>
-
-              <div className="text-right">
-                <div className="text-xs text-slate-500 font-bold">Proposed Loan Facility</div>
-                <div className="text-base font-black text-[#2d3e50]">₹{appliedAmount.toLocaleString('en-IN')} @ {interestRatePct}% for {tenureMonths}m</div>
-              </div>
             </div>
+
+            {selectedClient?.name?.toLowerCase().includes('godrej') && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                  <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                  <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                  <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
+                </div>
+              </div>
+            )}
 
             {/* Live Financial Waterfall Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -5512,12 +5714,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               <div className="prose prose-xs max-w-none text-slate-700 text-xs leading-relaxed space-y-3">
-                {briefBusinessProfile && (
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 text-slate-800 whitespace-pre-wrap font-sans mb-4 shadow-sm">
-                    <strong className="text-[#2d3e50] block mb-2 text-sm">Detailed Business Profile & Summary:</strong>
-                    {briefBusinessProfile}
-                  </div>
-                )}
+
                 <p>
                   <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}). {businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}
                 </p>
@@ -5525,7 +5722,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong>, existing obligations of <strong>₹{existingEmis.toLocaleString('en-IN')}</strong>, and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}</strong>.
                 </p>
                 <p>
-                  <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {tenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
+                  <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {effectiveTenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
                 </p>
                 <p>
                   <strong>Community Verification:</strong> {neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: {businessNeighbourFeedback || neighborFeedback || 'Not provided'}.

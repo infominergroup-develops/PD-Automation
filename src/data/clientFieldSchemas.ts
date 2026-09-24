@@ -216,12 +216,19 @@ export const tataSchema: ClientSchema = {
   clientId: 'tata'
 };
 
+// Abhiyan schema (starts similar to standard, can be customized)
+export const abhiyanSchema: ClientSchema = {
+  ...standardSchema,
+  clientId: 'abhiyan'
+};
+
 // Map all schemas
 export const CLIENT_SCHEMAS: Record<string, ClientSchema> = {
   'moneyboxx': moneyboxxSchema,
   'godrej': godrejSchema,
   'standard': standardSchema,
   'ambit': ambitSchema,
+  'abhiyan': abhiyanSchema,
   'sbfc': sbfcSchema,
   'tata': tataSchema
 };

@@ -122,7 +122,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bg-green">Education Quali of Person Met</td>
-      <td>${data.applicantQualification || ''}</td>
+      <td>${data.personMetQualification !== undefined ? data.personMetQualification : (data.applicantQualification || '')}</td>
       <td class="bg-green">Address Ownership</td>
       <td colspan="3">${data.shopOwnership || ''}</td>
     </tr>
@@ -226,7 +226,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td class="bg-green" style="width: 20%; height: 200px; vertical-align:middle;">Profile of Business</td>
       <td style="width: 80%; vertical-align:top; padding:10px;">
-        ${data.briefBusinessProfile || ''}
+        ${data.aiExecutiveSummary || data.briefBusinessProfile || ''}
       </td>
     </tr>
   </table>
@@ -280,17 +280,17 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   <div class="sec-title">Existing Bank Accounts:</div>
   <table class="report-table">
     <tr class="bg-green">
-      <td>Name</td>
-      <td>Relation</td>
-      <td>Period Involved</td>
-      <td>Area supervised in business</td>
+      <td>Name of Bank</td>
+      <td>Account Type</td>
+      <td>Account No.</td>
+      <td>Limit (OD / CC limit)</td>
     </tr>
-    ${familyList.map((f: any) => `
+    ${(data.bankingDetails || []).map((b: any) => `
       <tr>
-        <td>${f.name || ''}</td>
-        <td>${f.relationship || f.relation || ''}</td>
-        <td>${f.period || ''}</td>
-        <td>${f.area || ''}</td>
+        <td>${b.bankName || ''} ${b.branchName ? `(${b.branchName})` : ''}</td>
+        <td>${b.accountType || ''}</td>
+        <td>${b.accountNo || ''}</td>
+        <td>${b.limit || ''}</td>
       </tr>
     `).join('')}
   </table>
@@ -384,41 +384,41 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   <table class="report-table">
     <tr>
       <td class="bg-green" style="width: 25%;">Stock Level</td>
-      <td style="width: 25%;"></td>
+      <td style="width: 25%;">${data.godrejStockLevel || ''}</td>
       <td class="bg-green" style="width: 25%;">Rough value of stock</td>
-      <td style="width: 25%;"></td>
+      <td style="width: 25%;">${data.godrejRoughStockValue || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Locality</td>
-      <td></td>
+      <td>${data.godrejLocality || ''}</td>
       <td class="bg-green">Office Setup</td>
-      <td></td>
+      <td>${data.godrejOfficeSetup || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Business Activity Level</td>
-      <td></td>
+      <td>${data.godrejActivityLevel || ''}</td>
       <td class="bg-green">Size of the office</td>
-      <td></td>
+      <td>${data.godrejOfficeSize || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">No. of employees seen</td>
-      <td>${data.staffCount || ''}</td>
+      <td>${data.godrejEmployeesSeen || ''}</td>
       <td class="bg-green">Third Party Confirmation</td>
-      <td></td>
+      <td>${data.godrejThirdPartyConfirmation || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Any court case pending</td>
-      <td></td>
+      <td>${data.godrejCourtCasePending || ''}</td>
       <td class="bg-green">Third Party Comment</td>
-      <td></td>
+      <td>${data.godrejThirdPartyComment || ''}</td>
     </tr>
     <tr>
       <td class="bg-green" colspan="2">Whether separate demarcation of office in Resi-cum-Office setup</td>
-      <td colspan="2"></td>
+      <td colspan="2">${data.godrejSeparateDemarcation || ''}</td>
     </tr>
     <tr>
       <td class="bg-green" colspan="2">Whether GST Number displayed at the premises visited</td>
-      <td colspan="2"></td>
+      <td colspan="2">${data.godrejGstDisplayed || ''}</td>
     </tr>
   </table>
 
@@ -426,27 +426,27 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   <table class="report-table">
     <tr>
       <td class="bg-green" style="width: 25%;">PAN Card</td>
-      <td style="width: 25%;"></td>
+      <td style="width: 25%;">${data.godrejPanCard || ''}</td>
       <td class="bg-green" style="width: 25%;">GSTIN – Legal Trade Name</td>
-      <td style="width: 25%;"></td>
+      <td style="width: 25%;">${data.godrejGstinLegalName || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Business Registration ProofSeen or Not Seen</td>
-      <td></td>
+      <td>${data.godrejBusinessRegProof || ''}</td>
       <td class="bg-green">GSTIN – Date of Registration</td>
-      <td></td>
+      <td>${data.godrejGstinRegDate || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Electricity Bill (latest 2 months)Seen/Not Seen</td>
-      <td></td>
+      <td>${data.godrejElectricityBill || ''}</td>
       <td class="bg-green">Employee Register</td>
-      <td></td>
+      <td>${data.godrejEmployeeRegister || ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Sale Bills Seen</td>
-      <td></td>
+      <td>${data.godrejSaleBills || ''}</td>
       <td class="bg-green">Other (Kacha Records)</td>
-      <td></td>
+      <td>${data.godrejOtherRecords || ''}</td>
     </tr>
   </table>
 
@@ -458,18 +458,20 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bold text-center" style="width: 5%;">S. No.</td>
       <td class="bold text-center" style="width: 45%;">Weaknesses</td>
     </tr>
+    ${Array.from({ length: Math.max((data.godrejStrengths?.length || 0), (data.godrejWeaknesses?.length || 0), 1) }).map((_, i) => `
     <tr>
-      <td class="bold text-center">1</td>
-      <td class="bold">Ok receipt</td>
-      <td class="bold text-center">1</td>
-      <td></td>
+      <td class="bold text-center">${data.godrejStrengths?.[i]?.text ? i + 1 : (i === 0 ? '1' : '')}</td>
+      <td class="bold">${data.godrejStrengths?.[i]?.text || (i === 0 ? '' : '')}</td>
+      <td class="bold text-center">${data.godrejWeaknesses?.[i]?.text ? i + 1 : (i === 0 ? '1' : '')}</td>
+      <td>${data.godrejWeaknesses?.[i]?.text || ''}</td>
     </tr>
+    `).join('')}
   </table>
 
   <table style="width: 300px; margin-top:20px; border: 1px solid #000; border-collapse: collapse;">
     <tr>
       <td class="bg-darkred" style="border: 1px solid #000;">Final Status</td>
-      <td class="bold" style="border: 1px solid #000; padding-left: 10px;">POSITIVE</td>
+      <td class="bold" style="border: 1px solid #000; padding-left: 10px;">${data.finalStatus || 'POSITIVE'}</td>
     </tr>
   </table>
 

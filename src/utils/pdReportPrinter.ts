@@ -133,6 +133,7 @@ export interface PDReportPrintData {
   visitDate?: string;
   applicationNumber?: string;
   statusOfCase?: string;
+  documentsSeen?: string[];
   
   // Applicant & Co-applicant Profile
   applicantName: string;
@@ -150,6 +151,7 @@ export interface PDReportPrintData {
   meetingAddress?: string;
   metPersonName?: string;
   metPersonIdProof?: string;
+  personMetQualification?: string;
   executiveName?: string;
 
   // Residence & Business Details
@@ -341,6 +343,31 @@ export interface PDReportPrintData {
   otherBusinessPremisesText?: string;
   otherStateGstText?: string;
   familyInvolvedText?: string;
+
+  // Godrej Additional Fields
+  godrejStockLevel?: string;
+  godrejRoughStockValue?: string;
+  godrejLocality?: string;
+  godrejOfficeSetup?: string;
+  godrejActivityLevel?: string;
+  godrejOfficeSize?: string;
+  godrejEmployeesSeen?: string;
+  godrejThirdPartyConfirmation?: string;
+  godrejCourtCasePending?: string;
+  godrejThirdPartyComment?: string;
+  godrejSeparateDemarcation?: string;
+  godrejGstDisplayed?: string;
+  godrejPanCard?: string;
+  godrejGstinLegalName?: string;
+  godrejBusinessRegProof?: string;
+  godrejGstinRegDate?: string;
+  godrejElectricityBill?: string;
+  godrejEmployeeRegister?: string;
+  godrejSaleBills?: string;
+  godrejOtherRecords?: string;
+  godrejStrengths?: Array<{ id: string; text: string }>;
+  godrejWeaknesses?: Array<{ id: string; text: string }>;
+  finalStatus?: string;
 }
 
 
