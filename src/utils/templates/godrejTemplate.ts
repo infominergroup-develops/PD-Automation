@@ -288,7 +288,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     ${familyList.map((f: any) => `
       <tr>
         <td>${f.name || ''}</td>
-        <td>${f.relation || ''}</td>
+        <td>${f.relationship || f.relation || ''}</td>
         <td>${f.period || ''}</td>
         <td>${f.area || ''}</td>
       </tr>

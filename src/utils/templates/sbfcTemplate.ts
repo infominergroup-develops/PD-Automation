@@ -118,7 +118,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr><td colspan="2">Additional Address ${idx + 1}</td><td colspan="2">${addr}</td></tr>
     `).join('') : ''}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
-    <tr><td colspan="2">Documents Seen</td><td colspan="2">PAN Card, Udyam Certificate, GST Certificate, Manual Records.</td></tr>
+    <tr><td colspan="2">Documents Seen</td><td colspan="2">${data.documentsSeen && data.documentsSeen.length > 0 ? data.documentsSeen.join(', ') : 'Not provided'}</td></tr>
     <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
@@ -336,14 +336,14 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>Staying with Applicant or Not</td>
     </tr>
     ${(data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
-      { name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }
+      { name: data.applicantName || 'Applicant', relationship: 'Self', age: '', profession: '', dependent: false }
     ]).map((f: any, i: number) => `
       <tr>
         <td>${i+1}</td>
         <td>${f.name}</td>
-        <td>${f.relation}</td>
+        <td>${f.relationship || f.relation || ''}</td>
         <td>${f.age || ''}</td>
-        <td>${f.occupation || ''}</td>
+        <td>${f.profession || f.occupation || ''}</td>
         <td>Yes</td>
       </tr>
     `).join('')}

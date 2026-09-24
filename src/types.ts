@@ -64,8 +64,11 @@ export interface FamilyMember {
   isEarning: boolean;
   monthlyIncome: number;
   isDependent: boolean;
-  profession?: 'Student' | 'Working professional' | 'Housewife' | '';
+  profession?: string;
   qualification?: string;
+  _otherRelation?: boolean;
+  _otherProfession?: boolean;
+  _otherQualification?: boolean;
 }
 
 export interface CollateralEntry {
@@ -315,6 +318,7 @@ export interface PDReport {
   tenureMonths: number;
   purpose: string;
   visitDate: string;
+  documentsSeen?: string[];
   status: 'DRAFT' | 'SUBMITTED' | 'IN_REVIEW' | 'APPROVED' | 'REJECTED';
   assignedOfficer: string;
   assignedCreditManager: string;

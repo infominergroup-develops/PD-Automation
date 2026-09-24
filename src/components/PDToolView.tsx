@@ -872,6 +872,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [personsMetOtherName, setPersonsMetOtherName] = useState('');
   const [personsMetOtherRelation, setPersonsMetOtherRelation] = useState('');
   const [identityProof, setIdentityProof] = useState('Aadhaar Card');
+  const [documentsSeen, setDocumentsSeen] = useState<string[]>(['PAN Card', 'Aadhaar Card']);
+  const [otherDocumentsSeen, setOtherDocumentsSeen] = useState('');
   const [otherIdentityProof, setOtherIdentityProof] = useState('');
   const [executiveName, setExecutiveName] = useState(''); // Assuming logic handles current user
   const [solarPurposeGeneratedText, setSolarPurposeGeneratedText] = useState('');
@@ -1717,6 +1719,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       executiveName: executiveName || 'Not provided',
       tataCapitalDistance: tataCapitalDistance || '5-10 Km (Approx)',
       familyMembers: familyMembers,
+      documentsSeen: [ ...documentsSeen.filter(d => d !== 'Other'), ...(documentsSeen.includes('Other') && otherDocumentsSeen ? [otherDocumentsSeen] : []) ],
 
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
       houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'Not provided'} rooms and is a ${houseStructureType || 'Not provided'} structure, comprising a ${houseFloorPosition || 'Not provided'} floor.` : 'Not provided',
@@ -3117,6 +3120,30 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
             </div>
 
+            {/* 15.1 Documents Seen */}
+            <div className="pt-6 border-t border-slate-100">
+              <label className="block text-xs font-bold text-slate-700 mb-2">15.1 Documents Seen</label>
+              <div className="flex flex-wrap gap-3">
+                {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Bank Statement', 'Other'].map(doc => (
+                  <label key={doc} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                    <input 
+                      type="checkbox" 
+                      checked={documentsSeen.includes(doc)} 
+                      onChange={(e) => {
+                        if (e.target.checked) setDocumentsSeen([...documentsSeen, doc]);
+                        else setDocumentsSeen(documentsSeen.filter(d => d !== doc));
+                      }} 
+                      className="accent-[#eb8a23]" 
+                    />
+                    {doc}
+                  </label>
+                ))}
+              </div>
+              {documentsSeen.includes('Other') && (
+                <input type="text" value={otherDocumentsSeen} onChange={(e) => setOtherDocumentsSeen(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Other Documents Seen" />
+              )}
+            </div>
+
             {/* 16. Spouse and Dependencies Details */}
             <div className="mt-8 pt-6 border-t border-slate-200">
               <div className="flex justify-between items-center mb-4">
@@ -3154,21 +3181,103 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                             <input type="text" value={member.name} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].name = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
-                            <input type="text" value={member.relationship || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Relation" />
+                            {!member._otherRelation ? (
+                              <select 
+                                value={member.relationship || ''} 
+                                onChange={(e) => { 
+                                  const newFm = [...familyMembers]; 
+                                  if (e.target.value === 'Other') {
+                                    newFm[idx]._otherRelation = true;
+                                    newFm[idx].relationship = '';
+                                  } else {
+                                    newFm[idx].relationship = e.target.value; 
+                                  }
+                                  setFamilyMembers(newFm); 
+                                }} 
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
+                              >
+                                <option value="">Select...</option>
+                                <option value="Father">Father</option>
+                                <option value="Mother">Mother</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Son">Son</option>
+                                <option value="Daughter">Daughter</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Sister">Sister</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <input type="text" value={member.relationship || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherRelation = false; newFm[idx].relationship = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
+                              </div>
+                            )}
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             <input type="number" value={member.age} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].age = Number(e.target.value); setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
-                            <select value={member.profession || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].profession = e.target.value as any; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
-                              <option value="">Select...</option>
-                              <option value="Student">Student</option>
-                              <option value="Working professional">Working professional</option>
-                              <option value="Housewife">Housewife</option>
-                            </select>
+                            {!member._otherProfession ? (
+                              <select 
+                                value={member.profession || ''} 
+                                onChange={(e) => { 
+                                  const newFm = [...familyMembers]; 
+                                  if (e.target.value === 'Other') {
+                                    newFm[idx]._otherProfession = true;
+                                    newFm[idx].profession = '';
+                                  } else {
+                                    newFm[idx].profession = e.target.value; 
+                                  }
+                                  setFamilyMembers(newFm); 
+                                }} 
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
+                              >
+                                <option value="">Select...</option>
+                                <option value="Student">Student</option>
+                                <option value="Working professional">Working professional</option>
+                                <option value="Housewife">Housewife</option>
+                                <option value="Business">Business</option>
+                                <option value="Salaried">Salaried</option>
+                                <option value="Retired">Retired</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <input type="text" value={member.profession || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].profession = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherProfession = false; newFm[idx].profession = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
+                              </div>
+                            )}
                           </td>
                           <td className="p-2 border-r border-slate-100">
-                            <input type="text" value={member.qualification || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].qualification = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Qualification" />
+                            {!member._otherQualification ? (
+                              <select 
+                                value={member.qualification || ''} 
+                                onChange={(e) => { 
+                                  const newFm = [...familyMembers]; 
+                                  if (e.target.value === 'Other') {
+                                    newFm[idx]._otherQualification = true;
+                                    newFm[idx].qualification = '';
+                                  } else {
+                                    newFm[idx].qualification = e.target.value; 
+                                  }
+                                  setFamilyMembers(newFm); 
+                                }} 
+                                className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
+                              >
+                                <option value="">Select...</option>
+                                <option value="10th Pass">10th Pass</option>
+                                <option value="12th Pass">12th Pass</option>
+                                <option value="Graduate">Graduate</option>
+                                <option value="Post Graduate">Post Graduate</option>
+                                <option value="Illiterate">Illiterate</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center gap-1">
+                                <input type="text" value={member.qualification || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].qualification = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherQualification = false; newFm[idx].qualification = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
+                              </div>
+                            )}
                           </td>
                           <td className="p-2 border-r border-slate-100 text-center">
                             <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
