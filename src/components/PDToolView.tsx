@@ -2143,8 +2143,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       householdExpensesYearly: householdExpenses * 12,
       householdExpensesNotes: householdExpensesNotes,
       comfortableEmiNotes: comfortableEmiNotes,
-      netDisposalIncomeMonthly: netFamilySurplusBeforeEmi,
-      netDisposalIncomeYearly: netFamilySurplusBeforeEmi * 12,
+      netDisposalIncomeMonthly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - householdExpenses - existingEmis),
+      netDisposalIncomeYearly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - householdExpenses - existingEmis) * 12,
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,

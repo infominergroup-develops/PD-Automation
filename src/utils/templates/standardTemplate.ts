@@ -103,11 +103,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const existEmiM = data.existingEmiMonthly ?? 0;
   const existEmiY = data.existingEmiYearly ?? (existEmiM * 12);
 
-  const hhExpM = data.monthlyHouseholdExpenses ?? data.householdExpensesMonthly ?? 4000;
+  const hhExpM = data.householdExpensesMonthly ?? data.monthlyHouseholdExpenses ?? 0;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
 
-  const netDisposalM = data.netDisposalIncomeMonthly ?? (combinedNetProfM - existEmiM - hhExpM);
-  const netDisposalY = (combinedNetProfY - existEmiY - hhExpY);
+  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
+  const netDisposalY = combinedNetProfY - existEmiY - hhExpY;
 
   return `
 <!DOCTYPE html>
