@@ -692,13 +692,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   } as any]);
 
   // Itemized Income and Expenditure Lines (Price x Quantity x Days Format)
-  const [incomeLines, setIncomeLines] = useState<ItemizedCalculationLine[]>(() => {
-    return getCategoryDefaultItemizedLines('kirana', 45, 220, 26).income;
-  });
-
-  const [expenseLines, setExpenseLines] = useState<ItemizedCalculationLine[]>(() => {
-    return getCategoryDefaultItemizedLines('kirana', 45, 220, 26).expense;
-  });
+  // Itemized Income and Expenditure Lines (Price x Quantity x Days Format)
+  const [incomeLines, setIncomeLines] = useState<ItemizedCalculationLine[]>([]);
+  const [expenseLines, setExpenseLines] = useState<ItemizedCalculationLine[]>([]);
 
   // Calculated Itemized Sums
   const itemizedMonthlyIncomeTotal = useMemo(() => {
@@ -740,8 +736,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const newId = `inc-custom-${Date.now()}`;
     setIncomeLines(prev => [...prev, {
       id: newId,
-      particulars: 'New Goods / Service Product Line',
-      monthlyAmount: 3000
+      particulars: '',
+      unit: 'Piece',
+      quantity: 1,
+      price: 0,
+      workingDays: workingDays || 26,
+      monthlyAmount: 0
     }]);
   };
 
@@ -778,8 +778,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     const newId = `exp-custom-${Date.now()}`;
     setExpenseLines(prev => [...prev, {
       id: newId,
-      particulars: 'New Operational Cost Line',
-      monthlyAmount: 2000
+      particulars: '',
+      unit: 'Month',
+      quantity: 1,
+      price: 0,
+      workingDays: workingDays || 26,
+      monthlyAmount: 0
     }]);
   };
 
@@ -826,9 +830,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       ]);
     }
 
-    const defaultLines = getCategoryDefaultItemizedLines(catId, dailyFootfall, avgTicketValue, workingDays, categoriesList);
-    setIncomeLines(defaultLines.income);
-    setExpenseLines(defaultLines.expense);
     setIsCategoryModalOpen(false);
   };
 
@@ -1045,12 +1046,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [avgTicketValue, setAvgTicketValue] = useState(0);
   const [workingDays, setWorkingDays] = useState(0);
 
-  // Auto-calculate Stated Monthly Sales Turnover from Itemized Income
-  useEffect(() => {
-    if (itemizedMonthlyIncomeTotal > 0) {
-      setStatedMonthlySales(itemizedMonthlyIncomeTotal);
-    }
-  }, [itemizedMonthlyIncomeTotal]);
+
   const [neighborName, setNeighborName] = useState('');
   const [neighborFeedback, setNeighborFeedback] = useState('');
   const [landlordFeedback, setLandlordFeedback] = useState('');
@@ -1300,9 +1296,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setPhotos(app.photos || []);
 
-    const defaultLines = getCategoryDefaultItemizedLines(app.categoryId, app.dailyFootfall, app.avgTicketValue, app.workingDays, categoriesList);
-    setIncomeLines(app.incomeLines || defaultLines.income);
-    setExpenseLines(app.expenseLines || defaultLines.expense);
+    setIncomeLines(app.incomeLines || []);
+    setExpenseLines(app.expenseLines || []);
 
     setCaseInitiationDate(app.caseInitiationDate || new Date().toISOString().split('T')[0]);
 
@@ -1942,32 +1937,36 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       inventoryValue,
       businessRemark,
 
-      itemizedSales: incomeLines.map(l => ({
-        particulars: l.particulars,
-        businessNotes: l.businessNotes || `Monthly Estimate`,
-        monthly: l.monthlyAmount,
-        yearly: l.monthlyAmount * 12,
-      })),
-      itemizedExpenses: [
-        ...(cogsAmount > 0 ? [{ particulars: 'Purchases / COGS', businessNotes: 'Cost of Goods Sold', monthly: cogsAmount, yearly: cogsAmount * 12 }] : []),
-        ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
-        ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
-        ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
-        ...(transportExpense > 0 ? [{ particulars: 'Transport & Freight', businessNotes: 'Logistics costs', monthly: transportExpense, yearly: transportExpense * 12 }] : []),
-        ...(miscExpense > 0 ? [{ particulars: 'Other Misc Expenses', businessNotes: 'Maintenance & miscellaneous', monthly: miscExpense, yearly: miscExpense * 12 }] : []),
-        ...expenseLines.filter(l => l.monthlyAmount > 0).map(l => ({
-          particulars: l.particulars || 'Other Expense',
-          businessNotes: l.businessNotes || `Monthly Estimate`,
-          monthly: l.monthlyAmount,
-          yearly: l.monthlyAmount * 12,
-        }))
-      ],
+      itemizedSales: incomeLines
+        .filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '')
+        .map(l => ({
+          particulars: l.particulars.trim(),
+          businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+          monthly: Number(l.monthlyAmount) || 0,
+          yearly: (Number(l.monthlyAmount) || 0) * 12,
+        })),
+      itemizedExpenses: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
+        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').map(l => ({
+            particulars: l.particulars.trim(),
+            businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+            monthly: Number(l.monthlyAmount) || 0,
+            yearly: (Number(l.monthlyAmount) || 0) * 12,
+          }))
+        : [
+            ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
+            ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
+            ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
+          ],
 
       totalSalesMonthly: adoptedMonthlySales,
       totalSalesYearly: adoptedMonthlySales * 12,
       workingDays: workingDays,
-      totalExpensesMonthly: totalOperatingExpenses + cogsAmount,
-      totalExpensesYearly: (totalOperatingExpenses + cogsAmount) * 12,
+      totalExpensesMonthly: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
+        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (salariesExpense + rentEffective + utilitiesExpense),
+      totalExpensesYearly: (expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
+        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (salariesExpense + rentEffective + utilitiesExpense)) * 12,
       netProfitMonthly: netBusinessIncome,
       netProfitYearly: netBusinessIncome * 12,
       existingEmiMonthly: existingEmis,
@@ -5290,7 +5289,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {incomeLines.map((line) => {
+                    {incomeLines.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
+                          No itemized product lines added yet. Click &quot;+ Add Income Item Line&quot; to specify itemized quantities and rates, or use the Stated Monthly Sales Turnover below.
+                        </td>
+                      </tr>
+                    ) : (
+                      incomeLines.map((line) => {
                       const monthlyLineTotal = line.monthlyAmount || 0;
                       return (
                         <tr key={line.id} className="hover:bg-slate-50">
@@ -5373,7 +5379,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                           </td>
                         </tr>
                       );
-                    })}
+                    }))}
                   </tbody>
                 </table>
               </div>
@@ -5424,7 +5430,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {expenseLines.map((line) => {
+                    {expenseLines.length === 0 ? (
+                      <tr>
+                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
+                          No custom expense lines added. Standard operating expenses (COGS, Salaries, Rent, Utilities, etc.) configured below will be included in the assessment.
+                        </td>
+                      </tr>
+                    ) : (
+                      expenseLines.map((line) => {
                       const monthlyLineTotal = line.monthlyAmount || 0;
                       return (
                         <tr key={line.id} className="hover:bg-slate-50">
@@ -5507,7 +5520,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                           </td>
                         </tr>
                       );
-                    })}
+                    }))}
                   </tbody>
                 </table>
               </div>

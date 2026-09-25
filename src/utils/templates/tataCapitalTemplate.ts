@@ -30,19 +30,47 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
 
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const rawTotalSales = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales.reduce((acc, i) => acc + i.monthly, 0) : 0;
-  const totalSalesM = data.totalSalesMonthly || rawTotalSales;
-  const totalSalesY = totalSalesM * 12;
+  const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
+  const salesItems = hasItemizedSales
+    ? data.itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.firmName || 'Business'} Assessed Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification',
+          monthly: Number(data.totalSalesMonthly) || 0,
+          yearly: Number(data.totalSalesYearly) || (Number(data.totalSalesMonthly) || 0) * 12
+        }
+      ];
+  const totalSalesM = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
+  const totalSalesY = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalSalesYearly) || totalSalesM * 12);
 
-  const rawTotalExp = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses.reduce((acc, i) => acc + i.monthly, 0) : 0;
-  const totalExpM = data.totalExpensesMonthly || rawTotalExp;
-  const totalExpY = totalExpM * 12;
+  const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
+  const expenseItems = hasItemizedExpenses
+    ? data.itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Operating Expenses & Direct Costs',
+          businessNotes: (Number(data.totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.totalExpensesMonthly) || 0,
+          yearly: Number(data.totalExpensesYearly) || (Number(data.totalExpensesMonthly) || 0) * 12
+        }
+      ];
+  const totalExpM = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
+  const totalExpY = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
-  const netProfM = data.netProfitMonthly || (totalSalesM > 0 ? (totalSalesM - totalExpM) : 0);
-  const netProfY = netProfM * 12;
+  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
+  const netProfY = data.netProfitYearly || (netProfM * 12);
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netDisposalM * 12;
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -275,8 +303,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td>
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
-            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">${totalSalesM}</td>
-            <td style="width:50%; text-align:center; border:none;">${totalSalesY}</td>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(totalSalesM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(totalSalesY).toLocaleString('en-IN')}</td>
           </tr>
         </table>
       </td>
@@ -296,8 +324,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td class="sec-head">
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
-            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">${totalExpM}</td>
-            <td style="width:50%; text-align:center; border:none;">${totalExpY}</td>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(totalExpM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(totalExpY).toLocaleString('en-IN')}</td>
           </tr>
         </table>
       </td>
@@ -308,8 +336,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td>
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
-            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">${netProfM}</td>
-            <td style="width:50%; text-align:center; border:none;">${netProfY}</td>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(netProfM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(netProfY).toLocaleString('en-IN')}</td>
           </tr>
         </table>
       </td>

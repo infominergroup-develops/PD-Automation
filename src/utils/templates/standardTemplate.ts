@@ -12,44 +12,46 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
-  // Income Assessment Default Calculations
-  let salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
-    { particulars: `${data.firmName || 'Not Provided'} Monthly Turnover`, businessNotes: 'Based on field footfall & cross-check assessment', monthly: data.totalSalesMonthly || 91000, yearly: (data.totalSalesMonthly || 91000) * 12 }
-  ];
+  // Income Assessment Calculations
+  const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
 
-  let rawTotalSales = salesItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalSalesM = data.totalSalesMonthly || rawTotalSales;
-  const totalSalesY = data.totalSalesYearly || totalSalesM * 12;
+  const salesItems = hasItemizedSales
+    ? data.itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.firmName || 'Business'} Assessed Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.totalSalesMonthly) || 0,
+          yearly: Number(data.totalSalesYearly) || (Number(data.totalSalesMonthly) || 0) * 12
+        }
+      ];
 
-  if (rawTotalSales > 0 && totalSalesM !== rawTotalSales) {
-    const ratio = totalSalesM / rawTotalSales;
-    salesItems = salesItems.map(item => ({
-      ...item,
-      monthly: Math.round(item.monthly * ratio),
-      yearly: Math.round(item.yearly * ratio)
-    }));
-  }
+  const totalSalesM = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
+  const totalSalesY = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalSalesYearly) || totalSalesM * 12);
 
-  let expenseItems = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses : [
-    { particulars: 'Purchases / COGS Raw Material', businessNotes: 'Stock replenishment expenses', monthly: Math.round(totalSalesM * 0.75), yearly: Math.round(totalSalesM * 0.75) * 12 },
-    { particulars: 'Monthly Electricity Expenses', businessNotes: 'Utility & Power connection charges', monthly: 2500, yearly: 30000 },
-    { particulars: 'Salary of Employees / Family Labour', businessNotes: 'Staff wages or family maintenance allowance', monthly: 7000, yearly: 84000 },
-    { particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: 2000, yearly: 24000 },
-    { particulars: 'Other Expenses / Maintenance', businessNotes: 'Machine upkeep, transport & misc', monthly: 1000, yearly: 12000 }
-  ];
+  const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
 
-  let rawTotalExp = expenseItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalExpM = data.totalExpensesMonthly || rawTotalExp;
-  const totalExpY = data.totalExpensesYearly || totalExpM * 12;
+  const expenseItems = hasItemizedExpenses
+    ? data.itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Operating Expenses & Direct Costs',
+          businessNotes: (Number(data.totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.totalExpensesMonthly) || 0,
+          yearly: Number(data.totalExpensesYearly) || (Number(data.totalExpensesMonthly) || 0) * 12
+        }
+      ];
 
-  if (rawTotalExp > 0 && totalExpM !== rawTotalExp) {
-    const ratio = totalExpM / rawTotalExp;
-    expenseItems = expenseItems.map(item => ({
-      ...item,
-      monthly: Math.round(item.monthly * ratio),
-      yearly: Math.round(item.yearly * ratio)
-    }));
-  }
+  const totalExpM = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
+  const totalExpY = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly ?? (netProfM * 12);
@@ -60,8 +62,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const hhExpM = data.monthlyHouseholdExpenses ?? data.householdExpensesMonthly ?? 4000;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
 
-  const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netDisposalM * 12;
+  const netDisposalM = data.netDisposalIncomeMonthly ?? (netProfM - existEmiM - hhExpM);
+  const netDisposalY = (netProfY - existEmiY - hhExpY);
 
   return `
 <!DOCTYPE html>
@@ -1265,17 +1267,45 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
-  const salesItems = data.itemizedSales && data.itemizedSales.length > 0 ? data.itemizedSales : [
-    { particulars: 'Flour Chakki Income', businessNotes: '06 Quintals × 100 Kg × ₹2.50 × 28 Days', monthly: 42000, yearly: 504000 }
-  ];
-  const totalSalesM = data.totalSalesMonthly || salesItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalSalesY = data.totalSalesYearly || totalSalesM * 12;
+  const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
 
-  const expenseItems = data.itemizedExpenses && data.itemizedExpenses.length > 0 ? data.itemizedExpenses : [
-    { particulars: 'Monthly diesel Expenses', businessNotes: 'The machinery is currently operated through a diesel engine setup, with approximate diesel expenses of around ₹33,600 per month.', monthly: 33600, yearly: 403200 }
-  ];
-  const totalExpM = data.totalExpensesMonthly || expenseItems.reduce((acc, i) => acc + i.monthly, 0);
-  const totalExpY = data.totalExpensesYearly || totalExpM * 12;
+  const salesItems = hasItemizedSales
+    ? data.itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.firmName || 'Business'} Assessed Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.totalSalesMonthly) || 0,
+          yearly: Number(data.totalSalesYearly) || (Number(data.totalSalesMonthly) || 0) * 12
+        }
+      ];
+
+  const totalSalesM = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
+  const totalSalesY = hasItemizedSales
+    ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalSalesYearly) || totalSalesM * 12);
+
+  const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
+
+  const expenseItems = hasItemizedExpenses
+    ? data.itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Operating Expenses & Direct Costs',
+          businessNotes: (Number(data.totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.totalExpensesMonthly) || 0,
+          yearly: Number(data.totalExpensesYearly) || (Number(data.totalExpensesMonthly) || 0) * 12
+        }
+      ];
+
+  const totalExpM = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
+  const totalExpY = hasItemizedExpenses
+    ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly || (netProfM * 12);
@@ -1284,7 +1314,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netDisposalM * 12;
+  const netDisposalY = netProfY - existEmiY - hhExpY;
 
   return `
 <!DOCTYPE html>
