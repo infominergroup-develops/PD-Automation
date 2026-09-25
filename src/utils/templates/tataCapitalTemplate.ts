@@ -68,9 +68,54 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly || (netProfM * 12);
+
+  // Co-Applicant Income Assessment Calculations
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.coApplicantTotalSalesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalSalesYearly) || (Number(data.coApplicantTotalSalesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalSalesM = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
+  const coAppTotalSalesY = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
+
+  const coAppExpenseItems = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? data.coApplicantItemizedExpenses.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Co-applicant Operating Expenses',
+          businessNotes: (Number(data.coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.coApplicantTotalExpensesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalExpensesYearly) || (Number(data.coApplicantTotalExpensesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalExpM = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
+  const coAppTotalExpY = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
+
+  const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
+  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppNetProfM * 12);
+
+  const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
+  const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
+
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
-  const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
+  const netDisposalM = data.netDisposalIncomeMonthly ?? (combinedNetProfM - existEmiM - hhExpM);
+  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -343,6 +388,58 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       </td>
       <td></td>
     </tr>
+
+    ${hasCoAppAssessment ? `
+    <tr><td colspan="3" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
+    <tr>
+      <td>Co-applicant Total Sales/Receipts (A)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
+    </tr>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Co-applicant Total Expenses (B)</td>
+      <td class="sec-head">
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td>Total Monthly Expenses</td>
+    </tr>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Co-applicant Net Profit Per month (A- B)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
+    </tr>
+    <tr style="background-color: #fde68a;">
+      <td class="sec-head" style="text-align:left; color: #78350f;">Total Combined Household Net Business Profit</td>
+      <td style="color: #78350f; font-weight: bold;">
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
+    </tr>
+    ` : ''}
   </table>
 
   <div class="page-break"></div>
@@ -351,7 +448,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     <tr><td style="width:30%;">Less: Household Expenses</td><td>${hhExpM}</td><td>${hhExpM * 12}</td><td></td></tr>
     <tr><td>Add: Other Source of Income</td><td>0</td><td>0</td><td></td></tr>
     <tr class="sec-head" style="text-align:left;"><td>Net Disposal Income</td><td style="text-align:center;">${netDisposalM}</td><td style="text-align:center;">${netDisposalY}</td><td></td></tr>
-    <tr><td>Annual Turnover & Margin</td><td colspan="3">Applicant informed that his yearly turnover Rs. ${Math.round(totalSalesY/100000)} lakh and net profit margin ${Math.round((netProfM/(totalSalesM||1))*100)}%.</td></tr>
+    <tr><td>Annual Turnover & Margin</td><td colspan="3">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td></tr>
     <tr><td>Affordable EMI as per customer requirement</td><td colspan="3">As per branch.</td></tr>
 
     <tr><td colspan="4" class="sec-head">Residential Details</td></tr>

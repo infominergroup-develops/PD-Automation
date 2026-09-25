@@ -70,9 +70,54 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly || (netProfM * 12);
+
+  // Co-Applicant Income Assessment Calculations
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.coApplicantTotalSalesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalSalesYearly) || (Number(data.coApplicantTotalSalesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalSalesM = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
+  const coAppTotalSalesY = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
+
+  const coAppExpenseItems = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? data.coApplicantItemizedExpenses.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Co-applicant Operating Expenses',
+          businessNotes: (Number(data.coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.coApplicantTotalExpensesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalExpensesYearly) || (Number(data.coApplicantTotalExpensesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalExpM = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
+  const coAppTotalExpY = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
+
+  const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
+  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppNetProfM * 12);
+
+  const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
+  const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
+
   const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 0;
-  const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
+  const netDisposalM = data.netDisposalIncomeMonthly ?? (combinedNetProfM - existEmiM - hhExpM);
+  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -300,6 +345,50 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>₹${Number(netProfM).toLocaleString('en-IN')}</td>
       <td>₹${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
+
+    ${hasCoAppAssessment ? `
+    <tr><td colspan="4" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
+    <tr class="sec-head">
+      <td colspan="2">Particulars (Co-applicant)</td>
+      <td>Monthly Income</td>
+      <td>Yearly Income</td>
+    </tr>
+    ${coAppSalesItems.map(item => `
+    <tr>
+      <td colspan="2">${item.particulars}</td>
+      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+    </tr>
+    `).join('')}
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
+      <td colspan="2">Total Sales/Receipts (A)</td>
+      <td>₹${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
+      <td>₹${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
+    </tr>
+    ${coAppExpenseItems.map(item => `
+    <tr>
+      <td colspan="2">${item.particulars}</td>
+      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+    </tr>
+    `).join('')}
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
+      <td colspan="2">Total Expenses (B)</td>
+      <td>₹${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
+      <td>₹${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr style="font-weight: bold; background-color: #e2e8f0;">
+      <td colspan="2">Co-applicant Net Profit Per month(A- B)</td>
+      <td>₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
+      <td>₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr style="font-weight: bold; background-color: #fde68a; color: #78350f;">
+      <td colspan="2">Total Combined Household Net Business Profit</td>
+      <td>₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
+      <td>₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
+    </tr>
+    ` : ''}
+
     <tr>
       <td colspan="2">Less: Household Expenses</td>
       <td>${hhExpM}</td>
@@ -317,7 +406,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2">Annual Turnover & Margin</td>
-      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round(totalSalesY/100000)} lakh and net profit margin ${Math.round((netProfM/(totalSalesM||1))*100)}%.</td>
+      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td>
     </tr>
     <tr>
       <td colspan="2">Affordable EMI as per customer requirement</td>

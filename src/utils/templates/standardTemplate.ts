@@ -56,14 +56,58 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
   const netProfY = data.netProfitYearly ?? (netProfM * 12);
 
+  // Co-Applicant Income Assessment Calculations
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: `${data.coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.coApplicantTotalSalesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalSalesYearly) || (Number(data.coApplicantTotalSalesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalSalesM = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
+  const coAppTotalSalesY = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
+
+  const coAppExpenseItems = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? data.coApplicantItemizedExpenses.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    : [
+        {
+          particulars: 'Co-applicant Operating Expenses',
+          businessNotes: (Number(data.coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.coApplicantTotalExpensesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalExpensesYearly) || (Number(data.coApplicantTotalExpensesMonthly) || 0) * 12
+        }
+      ];
+
+  const coAppTotalExpM = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    : (Number(data.coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
+  const coAppTotalExpY = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
+
+  const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
+  const coAppNetProfY = data.coApplicantNetProfitYearly ?? (coAppNetProfM * 12);
+
+  const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
+  const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
+
   const existEmiM = data.existingEmiMonthly ?? 0;
   const existEmiY = data.existingEmiYearly ?? (existEmiM * 12);
 
   const hhExpM = data.monthlyHouseholdExpenses ?? data.householdExpensesMonthly ?? 4000;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
 
-  const netDisposalM = data.netDisposalIncomeMonthly ?? (netProfM - existEmiM - hhExpM);
-  const netDisposalY = (netProfY - existEmiY - hhExpY);
+  const netDisposalM = data.netDisposalIncomeMonthly ?? (combinedNetProfM - existEmiM - hhExpM);
+  const netDisposalY = (combinedNetProfY - existEmiY - hhExpY);
 
   return `
 <!DOCTYPE html>
@@ -1018,11 +1062,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   <!-- SECTION 5: CASH FLOW & ASSESSMENT OF MONTHLY INCOME TABLE -->
   <table class="report-table">
     <tr>
-      <td colspan="4" class="sec-head">Assessment of the monthly income of the applicant</td>
+      <td colspan="4" class="sec-head">Assessment of the monthly income of the applicant ${data.applicantName ? `(${data.applicantName})` : ''}</td>
     </tr>
     <tr style="background-color: #fafafa; font-weight: bold; text-align: center;">
       <td style="width: 30%;">Particulars</td>
-      <td style="width: 44%;">Business Notes<br/><span style="font-size: 7.5pt; font-weight: normal;">(Income assessment considered for 28 working days)</span></td>
+      <td style="width: 44%;">Business Notes<br/><span style="font-size: 7.5pt; font-weight: normal;">(Income assessment considered for ${data.workingDays || 28} working days)</span></td>
       <td style="width: 13%;">(Period)<br/>Monthly (₹)</td>
       <td style="width: 13%;">(Period)<br/>Yearly (₹)</td>
     </tr>
@@ -1069,15 +1113,77 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="text-right">₹${Number(netProfM).toLocaleString('en-IN')}</td>
       <td class="text-right">₹${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
+
+    ${hasCoAppAssessment ? `
+    <!-- Assessment of the monthly income of the co-applicant -->
+    <tr>
+      <td colspan="4" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td>
+    </tr>
+    <tr style="background-color: #fafafa; font-weight: bold; text-align: center;">
+      <td style="width: 30%;">Particulars</td>
+      <td style="width: 44%;">Business Notes<br/><span style="font-size: 7.5pt; font-weight: normal;">(Income assessment considered for ${data.workingDays || 28} working days)</span></td>
+      <td style="width: 13%;">(Period)<br/>Monthly (₹)</td>
+      <td style="width: 13%;">(Period)<br/>Yearly (₹)</td>
+    </tr>
+
+    <!-- Co-Applicant Sales / Receipts Section -->
+    <tr style="background-color: #f8fafc; font-weight: bold;">
+      <td colspan="4">Sales/Receipts</td>
+    </tr>
+    ${coAppSalesItems.map(item => `
+      <tr>
+        <td>${item.particulars}</td>
+        <td>${item.businessNotes}</td>
+        <td class="text-right">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+        <td class="text-right">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
+      <td colspan="2">Total Sales/Receipts (A)</td>
+      <td class="text-right">₹${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
+    </tr>
+
+    <!-- Co-Applicant Expenses Section -->
+    <tr style="background-color: #f8fafc; font-weight: bold;">
+      <td colspan="4">Expenses</td>
+    </tr>
+    ${coAppExpenseItems.map(item => `
+      <tr>
+        <td>${item.particulars}</td>
+        <td>${item.businessNotes}</td>
+        <td class="text-right">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+        <td class="text-right">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
+      <td colspan="2">Total Expenses (B)</td>
+      <td class="text-right">₹${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
+    </tr>
+
+    <tr style="font-weight: bold; background-color: #e2e8f0;">
+      <td colspan="2">Co-applicant Net Profit Per month (A - B)</td>
+      <td class="text-right">₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+    </tr>
+
+    <tr style="font-weight: bold; background-color: #fde68a; color: #78350f;">
+      <td colspan="2">Total Combined Household Net Business Profit</td>
+      <td class="text-right">₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
+    </tr>
+    ` : ''}
+
     <tr>
       <td>Less: Existing EMI</td>
-      <td>No any existing obligation / Current active loans</td>
+      <td>${data.existingEmiNotes || 'No any existing obligation / Current active loans'}</td>
       <td class="text-right">₹${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="text-right">₹${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr>
       <td>Less: Existing Household Expenses</td>
-      <td>Family monthly living, medical & education expenses</td>
+      <td>${data.householdExpensesNotes || 'Family monthly living, medical & education expenses'}</td>
       <td class="text-right">₹${Number(hhExpM).toLocaleString('en-IN')}</td>
       <td class="text-right">₹${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>

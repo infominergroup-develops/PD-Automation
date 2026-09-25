@@ -791,6 +791,92 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setExpenseLines(prev => prev.filter(line => line.id !== id));
   };
 
+  // Handlers for Co-Applicant Itemized Income & Expenditures
+  const [coAppIncomeLines, setCoAppIncomeLines] = useState<ItemizedCalculationLine[]>([]);
+  const [coAppExpenseLines, setCoAppExpenseLines] = useState<ItemizedCalculationLine[]>([]);
+
+  const handleUpdateCoAppIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
+    setCoAppIncomeLines(prev => prev.map(line => {
+      if (line.id === id) {
+        const newLine = { ...line, [field]: value };
+        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+          const q = newLine.quantity;
+          const p = newLine.price;
+          const w = newLine.workingDays;
+          const u = newLine.unit;
+
+          if (!q || !p || !w || !u) {
+            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+            newLine.monthlyAmount = 0;
+          } else {
+            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+          }
+        }
+        return newLine;
+      }
+      return line;
+    }));
+  };
+
+  const handleAddCoAppIncomeLine = () => {
+    const newId = `coapp-inc-${Date.now()}`;
+    setCoAppIncomeLines(prev => [...prev, {
+      id: newId,
+      particulars: '',
+      unit: 'Month',
+      quantity: 1,
+      price: 0,
+      workingDays: workingDays || 26,
+      monthlyAmount: 0
+    }]);
+  };
+
+  const handleRemoveCoAppIncomeLine = (id: string) => {
+    setCoAppIncomeLines(prev => prev.filter(line => line.id !== id));
+  };
+
+  const handleUpdateCoAppExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
+    setCoAppExpenseLines(prev => prev.map(line => {
+      if (line.id === id) {
+        const newLine = { ...line, [field]: value };
+        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+          const q = newLine.quantity;
+          const p = newLine.price;
+          const w = newLine.workingDays;
+          const u = newLine.unit;
+
+          if (!q || !p || !w || !u) {
+            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+            newLine.monthlyAmount = 0;
+          } else {
+            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+          }
+        }
+        return newLine;
+      }
+      return line;
+    }));
+  };
+
+  const handleAddCoAppExpenseLine = () => {
+    const newId = `coapp-exp-${Date.now()}`;
+    setCoAppExpenseLines(prev => [...prev, {
+      id: newId,
+      particulars: '',
+      unit: 'Month',
+      quantity: 1,
+      price: 0,
+      workingDays: workingDays || 26,
+      monthlyAmount: 0
+    }]);
+  };
+
+  const handleRemoveCoAppExpenseLine = (id: string) => {
+    setCoAppExpenseLines(prev => prev.filter(line => line.id !== id));
+  };
+
   // Sync Itemized Income Total to Stated Monthly Turnover
   const handleSyncItemizedToStatedTurnover = () => {
     if (itemizedMonthlyIncomeTotal > 0) {
@@ -1073,6 +1159,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [solarPurposeUsage, setSolarPurposeUsage] = useState('');
   const [riskFactor, setRiskFactor] = useState('');
 
+  // Co-Applicant Financial Assessment State
+  const [coAppStatedMonthlySales, setCoAppStatedMonthlySales] = useState(0);
+  const [coAppSalariesExpense, setCoAppSalariesExpense] = useState(0);
+  const [coAppRentExpense, setCoAppRentExpense] = useState(0);
+  const [coAppUtilitiesExpense, setCoAppUtilitiesExpense] = useState(0);
+  const [coAppMiscExpense, setCoAppMiscExpense] = useState(0);
+
   // Total Existing EMIs
   const existingEmis = useMemo(() => {
     return (existingLoans || []).reduce((sum, loan) => sum + (Number(loan?.emi) || 0), 0);
@@ -1298,6 +1391,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setIncomeLines(app.incomeLines || []);
     setExpenseLines(app.expenseLines || []);
+
+    setCoAppIncomeLines(app.coAppIncomeLines || []);
+    setCoAppExpenseLines(app.coAppExpenseLines || []);
+    setCoAppStatedMonthlySales(app.coAppStatedMonthlySales || 0);
+    setCoAppSalariesExpense(app.coAppSalariesExpense || 0);
+    setCoAppRentExpense(app.coAppRentExpense || 0);
+    setCoAppUtilitiesExpense(app.coAppUtilitiesExpense || 0);
+    setCoAppMiscExpense(app.coAppMiscExpense || 0);
 
     setCaseInitiationDate(app.caseInitiationDate || new Date().toISOString().split('T')[0]);
 
@@ -1635,10 +1736,43 @@ ${qaPairs.join('\n\n')}`;
     return n;
   }, [tenureMonths, tenorRequested]);
 
+  // Co-applicant Business Income Assessment calculations
+  const hasCoAppInBusiness = useMemo(() => {
+    return coApplicants.some(c => c.profession === 'Business' || (c as any).inBusiness === true);
+  }, [coApplicants]);
+
+  const coAppBusinessPerson = useMemo(() => {
+    return coApplicants.find(c => c.profession === 'Business' || (c as any).inBusiness === true);
+  }, [coApplicants]);
+
+  const coAppItemizedMonthlyIncomeTotal = useMemo(() => {
+    return coAppIncomeLines.reduce((sum, line) => sum + (line.monthlyAmount || 0), 0);
+  }, [coAppIncomeLines]);
+
+  const coAppItemizedMonthlyExpenseTotal = useMemo(() => {
+    return coAppExpenseLines.reduce((sum, line) => sum + (line.monthlyAmount || 0), 0);
+  }, [coAppExpenseLines]);
+
+  const coAppAdoptedMonthlySales = useMemo(() => {
+    return Math.max(coAppStatedMonthlySales, coAppItemizedMonthlyIncomeTotal || 0);
+  }, [coAppStatedMonthlySales, coAppItemizedMonthlyIncomeTotal]);
+
+  const coAppTotalOperatingExpenses = useMemo(() => {
+    if (coAppExpenseLines.length > 0 && coAppExpenseLines.some(l => (Number(l.monthlyAmount) || 0) > 0)) {
+      return coAppExpenseLines.reduce((sum, line) => sum + (Number(line.monthlyAmount) || 0), 0);
+    }
+    return coAppSalariesExpense + coAppRentExpense + coAppUtilitiesExpense + coAppMiscExpense;
+  }, [coAppExpenseLines, coAppSalariesExpense, coAppRentExpense, coAppUtilitiesExpense, coAppMiscExpense]);
+
+  const coAppNetBusinessIncome = useMemo(() => {
+    return Math.max(0, coAppAdoptedMonthlySales - coAppTotalOperatingExpenses);
+  }, [coAppAdoptedMonthlySales, coAppTotalOperatingExpenses]);
+
   // Total Household Surplus before Proposed EMI
   const netFamilySurplusBeforeEmi = useMemo(() => {
-    return (netBusinessIncome + otherIncome) - householdExpenses - existingEmis;
-  }, [netBusinessIncome, otherIncome, householdExpenses, existingEmis]);
+    const coAppContrib = hasCoAppInBusiness ? coAppNetBusinessIncome : 0;
+    return (netBusinessIncome + coAppContrib + otherIncome) - householdExpenses - existingEmis;
+  }, [netBusinessIncome, hasCoAppInBusiness, coAppNetBusinessIncome, otherIncome, householdExpenses, existingEmis]);
 
   // Calculated Proposed Monthly EMI Formula: P * r * (1+r)^n / ((1+r)^n - 1)
   const proposedEmi = useMemo(() => {
@@ -1967,6 +2101,39 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       totalExpensesYearly: (expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
         ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
         : (salariesExpense + rentEffective + utilitiesExpense)) * 12,
+
+      // Co-Applicant Financial Assessment
+      hasCoApplicantIncomeAssessment: hasCoAppInBusiness,
+      coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
+      coApplicantRelation: coAppBusinessPerson ? (coAppBusinessPerson.relation === 'Other' ? coAppBusinessPerson.otherRelation : coAppBusinessPerson.relation) : (coApplicants[0]?.relation || 'Co-applicant'),
+      coApplicantItemizedSales: coAppIncomeLines
+        .filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '')
+        .map(l => ({
+          particulars: l.particulars.trim(),
+          businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+          monthly: Number(l.monthlyAmount) || 0,
+          yearly: (Number(l.monthlyAmount) || 0) * 12,
+        })),
+      coApplicantTotalSalesMonthly: coAppAdoptedMonthlySales,
+      coApplicantTotalSalesYearly: coAppAdoptedMonthlySales * 12,
+      coApplicantItemizedExpenses: coAppExpenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
+        ? coAppExpenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').map(l => ({
+            particulars: l.particulars.trim(),
+            businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+            monthly: Number(l.monthlyAmount) || 0,
+            yearly: (Number(l.monthlyAmount) || 0) * 12,
+          }))
+        : [
+            ...(coAppSalariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: coAppSalariesExpense, yearly: coAppSalariesExpense * 12 }] : []),
+            ...(coAppRentExpense > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: coAppRentExpense, yearly: coAppRentExpense * 12 }] : []),
+            ...(coAppUtilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: coAppUtilitiesExpense, yearly: coAppUtilitiesExpense * 12 }] : []),
+            ...(coAppMiscExpense > 0 ? [{ particulars: 'Other Operating Expenses', businessNotes: 'Misc / Maintenance', monthly: coAppMiscExpense, yearly: coAppMiscExpense * 12 }] : []),
+          ],
+      coApplicantTotalExpensesMonthly: coAppTotalOperatingExpenses,
+      coApplicantTotalExpensesYearly: coAppTotalOperatingExpenses * 12,
+      coApplicantNetProfitMonthly: coAppNetBusinessIncome,
+      coApplicantNetProfitYearly: coAppNetBusinessIncome * 12,
+
       netProfitMonthly: netBusinessIncome,
       netProfitYearly: netBusinessIncome * 12,
       existingEmiMonthly: existingEmis,
@@ -5538,6 +5705,241 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             </div>
+
+            {/* Assessment of the monthly income of the co-applicant */}
+            {hasCoAppInBusiness && (
+              <div className="border-2 border-indigo-200 bg-indigo-50/40 rounded-xl p-5 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-indigo-200 pb-3">
+                  <div>
+                    <h4 className="text-xs font-black text-indigo-950 uppercase tracking-wider flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-indigo-600" />
+                      Assessment of the monthly income of the co-applicant {coAppBusinessPerson?.name ? `(${coAppBusinessPerson.name})` : ''}
+                    </h4>
+                    <p className="text-[11px] text-indigo-700 font-medium">Income and expenditure assessment for co-applicant business operations.</p>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-xs font-extrabold px-3 py-1 bg-indigo-100 text-indigo-900 border border-indigo-300 rounded-lg">
+                      Co-App Net Profit: ₹{coAppNetBusinessIncome.toLocaleString('en-IN')} / mo
+                    </div>
+                  </div>
+                </div>
+
+                {/* Live Waterfall cards for Co-applicant */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="bg-white border border-indigo-200 rounded-lg p-3">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">Co-App Monthly Sales (A)</p>
+                    <div className="text-lg font-black text-indigo-950 mt-0.5">₹{coAppAdoptedMonthlySales.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div className="bg-white border border-indigo-200 rounded-lg p-3">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">Co-App Monthly Expenses (B)</p>
+                    <div className="text-lg font-black text-rose-700 mt-0.5">₹{coAppTotalOperatingExpenses.toLocaleString('en-IN')}</div>
+                  </div>
+                  <div className="bg-white border border-indigo-200 rounded-lg p-3">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase">Co-App Net Profit (A - B)</p>
+                    <div className="text-lg font-black text-emerald-700 mt-0.5">₹{coAppNetBusinessIncome.toLocaleString('en-IN')}</div>
+                  </div>
+                </div>
+
+                {/* Itemized Co-Applicant Sales */}
+                <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h5 className="text-xs font-bold text-slate-700 uppercase">Co-Applicant Sales / Revenue Line Items</h5>
+                    <button
+                      type="button"
+                      onClick={handleAddCoAppIncomeLine}
+                      className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[11px] font-bold transition flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add Co-App Income Line
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-100 text-slate-700 font-bold uppercase">
+                        <tr>
+                          <th className="p-2">Particulars</th>
+                          <th className="p-2">Business Notes</th>
+                          <th className="p-2 text-right">Monthly (₹)</th>
+                          <th className="p-2 text-right">Yearly (₹)</th>
+                          <th className="p-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {coAppIncomeLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-3 text-center text-slate-400 italic">
+                              No itemized lines added. You can add lines or enter Stated Monthly Sales below.
+                            </td>
+                          </tr>
+                        ) : (
+                          coAppIncomeLines.map(line => (
+                            <tr key={line.id}>
+                              <td className="p-1.5">
+                                <input
+                                  type="text"
+                                  value={line.particulars}
+                                  onChange={e => handleUpdateCoAppIncomeLine(line.id, 'particulars', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold"
+                                  placeholder="e.g. Retail Sales / Service Fees"
+                                />
+                              </td>
+                              <td className="p-1.5">
+                                <input
+                                  type="text"
+                                  value={line.businessNotes || ''}
+                                  onChange={e => handleUpdateCoAppIncomeLine(line.id, 'businessNotes', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
+                                  placeholder="e.g. Daily average ₹2,000"
+                                />
+                              </td>
+                              <td className="p-1.5 text-right">
+                                <input
+                                  type="number"
+                                  value={line.monthlyAmount || 0}
+                                  onChange={e => handleUpdateCoAppIncomeLine(line.id, 'monthlyAmount', Number(e.target.value))}
+                                  className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-bold text-emerald-700"
+                                />
+                              </td>
+                              <td className="p-1.5 text-right font-bold text-slate-600">
+                                ₹{((line.monthlyAmount || 0) * 12).toLocaleString('en-IN')}
+                              </td>
+                              <td className="p-1.5 text-center">
+                                <button type="button" onClick={() => handleRemoveCoAppIncomeLine(line.id)} className="text-rose-500 hover:text-rose-700">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Itemized Co-Applicant Expenses */}
+                <div className="bg-white border border-slate-200 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h5 className="text-xs font-bold text-slate-700 uppercase">Co-Applicant Operating Expenses Line Items</h5>
+                    <button
+                      type="button"
+                      onClick={handleAddCoAppExpenseLine}
+                      className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold transition flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add Co-App Expense Line
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-slate-100 text-slate-700 font-bold uppercase">
+                        <tr>
+                          <th className="p-2">Particulars</th>
+                          <th className="p-2">Business Notes</th>
+                          <th className="p-2 text-right">Monthly (₹)</th>
+                          <th className="p-2 text-right">Yearly (₹)</th>
+                          <th className="p-2 text-center">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {coAppExpenseLines.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="p-3 text-center text-slate-400 italic">
+                              No custom expense lines added. Direct expenses entered below will be assessed.
+                            </td>
+                          </tr>
+                        ) : (
+                          coAppExpenseLines.map(line => (
+                            <tr key={line.id}>
+                              <td className="p-1.5">
+                                <input
+                                  type="text"
+                                  value={line.particulars}
+                                  onChange={e => handleUpdateCoAppExpenseLine(line.id, 'particulars', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold"
+                                  placeholder="e.g. Purchases / Rent / Salaries"
+                                />
+                              </td>
+                              <td className="p-1.5">
+                                <input
+                                  type="text"
+                                  value={line.businessNotes || ''}
+                                  onChange={e => handleUpdateCoAppExpenseLine(line.id, 'businessNotes', e.target.value)}
+                                  className="w-full px-2 py-1 border border-slate-300 rounded text-xs"
+                                  placeholder="e.g. Monthly shop rent"
+                                />
+                              </td>
+                              <td className="p-1.5 text-right">
+                                <input
+                                  type="number"
+                                  value={line.monthlyAmount || 0}
+                                  onChange={e => handleUpdateCoAppExpenseLine(line.id, 'monthlyAmount', Number(e.target.value))}
+                                  className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-bold text-rose-700"
+                                />
+                              </td>
+                              <td className="p-1.5 text-right font-bold text-slate-600">
+                                ₹{((line.monthlyAmount || 0) * 12).toLocaleString('en-IN')}
+                              </td>
+                              <td className="p-1.5 text-center">
+                                <button type="button" onClick={() => handleRemoveCoAppExpenseLine(line.id)} className="text-rose-500 hover:text-rose-700">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Direct Quick Inputs for Co-applicant */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Stated Monthly Turnover (₹)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={coAppStatedMonthlySales}
+                      onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppStatedMonthlySales(v); }}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-indigo-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Staff Salaries (₹/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={coAppSalariesExpense}
+                      onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppSalariesExpense(v); }}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Premises Rent (₹/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={coAppRentExpense}
+                      onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppRentExpense(v); }}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Utilities & Misc (₹/mo)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={coAppUtilitiesExpense}
+                      onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppUtilitiesExpense(v); }}
+                      className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Waterfall Input Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">

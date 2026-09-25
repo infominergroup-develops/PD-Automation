@@ -275,6 +275,29 @@ export interface PDReportPrintData {
   totalExpensesMonthly?: number;
   totalExpensesYearly?: number;
 
+  // Co-applicant Financial Assessment
+  hasCoApplicantIncomeAssessment?: boolean;
+  coApplicantName?: string;
+  coApplicantRelation?: string;
+  coApplicantItemizedSales?: Array<{
+    particulars: string;
+    businessNotes: string;
+    monthly: number;
+    yearly: number;
+  }>;
+  coApplicantTotalSalesMonthly?: number;
+  coApplicantTotalSalesYearly?: number;
+  coApplicantItemizedExpenses?: Array<{
+    particulars: string;
+    businessNotes: string;
+    monthly: number;
+    yearly: number;
+  }>;
+  coApplicantTotalExpensesMonthly?: number;
+  coApplicantTotalExpensesYearly?: number;
+  coApplicantNetProfitMonthly?: number;
+  coApplicantNetProfitYearly?: number;
+
   netProfitMonthly?: number;
   netProfitYearly?: number;
   existingEmiMonthly?: number;

@@ -90,8 +90,12 @@ async function addAuditLog(userName: string, userRole: any, action: string, reso
 // API ROUTES
 // -------------------------------------------------------------
 
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
 app.get("/api/health", (req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
 
 // Excel Template Parsing & Generation
