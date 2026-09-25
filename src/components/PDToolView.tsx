@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
-import { SAMPLE_APPLICATIONS, SampleApplication } from '../data/sampleApplications';
+
 import { api, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
@@ -295,17 +295,37 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [applicantsList, setApplicantsList] = useState<any[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
 
-  useEffect(() => {
-    let intervalId: NodeJS.Timeout;
+  // Helper: normalise a raw Firestore applicant document so the UI always
+  // sees a consistent `applicantName` field, regardless of which version of the
+  // save code wrote the record (old code used `applicantEntity` / nested `formData`).
+  const normaliseApplicant = (raw: any) => {
+    const formData = raw.formData || {};
+    return {
+      ...raw,
+      // Spread legacy nested formData fields so they surface at the top level
+      ...formData,
+      // Ensure applicantName is always present, falling back to legacy field names
+      applicantName:
+        raw.applicantName ||
+        formData.applicantName ||
+        raw.applicantEntity ||
+        '',
+      // Similarly normalise firmName
+      firmName: raw.firmName || formData.firmName || '',
+      // Ensure applicationNumber is present
+      applicationNumber: raw.applicationNumber || raw.appIdRefNo || '',
+    };
+  };
 
+  useEffect(() => {
     const fetchApps = async (showLoading = false) => {
       if (!selectedClient?.id) return;
       if (showLoading) setLoadingApplicants(true);
 
       try {
-        const data = await api.getApplicants(selectedClient.id);
-        // React handles state updates efficiently, but we can do a deep equality check if needed.
-        // For now, we will just set it so it updates the gallery in real-time.
+        const rawData = await api.getApplicants(selectedClient.id);
+        // Normalise every record so legacy saves show the correct name
+        const data = rawData.map(normaliseApplicant);
         setApplicantsList(data);
 
         // Auto-load last active app if one isn't currently loaded
@@ -1070,9 +1090,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     return 'As per applicant no any existing obligation.';
   }, [existingLoans]);
 
-  const handleDeleteApplication = async (appNumber: string) => {
-    if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appNumber}?`)) {
-      const applicantToDelete = applicantsList.find(a => a.applicationNumber === appNumber);
+  const handleDeleteApplication = async (appIdOrNumber: string) => {
+    if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
+      // Match by _id first (most reliable), then fall back to applicationNumber
+      const applicantToDelete =
+        applicantsList.find(a => a._id === appIdOrNumber) ||
+        applicantsList.find(a => a.applicationNumber === appIdOrNumber);
+
       if (applicantToDelete && applicantToDelete._id && selectedClient) {
         try {
           await api.deleteApplicant(selectedClient.id, applicantToDelete._id);
@@ -1080,8 +1104,25 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
           console.error("Failed to delete applicant from DB", error);
         }
       }
-      setApplicantsList(prev => prev.filter(a => a.applicationNumber !== appNumber));
-      setLoadedToastMessage(`Deleted applicant ${appNumber}`);
+
+      // Remove optimistically from local state, then re-fetch to ensure list is accurate
+      setApplicantsList(prev =>
+        prev.filter(a => a._id !== applicantToDelete?._id && a.applicationNumber !== appIdOrNumber)
+      );
+
+      // Re-fetch fresh list from Firestore after a brief moment
+      if (selectedClient?.id) {
+        setTimeout(async () => {
+          try {
+            const rawData = await api.getApplicants(selectedClient.id);
+            setApplicantsList(rawData.map(normaliseApplicant));
+          } catch (e) {
+            console.error('Failed to refresh applicants after delete', e);
+          }
+        }, 500);
+      }
+
+      setLoadedToastMessage(`Deleted applicant ${appIdOrNumber}`);
       setTimeout(() => setLoadedToastMessage(null), 3000);
     }
   };
@@ -1090,6 +1131,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const handleCreateNewApplicant = async () => {
     if (!selectedClient) return;
     const newAppNumber = '';
+
     const newApplicant = {
       _id: null,
       applicationNumber: newAppNumber,
@@ -1144,6 +1186,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     try {
       setActiveAppId(null);
       activeAppIdRef.current = null;
+      isCreatingNewAppRef.current = false;
+      lastSavedStrRef.current = ''; // reset so auto-save detects the new blank state
       handleLoadSampleApp(newApplicant);
       setLoadedToastMessage(`Started new draft application`);
       setTimeout(() => setLoadedToastMessage(null), 3000);
@@ -1170,8 +1214,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
 
     handleSelectCategory(app.categoryId);
-    setApplicantName(app.applicantName || '');
-    setMobileNumber(app.mobileNumber || '');
+    // Support legacy field names from old saves
+    setApplicantName(app.applicantName || app.applicantEntity || '');
+    setMobileNumber(app.mobileNumber || app.contactNo || '');
     setPanNumber(app.panNumber || '');
     setResidenceAddress(app.residenceAddress || '');
     setResidenceOwnership(app.residenceOwnership || 'OWN');
@@ -1331,8 +1376,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
     hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
     businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
-    businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId
+    businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId,
+    // Always persist these top-level indexing fields so gallery/search works correctly
+    applicationNumber: activeAppNumber,
+    financialInstitute: selectedClient?.name || '',
+    clientId: selectedClient?.id || ''
   };
+
+  // Ref to prevent concurrent auto-create calls for new applicants
+  const isCreatingNewAppRef = useRef(false);
 
   useEffect(() => {
     if (!selectedClient?.id) return;
@@ -1353,10 +1405,11 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       if (lastSavedStrRef.current !== currentStr) {
         lastSavedStrRef.current = currentStr;
         
-        // Only push to DB automatically if it's already an existing entity
         if (currentAppId) {
+          // Update existing record in DB
           api.updateApplicant(selectedClient.id, currentAppId, { ...currentData, _id: currentAppId })
-            .then((savedApp) => {
+            .then((rawSaved) => {
+              const savedApp = normaliseApplicant(rawSaved);
               localStorage.removeItem(storageKey); // clear on successful save
               // Sync with applicantsList so UI updates immediately
               setApplicantsList(prev => {
@@ -1366,6 +1419,30 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
               });
             })
             .catch(err => console.error('Failed to auto-save:', err));
+        } else if (currentData.applicantName && currentData.applicantName.trim() && !isCreatingNewAppRef.current) {
+          // Auto-create a new DB record once the applicant has a name
+          isCreatingNewAppRef.current = true;
+          const payload = {
+            ...currentData,
+            applicantName: currentData.applicantName.trim(),
+            financialInstitute: selectedClient.name,
+          };
+          api.createApplicant(selectedClient.id, payload)
+            .then((rawSaved) => {
+              const savedApp = normaliseApplicant(rawSaved);
+              if (savedApp && savedApp._id) {
+                setActiveAppId(savedApp._id);
+                activeAppIdRef.current = savedApp._id;
+                localStorage.removeItem('offline_draft_new');
+                setApplicantsList(prev => {
+                  const exists = prev.some(a => a._id === savedApp._id);
+                  if (exists) return prev;
+                  return [savedApp, ...prev];
+                });
+              }
+            })
+            .catch(err => console.error('Failed to auto-create applicant:', err))
+            .finally(() => { isCreatingNewAppRef.current = false; });
         }
       }
     }, 1500);
@@ -1506,13 +1583,9 @@ ${qaPairs.join('\n\n')}`;
     );
   }, [appSearchQuery, applicantsList]);
 
-  // Gallery Filtered Applications
+  // Gallery Filtered Applications — only real DB applicants, no mock data
   const galleryApplications = useMemo(() => {
-    // Show live database cases first, then fallback to mock sample applications
-    const filteredSamples = SAMPLE_APPLICATIONS.filter(
-      sample => !applicantsList.some(live => live.applicationNumber === sample.applicationNumber)
-    );
-    return [...applicantsList, ...filteredSamples];
+    return [...applicantsList];
   }, [applicantsList]);
 
 
@@ -1698,26 +1771,30 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       alert("Please select a client first.");
       return;
     }
+    // Use the same flat data structure as the auto-save so that applicantName,
+    // firmName, applicationNumber, etc. are all stored as top-level Firestore fields
+    // and can be read back correctly by the gallery and load functions.
     const payload = {
-      appIdRefNo: activeAppNumber,
+      ...(updateDataRef.current || {}),
+      applicationNumber: activeAppNumber,
+      applicantName: applicantName || 'Draft Applicant',
       financialInstitute: selectedClient.name,
-      applicantEntity: applicantName || 'Draft Applicant',
-      product: loanType,
-      city: 'Not Provided',
-      loanAmountRequested: appliedAmount || 0,
-      contactNo: mobileNumber || '',
-      formData: JSON.parse(localStorage.getItem('infominer_pd_draft') || '{}')
     };
 
     try {
       if (activeAppIdRef.current) {
-        await api.updateApplicant(selectedClient.id, activeAppIdRef.current, payload);
-        setApplicantsList(prev => prev.map(a => a._id === activeAppIdRef.current ? { ...a, ...payload } : a));
+        const rawUpdated = await api.updateApplicant(selectedClient.id, activeAppIdRef.current, { ...payload, _id: activeAppIdRef.current });
+        const updatedApp = normaliseApplicant(rawUpdated);
+        setApplicantsList(prev => prev.map(a => a._id === activeAppIdRef.current ? updatedApp : a));
         alert('Applicant data updated in database successfully!');
       } else {
-        const savedApp = await api.createApplicant(selectedClient.id, payload);
+        const rawSaved = await api.createApplicant(selectedClient.id, payload);
+        const savedApp = normaliseApplicant(rawSaved);
         if (savedApp && savedApp._id) {
           setActiveAppId(savedApp._id);
+          activeAppIdRef.current = savedApp._id;
+          // Clear the 'new' offline draft now that we have a real DB record
+          localStorage.removeItem('offline_draft_new');
         }
         setApplicantsList(prev => [savedApp, ...prev]);
         alert('Applicant data saved to database successfully!');
@@ -3387,6 +3464,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
+                                <option value="Self">Self</option>
                                 <option value="Father">Father</option>
                                 <option value="Mother">Mother</option>
                                 <option value="Spouse">Spouse</option>
@@ -5952,30 +6030,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </button>
             </div>
 
-            {/* Bank Filter Tabs */}
-            <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 shrink-0">
-              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
-                <span className="text-xs font-bold text-slate-500 mr-2 flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5" /> Filter Bank:
-                </span>
-                {['ALL', 'axis', 'hdfc', 'icici', 'sbi', 'indusind', 'kotak'].map((bId) => {
-                  const label = bId === 'ALL' ? 'All Banks (6)' : bId.toUpperCase();
-                  const isActive = selectedBankFilter === bId;
-                  return (
-                    <button
-                      key={bId}
-                      onClick={() => setSelectedBankFilter(bId)}
-                      className={`px-3 py-1 rounded-lg text-xs font-bold transition whitespace-nowrap ${isActive
-                          ? 'bg-[#eb8a23] text-white shadow-xs'
-                          : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-100'
-                        }`}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-              </div>
 
+            {/* Applicant Count & Admin Actions */}
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center justify-between">
               <div className="text-xs text-slate-500 font-medium">
                 {loadingApplicants && galleryApplications.length === 0 ? (
                   <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border-2 border-[#eb8a23] border-t-transparent animate-spin"></div> Loading...</span>
@@ -5983,13 +6040,44 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <>Showing <strong>{galleryApplications.length}</strong> applications</>
                 )}
               </div>
+              {currentUser?.role !== 'EMPLOYEE' && galleryApplications.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
+                    try {
+                      const result = await api.deleteAllApplicants();
+                      setApplicantsList([]);
+                      setActiveAppId(null);
+                      activeAppIdRef.current = null;
+                      lastSavedStrRef.current = '';
+                      setLoadedToastMessage(`✅ Permanently deleted ${result.deletedCount} applicants from database.`);
+                      setTimeout(() => setLoadedToastMessage(null), 5000);
+                    } catch (err) {
+                      console.error('Failed to delete all applicants:', err);
+                      alert('Failed to delete all applicants. Check console.');
+                    }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete All Applicants
+                </button>
+              )}
             </div>
+
 
             {/* Application Cards Grid */}
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {galleryApplications.length === 0 && !loadingApplicants && (
+                <div className="col-span-3 text-center py-16 text-slate-400">
+                  <div className="text-4xl mb-3">📂</div>
+                  <p className="font-bold text-sm">No applicants saved yet</p>
+                  <p className="text-xs mt-1">Click "+ New Applicant" to create your first entry.</p>
+                </div>
+              )}
               {galleryApplications.map((app) => (
                 <div
-                  key={app.applicationNumber}
+                  key={app._id || app.applicationNumber}
                   className="bg-white border border-slate-200 hover:border-amber-400 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3"
                 >
                   <div className="space-y-2">
@@ -6032,12 +6120,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     className="w-full py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group"
                   >
                     <Zap className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white" />
-                    Load App #{app.applicationNumber}
+                    Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
                   </button>
 
                   {currentUser?.role !== 'EMPLOYEE' && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteApplication(app.applicationNumber); }}
+                      onClick={(e) => { e.stopPropagation(); handleDeleteApplication(app._id || app.applicationNumber); }}
                       className="w-full mt-1 py-1 bg-rose-50 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 rounded-lg text-[10px] font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group"
                     >
                       <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:text-white" />

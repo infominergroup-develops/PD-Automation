@@ -208,6 +208,35 @@ app.delete("/api/clients/:clientId/applicants/:appId", async (req, res) => {
   }
 });
 
+// Bulk Delete All Applicants (across ALL clients)
+app.delete("/api/applicants/all", async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: "Database not connected" });
+    const snapshot = await db.collection("applicants").get();
+    if (snapshot.empty) {
+      return res.json({ success: true, deletedCount: 0 });
+    }
+
+    // Firestore batch delete in chunks of 500 (Firestore batch limit)
+    const batchSize = 500;
+    let deletedCount = 0;
+    const docs = snapshot.docs;
+    for (let i = 0; i < docs.length; i += batchSize) {
+      const batch = db.batch();
+      const chunk = docs.slice(i, i + batchSize);
+      chunk.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      deletedCount += chunk.length;
+    }
+
+    console.log(`Bulk deleted ${deletedCount} applicants from all clients.`);
+    res.json({ success: true, deletedCount });
+  } catch (err) {
+    console.error("Bulk Delete Applicants Error:", err);
+    res.status(500).json({ error: "Failed to bulk delete applicants" });
+  }
+});
+
 // Auth & Session Endpoints
 app.post("/api/auth/login", async (req, res) => {
   try {

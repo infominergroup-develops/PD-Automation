@@ -141,6 +141,12 @@ export const api = {
     return true;
   },
 
+  deleteAllApplicants: async (): Promise<{ deletedCount: number }> => {
+    return handleResponse<{ deletedCount: number }>(
+      await fetch(`${BASE_URL}/api/applicants/all`, { method: 'DELETE' })
+    );
+  },
+
   // Categories
   getCategories: async (): Promise<BusinessCategory[]> => {
     const data = await handleResponse<{ categories: BusinessCategory[] }>(
