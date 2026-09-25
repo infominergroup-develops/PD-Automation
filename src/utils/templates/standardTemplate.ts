@@ -782,7 +782,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  ${(data.coApplicantBusinessName || data.coApplicantBriefBusinessProfile) ? `
+  ${data.hasCoApplicantBusiness ? `
   <!-- SECTION 3B: CO-APPLICANT BUSINESS VISIT REPORT -->
   <table class="report-table" style="margin-top: 10px;">
     <tr>

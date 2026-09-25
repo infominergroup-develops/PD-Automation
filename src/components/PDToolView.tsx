@@ -2016,7 +2016,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
       
-      hasCoApplicantBusiness: coApplicants.some(c => c.profession === 'Business'),
+      hasCoApplicantBusiness: hasCoAppInBusiness,
       coApplicantBusinessName: coApplicantBusinessName || 'Not provided',
       coApplicantBriefBusinessProfile: coApplicantBriefBusinessProfile || 'Not provided',
       coApplicantBusinessVintage: coApplicantBusinessVintage || 'Not provided',
@@ -2169,7 +2169,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       financialDetailsText,
       otherBusinessPremisesText,
       otherStateGstText,
-      familyInvolvedText: familyInvolvedText || (coApplicants.some(c => c.profession === 'Business') ? coApplicants.filter(c => c.profession === 'Business').map(c => `${c.name || 'Co-applicant'} (${c.relation})`).join(', ') : 'No other family member is involved in the business.'),
+      familyInvolvedText: familyInvolvedText || (hasCoAppInBusiness ? coApplicants.filter(c => c.profession === 'Business' || (c as any).inBusiness === true).map(c => `${c.name || 'Co-applicant'} (${c.relation})`).join(', ') : 'No other family member is involved in the business.'),
       applicantQualification,
       godrejStockLevel: godrejStockLevel || (hasStock ? (stockDetails.length > 0 ? stockDetails.map(s => s.name).join(', ') : 'Adequate') : 'No significant stock'),
       godrejRoughStockValue: godrejRoughStockValue || (hasStock ? (stockDetails.length > 0 ? `₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0).toLocaleString('en-IN')}` : (inventoryValue ? `₹${inventoryValue.toLocaleString('en-IN')}` : '')) : '₹0'),
@@ -2300,7 +2300,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   };
 
   const renderTabNavigationFooter = () => {
-    const hasCoAppBusiness = coApplicants.some(c => c.profession === 'Business');
+    const hasCoAppBusiness = hasCoAppInBusiness;
     const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'; label: string }> = [
       { id: 'applicant', label: '1. Applicant & Household' },
       { id: 'verification', label: '2. Business & Residence Verification' },
@@ -2681,7 +2681,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           { id: 'profile', label: '3. Business Profile', icon: Store },
           { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
           { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
-          ...(coApplicants.some(c => c.profession === 'Business') ? [{ id: 'coapp_business', label: '5.1 Co-App Business', icon: Briefcase }] : []),
+          ...(hasCoAppInBusiness ? [{ id: 'coapp_business', label: '5.1 Co-App Business', icon: Briefcase }] : []),
           { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
           { id: 'decision', label: '7. Risk Score & Decision', icon: Shield },
         ].map((tab) => {
