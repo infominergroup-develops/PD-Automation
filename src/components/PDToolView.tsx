@@ -7,13 +7,14 @@ import { api, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
-import { openStandardPDReportPrintWindow } from '../utils/pdReportPrinter';
+import { openStandardPDReportPrintWindow, PDReportPrintData } from '../utils/pdReportPrinter';
+import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
   Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2,
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot
+  Loader2, Bot, Cloud
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -170,6 +171,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
 
   // Credit Report Extraction State
   const [creditReportType, setCreditReportType] = useState('NONE');
@@ -1934,8 +1936,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     }
   };
 
-  // Direct Print Official Company Standard PD Report
-  const handleDirectPrintReport = () => {
+  // Build complete PD Report Data object for Printing, PDF Generation & Google Drive Export
+  const getCompletePDReportData = (): PDReportPrintData => {
     const finalBusinessAddress = businessAddress || 'Not provided';
     const finalResidenceAddress = residenceAddress || 'Not provided';
     const finalMeetingAddress = meetingAddress || 'Not provided';
@@ -1952,7 +1954,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
-    openStandardPDReportPrintWindow({
+    return {
       companyHeader: {
         name: selectedCompany.name,
         cin: selectedCompany.id === 'infominers' ? 'U67100UP2020PTC131346' : 'U12345DL2024PTC987654',
@@ -2212,7 +2214,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       })),
       aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
       parsedCreditReport: parsedCreditReport
-    });
+    };
+  };
+
+  // Direct Print Official Company Standard PD Report
+  const handleDirectPrintReport = () => {
+    openStandardPDReportPrintWindow(getCompletePDReportData());
+  };
+
+  const handleOpenGoogleDriveModal = () => {
+    setIsGoogleDriveModalOpen(true);
   };
 
   const handleWhatsAppExtraction = async () => {
@@ -2354,13 +2365,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <ChevronRight className="w-4 h-4 text-[#eb8a23]" />
             </button>
           ) : (
-            <button
-              onClick={handleDirectPrintReport}
-              className="flex items-center gap-2 px-5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-xl text-xs font-bold transition shadow-sm"
-            >
-              <Printer className="w-4 h-4 text-white" />
-              Print Standard Company PD Report
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenGoogleDriveModal}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+              >
+                <Cloud className="w-4 h-4 text-white" />
+                Save to Google Drive
+              </button>
+              <button
+                onClick={handleDirectPrintReport}
+                className="flex items-center gap-2 px-5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-xl text-xs font-bold transition shadow-sm"
+              >
+                <Printer className="w-4 h-4 text-white" />
+                Print Standard Company PD Report
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -2555,6 +2575,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             >
               <Upload className="w-4 h-4 text-white" />
               Save to DB
+            </button>
+
+            <button
+              onClick={handleOpenGoogleDriveModal}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm border border-blue-700"
+            >
+              <Cloud className="w-4 h-4 text-white" />
+              Save to Google Drive
             </button>
 
             <button
@@ -6148,6 +6176,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               <div className="flex items-center gap-2">
                 <button
+                  onClick={handleOpenGoogleDriveModal}
+                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-md transition flex items-center gap-2"
+                >
+                  <Cloud className="w-4 h-4 text-white" />
+                  Save to Google Drive
+                </button>
+                <button
                   onClick={handleDirectPrintReport}
                   className="px-4 py-2.5 bg-[#eb8a23] hover:bg-[#d97917] text-white font-bold text-xs rounded-lg shadow-md transition flex items-center gap-2"
                 >
@@ -6632,7 +6667,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         )}
       </div>
 
-
+      {/* Google Drive Save Modal */}
+      <GoogleDriveSaveModal
+        isOpen={isGoogleDriveModalOpen}
+        onClose={() => setIsGoogleDriveModalOpen(false)}
+        reportData={getCompletePDReportData()}
+      />
 
     </div>
   );

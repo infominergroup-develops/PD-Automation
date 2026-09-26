@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sparkles, Printer, Download, Edit3, CheckCircle, RefreshCw, FileText, Building2 } from 'lucide-react';
-import { openStandardPDReportPrintWindow } from '../utils/pdReportPrinter';
+import { Sparkles, Printer, Download, Edit3, CheckCircle, RefreshCw, FileText, Building2, Cloud } from 'lucide-react';
+import { openStandardPDReportPrintWindow, PDReportPrintData } from '../utils/pdReportPrinter';
+import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 
 interface AIReportGeneratorViewProps {
   reportData?: any;
@@ -16,6 +17,7 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
   const [isGenerating, setIsGenerating] = useState(false);
   const [isAiPowered, setIsAiPowered] = useState(false);
   const [modelName, setModelName] = useState('');
+  const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
 
   // Credit Report Extraction State
   const [creditReportType, setCreditReportType] = useState('NONE');
@@ -87,9 +89,9 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
     }
   };
 
-  const handlePrintCompanyStandardPdf = () => {
+  const buildReportData = (): PDReportPrintData => {
     const fin = reportData?.financials || {};
-    openStandardPDReportPrintWindow({
+    return {
       applicantName: applicantName,
       firmName: firmName,
       loanAmount: appliedAmount,
@@ -132,7 +134,11 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
       
       // Parsed Credit Report
       parsedCreditReport: parsedCreditReport
-    });
+    };
+  };
+
+  const handlePrintCompanyStandardPdf = () => {
+    openStandardPDReportPrintWindow(buildReportData());
   };
 
   return (
@@ -260,6 +266,13 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
 
             <div className="flex items-center gap-2">
               <button
+                onClick={() => setIsGoogleDriveModalOpen(true)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition shadow-sm border border-blue-700"
+              >
+                <Cloud className="w-4 h-4 text-white" />
+                Save to Google Drive
+              </button>
+              <button
                 onClick={handlePrintCompanyStandardPdf}
                 className="flex items-center gap-1.5 px-3.5 py-2 bg-[#2d3e50] hover:bg-[#1e293b] text-white rounded-lg text-xs font-bold transition shadow-sm"
               >
@@ -287,6 +300,13 @@ export const AIReportGeneratorView: React.FC<AIReportGeneratorViewProps> = ({ re
           </p>
         </div>
       )}
+
+      {/* Google Drive Save Modal */}
+      <GoogleDriveSaveModal
+        isOpen={isGoogleDriveModalOpen}
+        onClose={() => setIsGoogleDriveModalOpen(false)}
+        reportData={buildReportData()}
+      />
     </div>
   );
 };
