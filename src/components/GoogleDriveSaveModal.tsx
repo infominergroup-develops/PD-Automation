@@ -6,6 +6,8 @@ import {
   setStoredGoogleClientId,
   getStoredDriveFolderName,
   setStoredDriveFolderName,
+  getStoredAccessToken,
+  clearStoredGoogleToken,
   requestGoogleAccessToken,
   getOrCreateDriveFolder,
   uploadPdfToDrive,
@@ -27,7 +29,9 @@ import {
   Sparkles,
   Copy,
   Check,
-  Camera
+  Camera,
+  LogOut,
+  UserCheck
 } from 'lucide-react';
 
 interface GoogleDriveSaveModalProps {
@@ -51,6 +55,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
   const [uploadResult, setUploadResult] = useState<DriveUploadResult | null>(null);
   const [copiedLink, setCopiedLink] = useState(false);
   const [cachedPdfBlob, setCachedPdfBlob] = useState<{ blob: Blob; fileName: string } | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -61,7 +66,9 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
       setProgressPct(0);
       setCurrentStep('');
       setCachedPdfBlob(null);
-      // Auto-show settings if client ID is not yet configured
+      setIsConnected(Boolean(getStoredAccessToken()));
+
+      // Auto-show settings only if client ID is not yet configured
       if (!getStoredGoogleClientId()) {
         setShowSettings(true);
       } else {
@@ -76,6 +83,12 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
     setStoredGoogleClientId(clientId);
     setStoredDriveFolderName(folderName || 'Infominer PD Reports');
     setShowSettings(false);
+    setErrorMsg(null);
+  };
+
+  const handleDisconnectAccount = () => {
+    clearStoredGoogleToken();
+    setIsConnected(false);
     setErrorMsg(null);
   };
 
@@ -109,7 +122,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
     }
   };
 
-  const handleStartDriveUpload = async () => {
+  const handleStartDriveUpload = async (forceNewLogin: boolean = false) => {
     const activeClientId = clientId.trim() || getStoredGoogleClientId();
     if (!activeClientId) {
       setShowSettings(true);
@@ -131,10 +144,11 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
       });
       setCachedPdfBlob({ blob: pdfBlob, fileName });
 
-      // Step 2: Request Google OAuth 2.0 Access Token
-      setCurrentStep('Connecting to your Google Account (Please allow popup)...');
+      // Step 2: Request or reuse Google OAuth 2.0 Access Token
+      setCurrentStep(isConnected && !forceNewLogin ? 'Accessing connected Google Drive...' : 'Connecting to your Google Account...');
       setProgressPct(75);
-      const accessToken = await requestGoogleAccessToken(activeClientId);
+      const accessToken = await requestGoogleAccessToken(activeClientId, { forceNewLogin });
+      setIsConnected(true);
 
       // Step 3: Find or Create Google Drive Folder
       setCurrentStep(`Locating or creating Google Drive folder: "${folderName || 'Infominer PD Reports'}"...`);
@@ -152,6 +166,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
       setUploadResult(result);
     } catch (err: any) {
       console.error('Google Drive Upload error:', err);
+      setIsConnected(Boolean(getStoredAccessToken()));
       setErrorMsg(err?.message || 'Failed to upload report to Google Drive.');
     } finally {
       setIsProcessing(false);
@@ -208,10 +223,10 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
 
         {/* Content Body */}
         <div className="p-6 overflow-y-auto space-y-5">
-          {/* Report Summary Pill */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex items-center justify-between text-xs">
+          {/* Status & Connection Bar */}
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-3">
-              <FileCheck className="w-5 h-5 text-emerald-600" />
+              <FileCheck className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
                 <span className="font-bold text-slate-800">Complete Report Ready</span>
                 <p className="text-slate-500 text-[11px]">
@@ -224,6 +239,35 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
               <span>{photoCount} {photoCount === 1 ? 'Photo' : 'Photos'} Embedded</span>
             </div>
           </div>
+
+          {/* Persistent Connection Status Card */}
+          {isConnected ? (
+            <div className="bg-emerald-50/70 border border-emerald-200 rounded-xl p-3.5 flex items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-2.5 text-emerald-800">
+                <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <div>
+                  <span className="font-bold">Google Account Connected</span>
+                  <p className="text-[10.5px] text-emerald-700">
+                    Session active &mdash; 1-click instant upload without repeated login prompts.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleStartDriveUpload(true)}
+                className="text-[11px] text-emerald-800 hover:text-emerald-950 font-bold underline shrink-0"
+                title="Switch to a different Google account"
+              >
+                Switch Account
+              </button>
+            </div>
+          ) : (
+            <div className="bg-blue-50/60 border border-blue-200 rounded-xl p-3 flex items-center justify-between gap-2 text-xs text-blue-900">
+              <div className="flex items-center gap-2">
+                <Cloud className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>Sign in once &mdash; your session is remembered for fast 1-click uploads.</span>
+              </div>
+            </div>
+          )}
 
           {/* Settings Section (Toggleable) */}
           {showSettings && (
@@ -247,7 +291,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
                   className="w-full px-3 py-2 bg-white border border-blue-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <p className="text-[10px] text-slate-500 mt-1">
-                  Obtained from Google Cloud Console &gt; APIs &amp; Services &gt; Credentials (OAuth 2.0 Client ID for Web).
+                  From Google Cloud Console &gt; APIs &amp; Services &gt; Credentials (OAuth 2.0 Client ID for Web).
                 </p>
               </div>
 
@@ -267,21 +311,18 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
                 </p>
               </div>
 
-              <div className="bg-white border border-blue-100 rounded-lg p-2.5 text-[11px] text-slate-600 space-y-1">
-                <span className="font-bold flex items-center gap-1 text-blue-700">
-                  <HelpCircle className="w-3.5 h-3.5" /> How to get a free Google Client ID:
-                </span>
-                <ol className="list-decimal list-inside space-y-0.5 text-[10.5px] text-slate-500">
-                  <li>Visit <strong>console.cloud.google.com</strong> and create a project.</li>
-                  <li>Enable the <strong>Google Drive API</strong>.</li>
-                  <li>Under <strong>Credentials</strong>, create an <strong>OAuth 2.0 Client ID (Web application)</strong> with Authorized JavaScript origins: <code className="bg-slate-100 px-1 py-0.5 rounded">{window.location.origin}</code>.</li>
-                </ol>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-1">
+              <div className="flex items-center justify-between pt-1">
+                {isConnected && (
+                  <button
+                    onClick={handleDisconnectAccount}
+                    className="flex items-center gap-1 text-[11px] text-rose-600 hover:text-rose-800 font-bold"
+                  >
+                    <LogOut className="w-3.5 h-3.5" /> Disconnect Google Account
+                  </button>
+                )}
                 <button
                   onClick={handleSaveSettings}
-                  className="px-4 py-1.5 bg-[#2d3e50] hover:bg-[#1e293b] text-white rounded-lg font-bold text-xs shadow-xs transition"
+                  className="ml-auto px-4 py-1.5 bg-[#2d3e50] hover:bg-[#1e293b] text-white rounded-lg font-bold text-xs shadow-xs transition"
                 >
                   Save Configuration
                 </button>
@@ -306,7 +347,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
                 />
               </div>
               <p className="text-[11px] text-amber-700">
-                Please keep this window open and complete Google sign-in if prompted.
+                Please keep this window open while the document and photos are uploaded to Google Drive.
               </p>
             </div>
           )}
@@ -320,17 +361,17 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
                 <p className="text-[11px] text-rose-700">{errorMsg}</p>
                 <div className="flex items-center gap-2 pt-1">
                   <button
-                    onClick={() => setShowSettings(true)}
+                    onClick={() => handleStartDriveUpload(true)}
                     className="underline text-blue-700 font-bold hover:text-blue-900 text-[11px]"
                   >
-                    Check Google OAuth Settings
+                    Re-authenticate with Google
                   </button>
                   <span className="text-slate-300">•</span>
                   <button
                     onClick={handleDownloadLocalPdf}
                     className="underline text-emerald-700 font-bold hover:text-emerald-900 text-[11px]"
                   >
-                    Or Download PDF Directly
+                    Download PDF Locally
                   </button>
                 </div>
               </div>
@@ -409,7 +450,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
             </button>
 
             <button
-              onClick={handleStartDriveUpload}
+              onClick={() => handleStartDriveUpload(false)}
               disabled={isProcessing}
               className="flex items-center gap-2 px-5 py-2 bg-linear-to-r from-[#eb8a23] to-[#d97917] hover:from-[#d97917] hover:to-[#c0650d] text-white rounded-xl font-extrabold text-xs shadow-md transition disabled:opacity-50"
             >
@@ -421,7 +462,7 @@ export const GoogleDriveSaveModal: React.FC<GoogleDriveSaveModalProps> = ({
               ) : (
                 <>
                   <Cloud className="w-4 h-4 text-white" />
-                  {uploadResult ? 'Upload Again / Update' : 'Save to Google Drive'}
+                  {uploadResult ? 'Upload Again / Update' : isConnected ? 'Save to Google Drive (1-Click)' : 'Save to Google Drive'}
                 </>
               )}
             </button>

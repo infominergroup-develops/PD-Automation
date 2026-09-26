@@ -11,6 +11,7 @@ declare global {
             callback: (response: GoogleTokenResponse) => void;
             error_callback?: (error: any) => void;
           }) => GoogleTokenClient;
+          revoke?: (token: string, done?: () => void) => void;
         };
       };
     };
@@ -41,9 +42,10 @@ export interface DriveUploadResult {
 
 const STORAGE_KEY_CLIENT_ID = 'infominer_google_client_id';
 const STORAGE_KEY_FOLDER_NAME = 'infominer_google_drive_folder';
+const STORAGE_KEY_ACCESS_TOKEN = 'infominer_google_access_token';
+const STORAGE_KEY_TOKEN_EXPIRY = 'infominer_google_token_expiry';
 const DEFAULT_FOLDER_NAME = 'Infominer PD Reports';
 
-// Safe default client ID fallback if user has configured one or can configure their own
 const DEFAULT_FALLBACK_CLIENT_ID = '';
 
 export function getStoredGoogleClientId(): string {
@@ -68,6 +70,42 @@ export function setStoredDriveFolderName(folderName: string): void {
   } else {
     localStorage.removeItem(STORAGE_KEY_FOLDER_NAME);
   }
+}
+
+/**
+ * Retrieves valid cached access token if not expired
+ */
+export function getStoredAccessToken(): string | null {
+  const token = localStorage.getItem(STORAGE_KEY_ACCESS_TOKEN);
+  const expiry = localStorage.getItem(STORAGE_KEY_TOKEN_EXPIRY);
+  if (!token || !expiry) return null;
+
+  const expiryTime = parseInt(expiry, 10);
+  // Keep 60 seconds buffer before true expiration
+  if (Date.now() > expiryTime - 60000) {
+    clearStoredGoogleToken();
+    return null;
+  }
+  return token;
+}
+
+export function setStoredAccessToken(token: string, expiresInSeconds: number): void {
+  const expiryTimestamp = Date.now() + (expiresInSeconds || 3500) * 1000;
+  localStorage.setItem(STORAGE_KEY_ACCESS_TOKEN, token);
+  localStorage.setItem(STORAGE_KEY_TOKEN_EXPIRY, expiryTimestamp.toString());
+}
+
+export function clearStoredGoogleToken(): void {
+  const token = localStorage.getItem(STORAGE_KEY_ACCESS_TOKEN);
+  if (token && window.google?.accounts?.oauth2?.revoke) {
+    try {
+      window.google.accounts.oauth2.revoke(token, () => {});
+    } catch {
+      // ignore
+    }
+  }
+  localStorage.removeItem(STORAGE_KEY_ACCESS_TOKEN);
+  localStorage.removeItem(STORAGE_KEY_TOKEN_EXPIRY);
 }
 
 /**
@@ -98,9 +136,20 @@ export async function loadGsiScript(): Promise<void> {
 }
 
 /**
- * Prompts user to log in with their Google Account and requests Google Drive scope
+ * Returns an existing valid access token or requests a new one seamlessly
  */
-export async function requestGoogleAccessToken(clientId: string): Promise<string> {
+export async function requestGoogleAccessToken(
+  clientId: string,
+  options?: { forceNewLogin?: boolean }
+): Promise<string> {
+  // Check if we already have a valid active session token
+  if (!options?.forceNewLogin) {
+    const cachedToken = getStoredAccessToken();
+    if (cachedToken) {
+      return cachedToken;
+    }
+  }
+
   if (!clientId || !clientId.trim()) {
     throw new Error('Google Client ID is missing. Please enter your Google OAuth Client ID.');
   }
@@ -125,6 +174,8 @@ export async function requestGoogleAccessToken(clientId: string): Promise<string
             reject(new Error('No access token received from Google.'));
             return;
           }
+          // Save token for subsequent uploads so user doesn't have to login repeatedly
+          setStoredAccessToken(response.access_token, response.expires_in || 3600);
           resolve(response.access_token);
         },
         error_callback: (err: any) => {
@@ -132,7 +183,13 @@ export async function requestGoogleAccessToken(clientId: string): Promise<string
         }
       });
 
-      client.requestAccessToken({ prompt: 'consent' });
+      // If user specifically requested to switch accounts or force new login, use select_account
+      // Otherwise use empty prompt so already logged-in users don't get repeated consent prompts
+      if (options?.forceNewLogin) {
+        client.requestAccessToken({ prompt: 'select_account' });
+      } else {
+        client.requestAccessToken({ prompt: '' });
+      }
     } catch (err: any) {
       reject(new Error(err?.message || 'Failed to initialize Google Sign-in.'));
     }
@@ -160,6 +217,10 @@ export async function getOrCreateDriveFolder(
   });
 
   if (!searchRes.ok) {
+    if (searchRes.status === 401) {
+      clearStoredGoogleToken();
+      throw new Error('Google Drive session expired. Please click "Save to Google Drive" to reconnect.');
+    }
     const errText = await searchRes.text();
     throw new Error(`Google Drive folder search failed (${searchRes.status}): ${errText}`);
   }
@@ -189,6 +250,10 @@ export async function getOrCreateDriveFolder(
   });
 
   if (!createRes.ok) {
+    if (createRes.status === 401) {
+      clearStoredGoogleToken();
+      throw new Error('Google Drive session expired. Please reconnect.');
+    }
     const errText = await createRes.text();
     throw new Error(`Failed to create Google Drive folder (${createRes.status}): ${errText}`);
   }
@@ -258,6 +323,10 @@ export async function uploadPdfToDrive(
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      clearStoredGoogleToken();
+      throw new Error('Google Drive session expired. Please reconnect.');
+    }
     const errText = await res.text();
     throw new Error(`Google Drive file upload failed (${res.status}): ${errText}`);
   }
