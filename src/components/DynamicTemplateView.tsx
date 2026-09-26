@@ -63,8 +63,10 @@ export const DynamicTemplateView: React.FC<DynamicTemplateViewProps> = ({ client
     try {
       const payload = {
         appIdRefNo: `DYN-${Date.now().toString().slice(-6)}`,
+        applicationNumber: `DYN-${Date.now().toString().slice(-6)}`,
         financialInstitute: client.name,
         applicantEntity: formData['Applicant Name'] || formData['Name'] || 'Dynamic Applicant',
+        applicantName: formData['Applicant Name'] || formData['Name'] || 'Dynamic Applicant',
         product: 'Custom Loan',
         city: 'Not Provided',
         loanAmountRequested: 0,

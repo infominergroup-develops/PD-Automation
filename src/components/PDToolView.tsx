@@ -1234,21 +1234,25 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       purpose: '',
       status: 'DRAFT',
       firmName: '',
+      noFormalBusinessName: false,
       mobileNumber: '',
+      alternateMobileNumber: '',
       panNumber: '',
       aadhaarNumber: '',
       residenceAddress: '',
-      residenceOwnership: '',
+      residenceOwnership: 'OWN',
+      yearsAtResidence: 0,
       dependentsCount: 0,
-      constitution: '',
+      constitution: 'Proprietorship',
       yearsInBusiness: 0,
-      shopOwnership: '',
+      shopOwnership: 'OWN',
       monthlyRent: 0,
       shopAreaSqFt: 0,
       inventoryValue: 0,
       dailyFootfall: 0,
       avgTicketValue: 0,
       workingDays: 0,
+      businessRemark: '',
       aataChakkiData: {
         machines: [],
         attaChakki: { size: '', capacity: '', wheatKg: '', charge: '' },
@@ -1258,9 +1262,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         powerSource: 'Diesel',
         powerDetails: { consumption: '', rate: '' }
       },
+      neighborName: '',
       neighborFeedback: '',
       landlordFeedback: '',
-      interestRatePct: 0,
+      exifGpsLat: '',
+      exifGpsLng: '',
+      interestRatePct: 12,
       statedMonthlySales: 0,
       cogsMarginPct: 0,
       salariesExpense: 0,
@@ -1270,9 +1277,210 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       otherIncome: 0,
       householdExpenses: 0,
       existingEmis: 0,
+      existingEmiNotes: '',
+      householdExpensesNotes: '',
+      comfortableEmiNotes: '',
       solarPurposeUsage: '',
       riskFactor: '',
-      photos: []
+      photos: [],
+      incomeLines: [],
+      expenseLines: [],
+      coApplicants: [],
+      caseInitiationDate: new Date().toISOString().split('T')[0],
+      visitDate: new Date().toISOString().split('T')[0],
+      reportDate: new Date().toISOString().split('T')[0],
+      hasFemaleCandidate: false,
+      femaleCandidateName: '',
+      femaleCandidateRelation: 'Spouse',
+      femaleCandidateOtherRelation: '',
+      loanType: 'Commercial Solar Loan',
+      otherLoanType: '',
+      powerSource: 'Electricity',
+      otherPowerSource: '',
+      monthlyEnergyExpense: '',
+      solarPurposes: [],
+      otherSolarPurpose: '',
+      solarPurposeGeneratedText: '',
+      businessAddress: '',
+      additionalAddresses: [],
+      personsMet: [],
+      personsMetOtherName: '',
+      personsMetOtherRelation: '',
+      identityProof: 'Aadhaar Card',
+      documentsSeen: ['PAN Card', 'Aadhaar Card'],
+      otherDocumentsSeen: '',
+      otherIdentityProof: '',
+      executiveName: '',
+      tataCapitalDistance: '',
+      businessAgeYears: '',
+      businessAgeApprox: false,
+      previousOccupation: '',
+      previousOccupationOther: '',
+      reasonToLeave: '',
+      externalStaffCount: 0,
+      businessManagedBy: [],
+      businessManagedByOther: '',
+      premiseOwnership: '',
+      premiseOwnershipOther: '',
+      businessAssets: [],
+      hasStock: true,
+      stockDetails: [],
+      currentAssets: [],
+      currentAssetsOther: '',
+      businessIncomeAssetCreation: false,
+      createdAssets: [],
+      createdAssetsOther: '',
+      otherHouseholdExpenses: false,
+      otherHouseholdExpensesDesc: '',
+      initialInvestment: '',
+      investmentSource: '',
+      investmentSourceOther: '',
+      hasAgricultureLand: false,
+      agriLandArea: '',
+      agriLandUnit: 'Bigha',
+      agriLandOwnership: 'Self-owned',
+      agriLandOwnershipOther: '',
+      agriCrops: [],
+      agriCropsOther: '',
+      agriIncomeMin: '',
+      agriIncomeMax: '',
+      agriOwnershipDoc: 'Not Provided',
+      hasOtherIncome: false,
+      otherIncomeSources: [],
+      expectedSolarCostReductionPct: '',
+      expectedSolarMonthlySaving: '',
+      meetingAddressSource: 'RESIDENCE',
+      meetingAddress: '',
+      locatingPremisesType: '',
+      locatingPremisesTypeOther: '',
+      propertyOwnership: '',
+      propertyOwnershipOther: '',
+      propertyRentAmount: '',
+      propertyOwnerName: '',
+      propertyArea: '',
+      propertyValue: '',
+      propertyOwnershipDoc: 'Not Provided',
+      houseFloors: '',
+      houseRooms: '',
+      houseStructureType: '',
+      houseStructureTypeOther: '',
+      houseFloorPosition: '',
+      houseFloorPositionOther: '',
+      houseAdditionalDetails: '',
+      monthlyHouseholdExpensesAmount: '',
+      hasElectricityConnection: 'Not Provided',
+      electricityConnectionType: '',
+      electricityConnectionTypeOther: '',
+      electricityConsumerNumber: '',
+      electricityMonthlyExpense: '',
+      hasResElectricityConnection: 'Not Provided',
+      resElectricityConnectionType: '',
+      resElectricityConnectionTypeOther: '',
+      resElectricityConsumerNumber: '',
+      resElectricityMonthlyExpense: '',
+      neighbors: [],
+      neighborVerificationConducted: false,
+      neighborResidenceConfirmed: '',
+      neighborBehaviourFeedback: '',
+      neighborNegativeFeedback: false,
+      neighborNegativeDetails: '',
+      gpsLat: '',
+      gpsLng: '',
+      residenceStatus: '',
+      residenceStatusReason: '',
+      prominentCustomers: [{ id: 'c1', name: '', phone: '', feedback: '' }],
+      prominentSuppliers: [{ id: 's1', name: '', phone: '', feedback: '' }],
+      hasCollateral: false,
+      collateralAddress: '',
+      collateralPropertyType: 'Residential',
+      collateralPropertyArea: '',
+      collateralPropertyUsage: '',
+      collateralValuation: '',
+      collateralRemarks: '',
+      bankingDetails: [{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }],
+      existingLoans: [{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }],
+      currentObligation: 'No any existing obligation',
+      businessLongitudeVerified: false,
+      businessLongitudeRemarks: 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.',
+      businessNeighbourName: '',
+      businessNeighbourFeedback: 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.',
+      businessStatus: 'Recommended',
+      hasAdditionalBusiness: false,
+      additionalBusinessAddress: '',
+      additionalBusinessIncomeAssessment: '',
+      briefBusinessProfile: '',
+      coApplicantBusinessName: '',
+      coApplicantBriefBusinessProfile: '',
+      coApplicantBusinessVintage: '',
+      coApplicantPreviousOccupation: 'Not Applicable',
+      coApplicantReasonToLeave: '',
+      coApplicantStaffCount: '',
+      coApplicantBusinessPremiseOwnership: 'Self-Owned',
+      coApplicantFactoryInfrastructure: '',
+      coApplicantStockDetailsValue: '',
+      coApplicantFixedAndCurrentAssetAnalysis: '',
+      coApplicantAssetCreationThroughBusiness: '',
+      coApplicantInitialBusinessInvestment: '',
+      coApplicantAgriculturalIncomeDetails: '',
+      coApplicantOtherSourceIncomeDetails: '',
+      coApplicantOperationalSavingAnalysis: '',
+      coAppIncomeLines: [],
+      coAppExpenseLines: [],
+      coAppStatedMonthlySales: 0,
+      coAppSalariesExpense: 0,
+      coAppRentExpense: 0,
+      coAppUtilitiesExpense: 0,
+      coAppMiscExpense: 0,
+      businessVintageText: '',
+      staffCountText: '',
+      premiseOwnershipText: '',
+      factoryInfrastructureText: '',
+      stockDetailsValueText: '',
+      fixedAndCurrentAssetAnalysisText: '',
+      assetCreationText: '',
+      businessInvestmentText: '',
+      agriculturalIncomeText: '',
+      solarSavingText: '',
+      projectedIncomeText: '',
+      statusOfCase: 'Recommended',
+      officeAccessibility: '',
+      tenorRequested: '',
+      marginsAssessed: '',
+      customerGstNo: '',
+      industryType: '',
+      productType: '',
+      onLoanStructure: '',
+      machineryDetailsText: '',
+      keyEmployeeDetailsText: '✓ .',
+      groupCompanyDetailsText: '',
+      financialDetailsText: '',
+      otherBusinessPremisesText: '',
+      otherStateGstText: '',
+      familyInvolvedText: '',
+      applicantQualification: '',
+      godrejStockLevel: '',
+      godrejRoughStockValue: '',
+      godrejLocality: '',
+      godrejOfficeSetup: '',
+      godrejActivityLevel: '',
+      godrejOfficeSize: '',
+      godrejEmployeesSeen: 'No external staff/labour is engaged. Business operations are managed by Applicant.',
+      godrejThirdPartyConfirmation: '',
+      godrejCourtCasePending: '',
+      godrejThirdPartyComment: '',
+      godrejSeparateDemarcation: '',
+      godrejGstDisplayed: '',
+      godrejPanCard: '',
+      godrejGstinLegalName: '',
+      godrejBusinessRegProof: '',
+      godrejGstinRegDate: '',
+      godrejElectricityBill: '',
+      godrejEmployeeRegister: '',
+      godrejSaleBills: '',
+      godrejOtherRecords: '',
+      godrejStrengths: [],
+      godrejWeaknesses: [],
+      finalStatus: 'POSITIVE'
     };
     try {
       setActiveAppId(null);
@@ -1294,45 +1502,49 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     // Attempt to recover offline draft if it exists
     try {
-      const draftStr = localStorage.getItem(`offline_draft_${dbApp._id}`);
-      if (draftStr) {
-        const draftData = JSON.parse(draftStr);
-        app = { ...app, ...draftData }; // Merge draft over DB
-        isRecovered = true;
+      if (dbApp._id) {
+        const draftStr = localStorage.getItem(`offline_draft_${dbApp._id}`);
+        if (draftStr) {
+          const draftData = JSON.parse(draftStr);
+          app = { ...app, ...draftData }; // Merge draft over DB
+          isRecovered = true;
+        }
       }
     } catch (e) {
       console.error('Failed to parse offline draft', e);
     }
 
-    handleSelectCategory(app.categoryId);
-    // Support legacy field names from old saves
+    handleSelectCategory(app.categoryId || selectedCategoryId || 'kirana');
+    
+    // Support legacy and top-level field names from saves
     setApplicantName(app.applicantName || app.applicantEntity || '');
     setMobileNumber(app.mobileNumber || app.contactNo || '');
+    setAlternateMobileNumber(app.alternateMobileNumber || '');
     setPanNumber(app.panNumber || '');
     setResidenceAddress(app.residenceAddress || '');
     setResidenceOwnership(app.residenceOwnership || 'OWN');
+    setYearsAtResidence(app.yearsAtResidence !== undefined ? app.yearsAtResidence : 0);
     setFamilyMembers(app.familyMembers || []);
     setBusinessRemark(app.businessRemark || '');
-    setDependentsCount(app.dependentsCount || 0);
+    setDependentsCount(app.dependentsCount !== undefined ? app.dependentsCount : 0);
     setFirmName(app.firmName || '');
-    setNoFormalBusinessName(app.firmName === 'No formal business name');
+    setNoFormalBusinessName(app.firmName === 'No formal business name' || !!app.noFormalBusinessName);
     setConstitution(app.constitution || 'Proprietorship');
-    setYearsInBusiness(app.yearsInBusiness || 0);
-    setBusinessAgeYears(app.businessAgeYears || '');
-    setBusinessAgeApprox(app.businessAgeApprox || false);
+    setYearsInBusiness(app.yearsInBusiness !== undefined ? app.yearsInBusiness : 0);
+    setBusinessAgeYears(app.businessAgeYears !== undefined ? app.businessAgeYears : '');
+    setBusinessAgeApprox(!!app.businessAgeApprox);
     setPreviousOccupation(app.previousOccupation || '');
     setPreviousOccupationOther(app.previousOccupationOther || '');
     setReasonToLeave(app.reasonToLeave || '');
     setShopOwnership(app.shopOwnership || 'OWN');
-    setMonthlyRent(app.monthlyRent || 0);
-    setShopAreaSqFt(app.shopAreaSqFt || 0);
-    setInventoryValue(app.inventoryValue || 0);
-    setDailyFootfall(app.dailyFootfall || 0);
-    setAvgTicketValue(app.avgTicketValue || 0);
-    setWorkingDays(app.workingDays || 0);
+    setMonthlyRent(app.monthlyRent !== undefined ? app.monthlyRent : 0);
+    setShopAreaSqFt(app.shopAreaSqFt !== undefined ? app.shopAreaSqFt : 0);
+    setInventoryValue(app.inventoryValue !== undefined ? app.inventoryValue : 0);
+    setDailyFootfall(app.dailyFootfall !== undefined ? app.dailyFootfall : 0);
+    setAvgTicketValue(app.avgTicketValue !== undefined ? app.avgTicketValue : 0);
+    setWorkingDays(app.workingDays !== undefined ? app.workingDays : 0);
 
     // Godrej Specific State
-    setAlternateMobileNumber(app.alternateMobileNumber || '');
     setOfficeAccessibility(app.officeAccessibility || '');
     setTenorRequested(app.tenorRequested || '');
     setMarginsAssessed(app.marginsAssessed || '');
@@ -1371,43 +1583,57 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setGodrejOtherRecords(app.godrejOtherRecords || '');
     setGodrejStrengths(app.godrejStrengths || []);
     setGodrejWeaknesses(app.godrejWeaknesses || []);
+    setFinalStatus(app.finalStatus || 'POSITIVE');
 
+    // Investigation & Feedback
+    setNeighborName(app.neighborName || '');
     setNeighborFeedback(app.neighborFeedback || '');
+    setLandlordFeedback(app.landlordFeedback || '');
+    setExifGpsLat(app.exifGpsLat || '');
+    setExifGpsLng(app.exifGpsLng || '');
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
     }
-    setLandlordFeedback(app.landlordFeedback || '');
-    setAppliedAmount(app.appliedAmount || 0);
-    setTenureMonths(app.tenureMonths || 12);
-    setInterestRatePct(app.interestRatePct || 12);
-    setStatedMonthlySales(app.statedMonthlySales || 0);
-    setCogsMarginPct(app.cogsMarginPct || 0);
-    setSalariesExpense(app.salariesExpense || 0);
-    setUtilitiesExpense(app.utilitiesExpense || 0);
-    setTransportExpense(app.transportExpense || 0);
-    setMiscExpense(app.miscExpense || 0);
-    setOtherIncome(app.otherIncome || 0);
-    setHouseholdExpenses(app.householdExpenses || 0);
+    setAppliedAmount(app.appliedAmount !== undefined ? app.appliedAmount : 0);
+    setTenureMonths(app.tenureMonths !== undefined ? app.tenureMonths : 12);
+    setInterestRatePct(app.interestRatePct !== undefined ? app.interestRatePct : 12);
+    setStatedMonthlySales(app.statedMonthlySales !== undefined ? app.statedMonthlySales : 0);
+    setCogsMarginPct(app.cogsMarginPct !== undefined ? app.cogsMarginPct : 0);
+    setSalariesExpense(app.salariesExpense !== undefined ? app.salariesExpense : 0);
+    setUtilitiesExpense(app.utilitiesExpense !== undefined ? app.utilitiesExpense : 0);
+    setTransportExpense(app.transportExpense !== undefined ? app.transportExpense : 0);
+    setMiscExpense(app.miscExpense !== undefined ? app.miscExpense : 0);
+    setOtherIncome(app.otherIncome !== undefined ? app.otherIncome : 0);
+    setHouseholdExpenses(app.householdExpenses !== undefined ? app.householdExpenses : 0);
+    setExistingEmiNotes(app.existingEmiNotes || '');
+    setHouseholdExpensesNotes(app.householdExpensesNotes || '');
+    setComfortableEmiNotes(app.comfortableEmiNotes || '');
+    setSolarPurposeUsage(app.solarPurposeUsage || '');
+    setRiskFactor(app.riskFactor || '');
 
     setPhotos(app.photos || []);
 
     setIncomeLines(app.incomeLines || []);
     setExpenseLines(app.expenseLines || []);
+    if (app.productsList && Array.isArray(app.productsList)) {
+      setProductsList(app.productsList);
+    }
 
     setCoAppIncomeLines(app.coAppIncomeLines || []);
     setCoAppExpenseLines(app.coAppExpenseLines || []);
-    setCoAppStatedMonthlySales(app.coAppStatedMonthlySales || 0);
-    setCoAppSalariesExpense(app.coAppSalariesExpense || 0);
-    setCoAppRentExpense(app.coAppRentExpense || 0);
-    setCoAppUtilitiesExpense(app.coAppUtilitiesExpense || 0);
-    setCoAppMiscExpense(app.coAppMiscExpense || 0);
+    setCoAppStatedMonthlySales(app.coAppStatedMonthlySales !== undefined ? app.coAppStatedMonthlySales : 0);
+    setCoAppSalariesExpense(app.coAppSalariesExpense !== undefined ? app.coAppSalariesExpense : 0);
+    setCoAppRentExpense(app.coAppRentExpense !== undefined ? app.coAppRentExpense : 0);
+    setCoAppUtilitiesExpense(app.coAppUtilitiesExpense !== undefined ? app.coAppUtilitiesExpense : 0);
+    setCoAppMiscExpense(app.coAppMiscExpense !== undefined ? app.coAppMiscExpense : 0);
 
     setCaseInitiationDate(app.caseInitiationDate || new Date().toISOString().split('T')[0]);
+    setVisitDate(app.visitDate || new Date().toISOString().split('T')[0]);
+    setReportDate(app.reportDate || new Date().toISOString().split('T')[0]);
 
     if (app.coApplicants && Array.isArray(app.coApplicants)) {
       setCoApplicants(app.coApplicants);
     } else if (app.hasCoApplicant) {
-      // Migrate from old single co-applicant structure
       setCoApplicants([{
         name: app.coApplicantName || '',
         relation: app.coApplicantRelation || 'Spouse',
@@ -1420,13 +1646,165 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       setCoApplicants([]);
     }
 
-    setActiveAppNumber(app.applicationNumber);
-    setActiveAppId(app._id);
+    setHasFemaleCandidate(!!app.hasFemaleCandidate);
+    setFemaleCandidateName(app.femaleCandidateName || '');
+    setFemaleCandidateRelation(app.femaleCandidateRelation || 'Spouse');
+    setFemaleCandidateOtherRelation(app.femaleCandidateOtherRelation || '');
+    setLoanType(app.loanType || 'Commercial Solar Loan');
+    setOtherLoanType(app.otherLoanType || '');
+    setPowerSource(app.powerSource || 'Electricity');
+    setOtherPowerSource(app.otherPowerSource || '');
+    setMonthlyEnergyExpense(app.monthlyEnergyExpense !== undefined ? app.monthlyEnergyExpense : '');
+    setSolarPurposes(app.solarPurposes || []);
+    setOtherSolarPurpose(app.otherSolarPurpose || '');
+    setSolarPurposeGeneratedText(app.solarPurposeGeneratedText || '');
+
+    setBusinessAddress(app.businessAddress || '');
+    setAdditionalAddresses(app.additionalAddresses || []);
+    setPersonsMet(app.personsMet || []);
+    setPersonsMetOtherName(app.personsMetOtherName || '');
+    setPersonsMetOtherRelation(app.personsMetOtherRelation || '');
+    setIdentityProof(app.identityProof || 'Aadhaar Card');
+    setDocumentsSeen(app.documentsSeen || ['PAN Card', 'Aadhaar Card']);
+    setOtherDocumentsSeen(app.otherDocumentsSeen || '');
+    setOtherIdentityProof(app.otherIdentityProof || '');
+    setExecutiveName(app.executiveName || '');
+    setTataCapitalDistance(app.tataCapitalDistance || '');
+
+    setExternalStaffCount(app.externalStaffCount !== undefined ? app.externalStaffCount : 0);
+    setBusinessManagedBy(app.businessManagedBy || []);
+    setBusinessManagedByOther(app.businessManagedByOther || '');
+    setPremiseOwnership(app.premiseOwnership || '');
+    setPremiseOwnershipOther(app.premiseOwnershipOther || '');
+    setBusinessAssets(app.businessAssets || []);
+    setHasStock(app.hasStock !== undefined ? app.hasStock : true);
+    setStockDetails(app.stockDetails || []);
+    setCurrentAssets(app.currentAssets || []);
+    setCurrentAssetsOther(app.currentAssetsOther || '');
+    setBusinessIncomeAssetCreation(!!app.businessIncomeAssetCreation);
+    setCreatedAssets(app.createdAssets || []);
+    setCreatedAssetsOther(app.createdAssetsOther || '');
+    setOtherHouseholdExpenses(!!app.otherHouseholdExpenses);
+    setOtherHouseholdExpensesDesc(app.otherHouseholdExpensesDesc || '');
+    setInitialInvestment(app.initialInvestment !== undefined ? app.initialInvestment : '');
+    setInvestmentSource(app.investmentSource || '');
+    setInvestmentSourceOther(app.investmentSourceOther || '');
+    setHasAgricultureLand(!!app.hasAgricultureLand);
+    setAgriLandArea(app.agriLandArea !== undefined ? app.agriLandArea : '');
+    setAgriLandUnit(app.agriLandUnit || 'Bigha');
+    setAgriLandOwnership(app.agriLandOwnership || 'Self-owned');
+    setAgriLandOwnershipOther(app.agriLandOwnershipOther || '');
+    setAgriCrops(app.agriCrops || []);
+    setAgriCropsOther(app.agriCropsOther || '');
+    setAgriIncomeMin(app.agriIncomeMin !== undefined ? app.agriIncomeMin : '');
+    setAgriIncomeMax(app.agriIncomeMax !== undefined ? app.agriIncomeMax : '');
+    setAgriOwnershipDoc(app.agriOwnershipDoc || 'Not Provided');
+    setHasOtherIncome(!!app.hasOtherIncome);
+    setOtherIncomeSources(app.otherIncomeSources || []);
+    setExpectedSolarCostReductionPct(app.expectedSolarCostReductionPct !== undefined ? app.expectedSolarCostReductionPct : '');
+    setExpectedSolarMonthlySaving(app.expectedSolarMonthlySaving !== undefined ? app.expectedSolarMonthlySaving : '');
+    setMeetingAddressSource(app.meetingAddressSource || 'RESIDENCE');
+    setMeetingAddress(app.meetingAddress || '');
+    setLocatingPremisesType(app.locatingPremisesType || '');
+    setLocatingPremisesTypeOther(app.locatingPremisesTypeOther || '');
+    setPropertyOwnership(app.propertyOwnership || '');
+    setPropertyOwnershipOther(app.propertyOwnershipOther || '');
+    setPropertyRentAmount(app.propertyRentAmount !== undefined ? app.propertyRentAmount : '');
+    setPropertyOwnerName(app.propertyOwnerName || '');
+    setPropertyArea(app.propertyArea !== undefined ? app.propertyArea : '');
+    setPropertyValue(app.propertyValue !== undefined ? app.propertyValue : '');
+    setPropertyOwnershipDoc(app.propertyOwnershipDoc || 'Not Provided');
+    setHouseFloors(app.houseFloors !== undefined ? app.houseFloors : '');
+    setHouseRooms(app.houseRooms !== undefined ? app.houseRooms : '');
+    setHouseStructureType(app.houseStructureType || '');
+    setHouseStructureTypeOther(app.houseStructureTypeOther || '');
+    setHouseFloorPosition(app.houseFloorPosition || '');
+    setHouseFloorPositionOther(app.houseFloorPositionOther || '');
+    setHouseAdditionalDetails(app.houseAdditionalDetails || '');
+    setMonthlyHouseholdExpensesAmount(app.monthlyHouseholdExpensesAmount !== undefined ? app.monthlyHouseholdExpensesAmount : '');
+    setHasElectricityConnection(app.hasElectricityConnection || 'Not Provided');
+    setElectricityConnectionType(app.electricityConnectionType || '');
+    setElectricityConnectionTypeOther(app.electricityConnectionTypeOther || '');
+    setElectricityConsumerNumber(app.electricityConsumerNumber || '');
+    setElectricityMonthlyExpense(app.electricityMonthlyExpense !== undefined ? app.electricityMonthlyExpense : '');
+    setHasResElectricityConnection(app.hasResElectricityConnection || 'Not Provided');
+    setResElectricityConnectionType(app.resElectricityConnectionType || '');
+    setResElectricityConnectionTypeOther(app.resElectricityConnectionTypeOther || '');
+    setResElectricityConsumerNumber(app.resElectricityConsumerNumber || '');
+    setResElectricityMonthlyExpense(app.resElectricityMonthlyExpense !== undefined ? app.resElectricityMonthlyExpense : '');
+    setNeighbors(app.neighbors || []);
+    setNeighborVerificationConducted(!!app.neighborVerificationConducted);
+    setNeighborResidenceConfirmed(app.neighborResidenceConfirmed || '');
+    setNeighborBehaviourFeedback(app.neighborBehaviourFeedback || '');
+    setNeighborNegativeFeedback(!!app.neighborNegativeFeedback);
+    setNeighborNegativeDetails(app.neighborNegativeDetails || '');
+    setGpsLat(app.gpsLat !== undefined ? app.gpsLat : '');
+    setGpsLng(app.gpsLng !== undefined ? app.gpsLng : '');
+    setResidenceStatus(app.residenceStatus || '');
+    setResidenceStatusReason(app.residenceStatusReason || '');
+
+    setProminentCustomers(app.prominentCustomers && app.prominentCustomers.length > 0 ? app.prominentCustomers : [{ id: 'c1', name: '', phone: '', feedback: '' }]);
+    setProminentSuppliers(app.prominentSuppliers && app.prominentSuppliers.length > 0 ? app.prominentSuppliers : [{ id: 's1', name: '', phone: '', feedback: '' }]);
+    setHasCollateral(!!app.hasCollateral);
+    setCollateralAddress(app.collateralAddress || '');
+    setCollateralPropertyType(app.collateralPropertyType || 'Residential');
+    setCollateralPropertyArea(app.collateralPropertyArea || '');
+    setCollateralPropertyUsage(app.collateralPropertyUsage || '');
+    setCollateralValuation(app.collateralValuation || '');
+    setCollateralRemarks(app.collateralRemarks || '');
+    setBankingDetails(app.bankingDetails && app.bankingDetails.length > 0 ? app.bankingDetails : [{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }]);
+    setExistingLoans(app.existingLoans && app.existingLoans.length > 0 ? app.existingLoans : [{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]);
+    setCurrentObligation(app.currentObligation || 'No any existing obligation');
+    setBusinessLongitudeVerified(!!app.businessLongitudeVerified);
+    setBusinessLongitudeRemarks(app.businessLongitudeRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.');
+    setBusinessNeighbourName(app.businessNeighbourName || '');
+    setBusinessNeighbourFeedback(app.businessNeighbourFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
+    setBusinessStatus(app.businessStatus || 'Recommended');
+    setHasAdditionalBusiness(!!app.hasAdditionalBusiness);
+    setAdditionalBusinessAddress(app.additionalBusinessAddress || '');
+    setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
+
+    setBriefBusinessProfile(app.briefBusinessProfile || '');
+    setCoApplicantBusinessName(app.coApplicantBusinessName || '');
+    setCoApplicantBriefBusinessProfile(app.coApplicantBriefBusinessProfile || '');
+    setCoApplicantBusinessVintage(app.coApplicantBusinessVintage || '');
+    setCoApplicantPreviousOccupation(app.coApplicantPreviousOccupation || 'Not Applicable');
+    setCoApplicantReasonToLeave(app.coApplicantReasonToLeave || '');
+    setCoApplicantStaffCount(app.coApplicantStaffCount || '');
+    setCoApplicantBusinessPremiseOwnership(app.coApplicantBusinessPremiseOwnership || 'Self-Owned');
+    setCoApplicantFactoryInfrastructure(app.coApplicantFactoryInfrastructure || '');
+    setCoApplicantStockDetailsValue(app.coApplicantStockDetailsValue || '');
+    setCoApplicantFixedAndCurrentAssetAnalysis(app.coApplicantFixedAndCurrentAssetAnalysis || '');
+    setCoApplicantAssetCreationThroughBusiness(app.coApplicantAssetCreationThroughBusiness || '');
+    setCoApplicantInitialBusinessInvestment(app.coApplicantInitialBusinessInvestment || '');
+    setCoApplicantAgriculturalIncomeDetails(app.coApplicantAgriculturalIncomeDetails || '');
+    setCoApplicantOtherSourceIncomeDetails(app.coApplicantOtherSourceIncomeDetails || '');
+    setCoApplicantOperationalSavingAnalysis(app.coApplicantOperationalSavingAnalysis || '');
+
+    setBusinessVintageText(app.businessVintageText || '');
+    setStaffCountText(app.staffCountText || '');
+    setPremiseOwnershipText(app.premiseOwnershipText || '');
+    setFactoryInfrastructureText(app.factoryInfrastructureText || '');
+    setStockDetailsValueText(app.stockDetailsValueText || '');
+    setFixedAndCurrentAssetAnalysisText(app.fixedAndCurrentAssetAnalysisText || '');
+    setAssetCreationText(app.assetCreationText || '');
+    setBusinessInvestmentText(app.businessInvestmentText || '');
+    setAgriculturalIncomeText(app.agriculturalIncomeText || '');
+    setSolarSavingText(app.solarSavingText || '');
+    setProjectedIncomeText(app.projectedIncomeText || '');
+    setStatusOfCase(app.statusOfCase || 'Recommended');
+
+    setActiveAppNumber(app.applicationNumber || '');
+    setActiveAppId(app._id || null);
+    activeAppIdRef.current = app._id || null;
+    if (app._id) {
+      localStorage.setItem('lastActiveAppId', app._id);
+    }
 
     if (isRecovered) {
       setLoadedToastMessage(`Application #${app.applicationNumber} recovered from unsaved offline draft for ${app.applicantName}.`);
     } else {
-      setLoadedToastMessage(`Application #${app.applicationNumber} loaded for ${app.applicantName} (${app.firmName}). All 5 sections updated.`);
+      setLoadedToastMessage(`Application #${app.applicationNumber || 'Draft'} loaded for ${app.applicantName || 'Applicant'} (${app.firmName || 'Business'}). All sections updated.`);
     }
 
     setIsAppSearchOpen(false);
@@ -1445,18 +1823,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Keep the ref updated with the latest state without triggering re-renders
   updateDataRef.current = {
-    applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, familyMembers,
-    dependentsCount, firmName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
-    shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborFeedback,
-    landlordFeedback, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    applicantName, mobileNumber, alternateMobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
+    dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
+    shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
+    landlordFeedback, exifGpsLat, exifGpsLng, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
+    existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
     photos, incomeLines, expenseLines, productsList,
     caseInitiationDate, visitDate, reportDate, coApplicants,
     hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
     powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
     businessAddress,
     additionalAddresses,
-    personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, otherIdentityProof, executiveName, tataCapitalDistance,
+    personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, documentsSeen, otherDocumentsSeen, otherIdentityProof, executiveName, tataCapitalDistance,
     businessAgeYears, businessAgeApprox, previousOccupation, previousOccupationOther, reasonToLeave, externalStaffCount, businessManagedBy, businessManagedByOther,
     premiseOwnership, premiseOwnershipOther, businessAssets, hasStock, stockDetails, currentAssets, currentAssetsOther,
     businessIncomeAssetCreation, createdAssets, createdAssetsOther, otherHouseholdExpenses, otherHouseholdExpensesDesc, initialInvestment,
@@ -1474,7 +1853,26 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
     hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
     businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
-    businessNeighbourFeedback, businessStatus, categoryId: selectedCategoryId,
+    businessNeighbourFeedback, businessStatus,
+    hasAdditionalBusiness, additionalBusinessAddress, additionalBusinessIncomeAssessment,
+    briefBusinessProfile, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
+    stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
+    solarSavingText, projectedIncomeText, statusOfCase,
+    coApplicantBusinessName, coApplicantBriefBusinessProfile, coApplicantBusinessVintage, coApplicantPreviousOccupation,
+    coApplicantReasonToLeave, coApplicantStaffCount, coApplicantBusinessPremiseOwnership, coApplicantFactoryInfrastructure,
+    coApplicantStockDetailsValue, coApplicantFixedAndCurrentAssetAnalysis, coApplicantAssetCreationThroughBusiness,
+    coApplicantInitialBusinessInvestment, coApplicantAgriculturalIncomeDetails, coApplicantOtherSourceIncomeDetails,
+    coApplicantOperationalSavingAnalysis,
+    coAppIncomeLines, coAppExpenseLines, coAppStatedMonthlySales, coAppSalariesExpense, coAppRentExpense,
+    coAppUtilitiesExpense, coAppMiscExpense,
+    officeAccessibility, tenorRequested, marginsAssessed, customerGstNo, industryType, productType, onLoanStructure,
+    machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText, financialDetailsText, otherBusinessPremisesText,
+    otherStateGstText, familyInvolvedText, applicantQualification,
+    godrejStockLevel, godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize,
+    godrejEmployeesSeen, godrejThirdPartyConfirmation, godrejCourtCasePending, godrejThirdPartyComment, godrejSeparateDemarcation,
+    godrejGstDisplayed, godrejPanCard, godrejGstinLegalName, godrejBusinessRegProof, godrejGstinRegDate, godrejElectricityBill,
+    godrejEmployeeRegister, godrejSaleBills, godrejOtherRecords, godrejStrengths, godrejWeaknesses, finalStatus,
+    categoryId: selectedCategoryId,
     // Always persist these top-level indexing fields so gallery/search works correctly
     applicationNumber: activeAppNumber,
     financialInstitute: selectedClient?.name || '',

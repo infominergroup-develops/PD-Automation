@@ -33,6 +33,7 @@ try {
         client_email: credentials.client_email,
         private_key: credentials.private_key
       },
+      ignoreUndefinedProperties: true,
       preferRest: true
     });
     console.log("[PD System Server] Connected to Firestore via ENV variable!");
@@ -42,6 +43,7 @@ try {
     db = new Firestore({
       projectId: 'vouchr-f4d9e',
       keyFilename: serviceAccountPath,
+      ignoreUndefinedProperties: true,
       preferRest: true
     });
     console.log("[PD System Server] Connected to Firestore via local JSON file!");
@@ -188,7 +190,7 @@ app.patch("/api/clients/:clientId/applicants/:appId", async (req, res) => {
       return res.status(404).json({ error: "Applicant not found" });
     }
     
-    await docRef.update(updateData);
+    await docRef.set(updateData, { merge: true });
     const updatedDoc = await docRef.get();
     res.json({ success: true, applicant: { _id: updatedDoc.id, ...updatedDoc.data() } });
   } catch (err: any) {
