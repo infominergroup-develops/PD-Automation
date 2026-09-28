@@ -313,14 +313,52 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${(data as any).residenceElectricityDetails || 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant'}</td>
+      <td colspan="5">${(data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : ((data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
     </tr>
     
     <tr>
       <td colspan="7" class="sec-head">Brief of family member and residence verification status</td>
     </tr>
     <tr>
-      <td colspan="7" style="height: 100px; vertical-align: bottom;">(All the above details are confirm verbally)</td>
+      <td colspan="7" style="vertical-align: top;">
+        ${(() => {
+          const ownership = String((data as any).residenceOwnership || '').toLowerCase();
+          const isRented = ownership.includes('rent');
+          const ownershipText = isRented ? 'rented' : 'self-owned';
+          const houseDetails = (data as any).residenceHouseDetails ? (data as any).residenceHouseDetails : 'This house has three rooms and is a single-story structure, comprising a ground floor.';
+          
+          let p1 = `The applicant, ${(data as any).applicantName || 'the applicant'}, resides with their family in their ${ownershipText} residential premises. `;
+          p1 += `As verbally confirmed, ${houseDetails} `;
+          
+          let p2 = '';
+          const self = familyList.find((f: any) => String(f.relation).toLowerCase() === 'self' || f.name === (data as any).applicantName);
+          if (self) {
+            p2 += `The applicant, ${self.name || (data as any).applicantName}, aged ${self.age || '-'} years, has completed ${self.qualification || '-'} and is ${self.occupation || 'self-employed'}. `;
+          } else {
+            p2 += `The applicant, ${(data as any).applicantName || 'the applicant'}, is self-employed. `;
+          }
+
+          const otherAdults = familyList.filter((f: any) => f !== self && (!f.age || Number(f.age) >= 18));
+          if (otherAdults.length > 0) {
+            otherAdults.forEach((f: any) => {
+              p2 += `Their ${f.relation || 'family member'}, ${f.name || '-'}, aged ${f.age || '-'} years, has completed ${f.qualification || '-'} and is ${f.occupation || '-'}. `;
+            });
+          }
+
+          const minors = familyList.filter((f: any) => f !== self && f.age && Number(f.age) < 18);
+          if (minors.length > 0) {
+            p2 += `The family also includes ${minors.length} children/grandchildren: ${minors.map((m: any) => `${m.name}, aged ${m.age} years`).join('; ')}, all of whom are dependent. `;
+          }
+
+          p2 += `Monthly household expenses are approximately Rs. ${Number(hhExpM).toLocaleString('en-IN')}/-.`;
+          const resElec = String((data as any).residenceElectricityDetails || '');
+          const busElec = String((data as any).businessElectricityDetails || '');
+          const isNotProvided = resElec.toLowerCase().includes('not provided') && busElec.toLowerCase().includes('not provided');
+          let p3 = `During the visit, the electricity bill was ${isNotProvided ? 'not provided' : 'checked'}.`;
+
+          return '<div style="text-align: justify; padding: 5px;">' + p1 + '<br/><br/>' + p2 + '<br/><br/>' + p3 + '<br/><br/><span style="color: gray;">(All the above details are confirm verbally)</span></div>';
+        })()}
+      </td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Name</td>
@@ -481,7 +519,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="2">${(data as any).businessElectricityDetails || 'A separate electricity meter is not required, as the applicant is operating the business from the residence.'}</td>
+      <td colspan="2">${(data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : ((data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>

@@ -1079,11 +1079,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [electricityConnectionType, setElectricityConnectionType] = useState('');
   const [electricityConnectionTypeOther, setElectricityConnectionTypeOther] = useState('');
   const [electricityConsumerNumber, setElectricityConsumerNumber] = useState('');
+  const [electricitySupplierName, setElectricitySupplierName] = useState('');
   const [electricityMonthlyExpense, setElectricityMonthlyExpense] = useState<number | ''>('');
   const [hasResElectricityConnection, setHasResElectricityConnection] = useState('Not Provided');
   const [resElectricityConnectionType, setResElectricityConnectionType] = useState('');
   const [resElectricityConnectionTypeOther, setResElectricityConnectionTypeOther] = useState('');
   const [resElectricityConsumerNumber, setResElectricityConsumerNumber] = useState('');
+  const [resElectricitySupplierName, setResElectricitySupplierName] = useState('');
   const [resElectricityMonthlyExpense, setResElectricityMonthlyExpense] = useState<number | ''>('');
   const [neighbors, setNeighbors] = useState<any[]>([]);
   const [neighborVerificationConducted, setNeighborVerificationConducted] = useState(false);
@@ -2409,7 +2411,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
       houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'Not provided'} rooms and is a ${houseStructureType || 'Not provided'} structure, comprising a ${houseFloorPosition || 'Not provided'} floor.` : 'Not provided',
       monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
-      residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
+      residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${resElectricitySupplierName || 'Not provided'}, Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'Not provided',
       residenceNeighborName: neighbors.length > 0 && neighbors[0].name ? neighbors.map(n => n.name).join(', ') : 'Not provided',
@@ -2462,7 +2464,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       collateralRemarks,
       businessGpsCoords: formattedGps,
       businessLocationRemarks: businessLongitudeRemarks || 'Not provided',
-      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
+      businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${electricitySupplierName || 'Not provided'}, Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
       businessNeighborName: businessNeighbourName || 'Not provided',
       businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
       businessStatus: businessStatus || 'Not provided',
@@ -2763,24 +2765,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               Next: {nextTab.label}
               <ChevronRight className="w-4 h-4 text-[#eb8a23]" />
             </button>
-          ) : (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleOpenGoogleDriveModal}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
-              >
-                <Cloud className="w-4 h-4 text-white" />
-                Save to Google Drive
-              </button>
-              <button
-                onClick={handleDirectPrintReport}
-                className="flex items-center gap-2 px-5 py-2 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded-xl text-xs font-bold transition shadow-sm"
-              >
-                <Printer className="w-4 h-4 text-white" />
-                Print Standard Company PD Report
-              </button>
-            </div>
-          )}
+          ) : null}
         </div>
       </div>
     );
@@ -5050,7 +5035,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               {hasResElectricityConnection === 'Yes' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
                     <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
@@ -5063,6 +5048,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {resElectricityConnectionType === 'Other' && (
                       <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                    <input type="text" value={resElectricitySupplierName} onChange={(e) => setResElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
                   </div>
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
@@ -5090,7 +5079,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
 
               {hasElectricityConnection === 'Yes' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-200">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
                     <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
@@ -5103,6 +5092,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {electricityConnectionType === 'Other' && (
                       <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                    <input type="text" value={electricitySupplierName} onChange={(e) => setElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
                   </div>
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
@@ -6642,22 +6635,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleOpenGoogleDriveModal}
-                  className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-md transition flex items-center gap-2"
-                >
-                  <Cloud className="w-4 h-4 text-white" />
-                  Save to Google Drive
-                </button>
-                <button
-                  onClick={handleDirectPrintReport}
-                  className="px-4 py-2.5 bg-[#eb8a23] hover:bg-[#d97917] text-white font-bold text-xs rounded-lg shadow-md transition flex items-center gap-2"
-                >
-                  <Printer className="w-4 h-4 text-white" />
-                  Print Official Company PD Report
-                </button>
-              </div>
             </div>
 
             {/* Manager Override Section */}
