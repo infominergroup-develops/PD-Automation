@@ -301,7 +301,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
         <td class="bold">${idx + 1}</td>
         <td class="bold">${f.name || '-'}</td>
         <td>${f.age || '-'}</td>
-        <td>${f.relation || '-'}</td>
+        <td>${f.relationship || f.relation || '-'}</td>
         <td>${f.qualification || '-'}</td>
         <td>${f.occupation || '-'}</td>
         <td>${f.dependent ? 'Yes' : 'No'}</td>
@@ -331,7 +331,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
           p1 += `As verbally confirmed, ${houseDetails} `;
           
           let p2 = '';
-          const self = familyList.find((f: any) => String(f.relation).toLowerCase() === 'self' || f.name === (data as any).applicantName);
+          const self = familyList.find((f: any) => String(f.relationship || f.relation).toLowerCase() === 'self' || f.name === (data as any).applicantName);
           if (self) {
             p2 += `The applicant, ${self.name || (data as any).applicantName}, aged ${self.age || '-'} years, has completed ${self.qualification || '-'} and is ${self.occupation || 'self-employed'}. `;
           } else {
@@ -341,7 +341,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
           const otherAdults = familyList.filter((f: any) => f !== self && (!f.age || Number(f.age) >= 18));
           if (otherAdults.length > 0) {
             otherAdults.forEach((f: any) => {
-              p2 += `Their ${f.relation || 'family member'}, ${f.name || '-'}, aged ${f.age || '-'} years, has completed ${f.qualification || '-'} and is ${f.occupation || '-'}. `;
+              p2 += `Their ${f.relationship || f.relation || 'family member'}, ${f.name || '-'}, aged ${f.age || '-'} years, has completed ${f.qualification || '-'} and is ${f.occupation || '-'}. `;
             });
           }
 
