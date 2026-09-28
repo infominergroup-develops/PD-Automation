@@ -10,13 +10,23 @@ interface AccountDetailsTableProps {
   accounts: AccountRow[];
   title?: string;
   subtitle?: string;
+  isEditing?: boolean;
+  onAccountsChange?: (newAccounts: AccountRow[]) => void;
 }
 
 export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
   accounts,
   title = 'Tradelines & Account Level Facilities',
   subtitle = 'Granular loan-level facilities, repayment statuses and overdue balances',
+  isEditing = false,
+  onAccountsChange,
 }) => {
+  const handleChange = (index: number, field: keyof AccountRow, value: any) => {
+    if (!onAccountsChange) return;
+    const newAccounts = [...accounts];
+    newAccounts[index] = { ...newAccounts[index], [field]: value };
+    onAccountsChange(newAccounts);
+  };
   const formatCurrency = (val?: number | null) => {
     if (val === undefined || val === null) return '—';
     return new Intl.NumberFormat('en-IN', {
@@ -78,51 +88,85 @@ export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
                     </td>
 
                     <td className="py-3 px-4 font-bold text-[#1e293b]">
-                      {acc.applicantName || '—'}
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-24 font-normal" value={acc.applicantName || ''} onChange={e => handleChange(idx, 'applicantName', e.target.value)} />
+                      ) : (
+                        acc.applicantName || '—'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-semibold text-slate-800">
-                      <span className="bg-[#f1f5f9] text-[#2d3e50] px-2 py-0.5 rounded text-[11px] font-mono border border-[#e2e8f0]">
-                        {acc.accountType || 'Loan Facility'}
-                      </span>
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-20 font-normal" value={acc.accountType || ''} onChange={e => handleChange(idx, 'accountType', e.target.value)} />
+                      ) : (
+                        <span className="bg-[#f1f5f9] text-[#2d3e50] px-2 py-0.5 rounded text-[11px] font-mono border border-[#e2e8f0]">
+                          {acc.accountType || 'Loan Facility'}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-bold text-[#2d3e50]">
-                      {acc.creditGrantor || 'Credit Institution'}
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-24 font-normal" value={acc.creditGrantor || ''} onChange={e => handleChange(idx, 'creditGrantor', e.target.value)} />
+                      ) : (
+                        acc.creditGrantor || 'Credit Institution'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-slate-600">
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
-                        {acc.lenderType || 'Bank'}
-                      </span>
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-20 font-normal" value={acc.lenderType || ''} onChange={e => handleChange(idx, 'lenderType', e.target.value)} />
+                      ) : (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-700">
+                          {acc.lenderType || 'Bank'}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-center">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          acc.status === 'Active'
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
-                            : 'bg-slate-100 text-slate-600 border border-slate-200'
-                        }`}
-                      >
-                        {acc.status || 'Active'}
-                      </span>
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-16 font-normal" value={acc.status || ''} onChange={e => handleChange(idx, 'status', e.target.value)} />
+                      ) : (
+                        <span
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            acc.status === 'Active'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+                              : 'bg-slate-100 text-slate-600 border border-slate-200'
+                          }`}
+                        >
+                          {acc.status || 'Active'}
+                        </span>
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
-                      {acc.disbursedDate || '—'}
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-20 font-normal" value={acc.disbursedDate || ''} onChange={e => handleChange(idx, 'disbursedDate', e.target.value)} />
+                      ) : (
+                        acc.disbursedDate || '—'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-right font-medium text-slate-800 font-mono">
-                      {formatCurrency(acc.disbursedAmount)}
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-20 font-normal text-right" value={acc.disbursedAmount || ''} onChange={e => handleChange(idx, 'disbursedAmount', parseInt(e.target.value) || 0)} />
+                      ) : (
+                        formatCurrency(acc.disbursedAmount)
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-right font-bold text-[#1e293b] font-mono">
-                      {formatCurrency(acc.currentBalance)}
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-20 font-normal text-right" value={acc.currentBalance || ''} onChange={e => handleChange(idx, 'currentBalance', parseInt(e.target.value) || 0)} />
+                      ) : (
+                        formatCurrency(acc.currentBalance)
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-right font-mono">
-                      {isOverdue ? (
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-20 font-normal text-right" value={acc.overdueAmount || ''} onChange={e => handleChange(idx, 'overdueAmount', parseInt(e.target.value) || 0)} />
+                      ) : isOverdue ? (
                         <span className="font-bold text-red-600 bg-red-100 px-2 py-0.5 rounded text-[11px]">
                           {formatCurrency(acc.overdueAmount)}
                         </span>
@@ -132,23 +176,43 @@ export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
                     </td>
 
                     <td className="py-3 px-4 text-right font-medium text-slate-700 font-mono">
-                      {formatCurrency(acc.instalmentAmount)}
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-20 font-normal text-right" value={acc.instalmentAmount || ''} onChange={e => handleChange(idx, 'instalmentAmount', parseInt(e.target.value) || 0)} />
+                      ) : (
+                        formatCurrency(acc.instalmentAmount)
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-center text-slate-600 text-[11px] font-mono">
-                      {acc.tenureMonths ? `${acc.tenureMonths}m` : '—'}
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-12 font-normal text-center" value={acc.tenureMonths || ''} onChange={e => handleChange(idx, 'tenureMonths', parseInt(e.target.value) || 0)} />
+                      ) : (
+                        acc.tenureMonths ? `${acc.tenureMonths}m` : '—'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 text-center font-mono text-[11px] text-slate-600">
-                      {acc.interestRate ? `${acc.interestRate}%` : '—'}
+                      {isEditing ? (
+                        <input type="number" className="border rounded px-1 py-0.5 w-12 font-normal text-center" value={acc.interestRate || ''} onChange={e => handleChange(idx, 'interestRate', parseFloat(e.target.value) || 0)} />
+                      ) : (
+                        acc.interestRate ? `${acc.interestRate}%` : '—'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-600">
-                      {acc.lastPaymentDate || '—'}
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-20 font-normal" value={acc.lastPaymentDate || ''} onChange={e => handleChange(idx, 'lastPaymentDate', e.target.value)} />
+                      ) : (
+                        acc.lastPaymentDate || '—'
+                      )}
                     </td>
 
                     <td className="py-3 px-4 font-mono text-[11px] text-slate-500">
-                      {acc.asOnDate || '—'}
+                      {isEditing ? (
+                        <input className="border rounded px-1 py-0.5 w-20 font-normal" value={acc.asOnDate || ''} onChange={e => handleChange(idx, 'asOnDate', e.target.value)} />
+                      ) : (
+                        acc.asOnDate || '—'
+                      )}
                     </td>
                   </tr>
                 );

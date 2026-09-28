@@ -177,6 +177,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [creditReportType, setCreditReportType] = useState('NONE');
   const [creditReportFiles, setCreditReportFiles] = useState<File[]>([]);
   const [parsedCreditReport, setParsedCreditReport] = useState<any>(null);
+  const [isEditingCreditReport, setIsEditingCreditReport] = useState(false);
   const [isParsingCreditReport, setIsParsingCreditReport] = useState(false);
 
   const handleParseCreditReport = async () => {
@@ -3046,38 +3047,103 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {parsedCreditReport && (
               <div className="w-full mt-4 bg-slate-50 border border-emerald-200 rounded-lg p-3">
-                <div className="text-xs text-emerald-700 font-bold flex items-center gap-1.5 mb-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Successfully extracted {parsedCreditReport.reportProvider} Data
+                <div className="text-xs text-emerald-700 font-bold flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Successfully extracted {parsedCreditReport.reportProvider} Data
+                  </div>
+                  <button
+                    onClick={() => setIsEditingCreditReport(!isEditingCreditReport)}
+                    className="px-2 py-1 text-[10px] bg-emerald-100 text-emerald-700 rounded hover:bg-emerald-200 transition font-medium"
+                  >
+                    {isEditingCreditReport ? 'Done' : 'Edit'}
+                  </button>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Report Date</span>
-                    <span className="font-semibold text-slate-800">{parsedCreditReport.reportDate || 'N/A'}</span>
+                {isEditingCreditReport ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Report Date</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        value={parsedCreditReport.reportDate || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, reportDate: e.target.value})}
+                      />
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Credit Score</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        value={parsedCreditReport.creditScore || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, creditScore: e.target.value})}
+                      />
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Total Accounts</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        type="number"
+                        value={parsedCreditReport.totalAccounts || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalAccounts: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Active Accounts</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        type="number"
+                        value={parsedCreditReport.activeAccounts || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, activeAccounts: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Current Balance (₹)</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        type="number"
+                        value={parsedCreditReport.totalCurrentBalance || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalCurrentBalance: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
+                      <label className="text-slate-500 uppercase font-bold">Overdue Amount (₹)</label>
+                      <input 
+                        className="border rounded p-1 w-full"
+                        type="number"
+                        value={parsedCreditReport.totalOverdueAmount || ''}
+                        onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalOverdueAmount: parseInt(e.target.value) || 0})}
+                      />
+                    </div>
                   </div>
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Credit Score</span>
-                    <span className="font-semibold text-slate-800">{parsedCreditReport.creditScore || 'N/A'}</span>
+                ) : (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Report Date</span>
+                      <span className="font-semibold text-slate-800">{parsedCreditReport.reportDate || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Credit Score</span>
+                      <span className="font-semibold text-slate-800">{parsedCreditReport.creditScore || 'N/A'}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Total Accounts</span>
+                      <span className="font-semibold text-slate-800">{parsedCreditReport.totalAccounts || '0'}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Active Accounts</span>
+                      <span className="font-semibold text-slate-800">{parsedCreditReport.activeAccounts || '0'}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Current Balance</span>
+                      <span className="font-semibold text-slate-800">₹{parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || '0'}</span>
+                    </div>
+                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
+                      <span className="text-slate-500 uppercase font-bold block mb-0.5">Overdue Amount</span>
+                      <span className={`font-semibold ${parsedCreditReport.totalOverdueAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                        ₹{parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || '0'}
+                      </span>
+                    </div>
                   </div>
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Total Accounts</span>
-                    <span className="font-semibold text-slate-800">{parsedCreditReport.totalAccounts || '0'}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Active Accounts</span>
-                    <span className="font-semibold text-slate-800">{parsedCreditReport.activeAccounts || '0'}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Current Balance</span>
-                    <span className="font-semibold text-slate-800">₹{parsedCreditReport.totalCurrentBalance?.toLocaleString('en-IN') || '0'}</span>
-                  </div>
-                  <div className="bg-white p-2 rounded border border-slate-200 shadow-sm">
-                    <span className="text-slate-500 uppercase font-bold block mb-0.5">Overdue Amount</span>
-                    <span className={`font-semibold ${parsedCreditReport.totalOverdueAmount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                      ₹{parsedCreditReport.totalOverdueAmount?.toLocaleString('en-IN') || '0'}
-                    </span>
-                  </div>
-                </div>
+                )}
                 {parsedCreditReport.flags && parsedCreditReport.flags.length > 0 && (
                   <div className="mt-2 bg-red-50 p-2 rounded border border-red-100 text-[10px]">
                     <span className="font-bold text-red-800 uppercase block mb-1">Risk Indicators</span>
@@ -3090,7 +3156,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 )}
                 {parsedCreditReport.accounts && parsedCreditReport.accounts.length > 0 && (
                   <div className="mt-4">
-                    <AccountDetailsTable accounts={parsedCreditReport.accounts} />
+                    <AccountDetailsTable 
+                      accounts={parsedCreditReport.accounts} 
+                      isEditing={isEditingCreditReport}
+                      onAccountsChange={(newAccounts) => setParsedCreditReport({...parsedCreditReport, accounts: newAccounts})}
+                    />
                   </div>
                 )}
               </div>

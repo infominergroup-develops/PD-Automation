@@ -69,7 +69,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = data.netProfitYearly || (netProfM * 12);
+  const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
@@ -110,7 +110,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppNetProfM * 12);
+  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
 
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);

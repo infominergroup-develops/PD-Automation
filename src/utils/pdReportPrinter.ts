@@ -399,13 +399,17 @@ import { generateMoneyboxxPDReportHTML } from './templates/moneyboxxTemplate';
 import { generateSbfcPDReportHTML } from './templates/sbfcTemplate';
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
 import { generateTataCapitalPDReportHTML } from './templates/tataCapitalTemplate';
+import { generateAbhiyanPDReportHTML } from './templates/abhiyanTemplate';
+import { generateAmbitPDReportHTML } from './templates/ambitTemplate';
 
 export {
   generateStandardPDReportHTML,
   generateMoneyboxxPDReportHTML,
   generateSbfcPDReportHTML,
   generateGodrejPDReportHTML,
-  generateTataCapitalPDReportHTML
+  generateTataCapitalPDReportHTML,
+  generateAbhiyanPDReportHTML,
+  generateAmbitPDReportHTML
 };
 
 export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
@@ -423,6 +427,14 @@ export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   }
   if (data.clientBankName?.toLowerCase().includes('tata capital')) {
     openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
+    return;
+  }
+  if (data.clientBankName?.toLowerCase().includes('abhiyan')) {
+    openPDReportPrintWindow(generateAbhiyanPDReportHTML(data), data.applicationNumber || 'Abhiyan');
+    return;
+  }
+  if (data.clientBankName?.toLowerCase().includes('ambit')) {
+    openPDReportPrintWindow(generateAmbitPDReportHTML(data), data.applicationNumber || 'Ambit');
     return;
   }
   openPDReportPrintWindow(generateStandardPDReportHTML(data), data.applicationNumber || 'Standard');
