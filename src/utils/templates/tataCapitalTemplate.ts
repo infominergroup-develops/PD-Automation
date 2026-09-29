@@ -113,7 +113,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = data.householdExpensesMonthly ?? data.monthlyHouseholdExpenses ?? 0;
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
   const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
   const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   

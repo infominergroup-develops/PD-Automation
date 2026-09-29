@@ -103,11 +103,11 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const existEmiM = data.existingEmiMonthly ?? 0;
   const existEmiY = data.existingEmiYearly ?? (existEmiM * 12);
 
-  const hhExpM = data.householdExpensesMonthly ?? data.monthlyHouseholdExpenses ?? 0;
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
 
   const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = combinedNetProfY - existEmiY - hhExpY;
+  const netDisposalY = combinedNetProfY - existEmiY - (hhExpM * 12);
 
   return `
 <!DOCTYPE html>
@@ -1417,10 +1417,10 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-  const hhExpM = data.monthlyHouseholdExpenses || data.householdExpensesMonthly || 4000;
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netProfY - existEmiY - hhExpY;
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
 
   return `
 <!DOCTYPE html>

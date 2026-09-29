@@ -7,7 +7,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   const reportDate = (data as any).visitDate || '-';
   const visitDate = (data as any).visitDate || '-';
   const initiationDate = (data as any).caseInitiationDate || '-';
-  const caseStatus = (data as any).statusOfCase || 'Positive';
+  const caseStatus = (data as any).statusOfCase || 'Recommended';
   
   let photosHtml = '';
   const photos = (data as any).photos || [];
@@ -115,7 +115,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = (data as any).householdExpensesMonthly ?? (data as any).monthlyHouseholdExpenses ?? 0;
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
   const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
   const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
@@ -178,7 +178,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
           </tr>
           <tr>
             <td class="bold text-center" style="border-left: none; border-bottom: none;">Status of case</td>
-            <td class="text-center" style="border-right: none; border-bottom: none; font-weight: bold;">${caseStatus === 'Positive' ? 'Recommended' : caseStatus === 'Negative' ? 'Not-Recommended' : 'Recommended/Not- Recommended'}</td>
+            <td class="text-center" style="border-right: none; border-bottom: none; font-weight: bold;">${caseStatus}</td>
           </tr>
         </table>
       </td>

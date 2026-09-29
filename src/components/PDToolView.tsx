@@ -2410,7 +2410,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
       residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
       houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'Not provided'} rooms and is a ${houseStructureType || 'Not provided'} structure, comprising a ${houseFloorPosition || 'Not provided'} floor.` : 'Not provided',
-      monthlyHouseholdExpenses: monthlyHouseholdExpensesAmount || householdExpenses || 0,
+      monthlyHouseholdExpensesAmount: monthlyHouseholdExpensesAmount,
+      monthlyHouseholdExpenses: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0),
       residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${resElectricitySupplierName || 'Not provided'}, Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'Not provided',
@@ -2542,12 +2543,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       existingEmiMonthly: existingEmis,
       existingEmiYearly: existingEmis * 12,
       existingEmiNotes: existingEmiNotes || generatedExistingEmiNotes,
-      householdExpensesMonthly: householdExpenses,
-      householdExpensesYearly: householdExpenses * 12,
+      householdExpensesMonthly: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0),
+      householdExpensesYearly: ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) * 12,
       householdExpensesNotes: householdExpensesNotes,
       comfortableEmiNotes: comfortableEmiNotes,
-      netDisposalIncomeMonthly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - householdExpenses - existingEmis),
-      netDisposalIncomeYearly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - householdExpenses - existingEmis) * 12,
+      netDisposalIncomeMonthly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) - existingEmis),
+      netDisposalIncomeYearly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) - existingEmis) * 12,
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,
@@ -3219,6 +3220,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </select>
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Status (Recommendation)</label>
+                <select
+                  value={statusOfCase}
+                  onChange={(e) => setStatusOfCase(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                >
+                  <option value="Recommended">Recommended</option>
+                  <option value="Not Recommended">Not Recommended</option>
+                  <option value="Recommended subject to demerits">Recommended subject to demerits</option>
+                </select>
+              </div>
+
 
 
               <div>
@@ -3656,8 +3670,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
                 <select value={statusOfCase} onChange={(e) => setStatusOfCase(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   <option value="Recommended">Recommended</option>
-                  <option value="Positive">Not Recommended</option>
-                  <option value="Negative">Recommended subject to demerits</option>
+                  <option value="Not Recommended">Not Recommended</option>
+                  <option value="Recommended subject to demerits">Recommended subject to demerits</option>
                 </select>
               </div>
             </div>
@@ -5021,7 +5035,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <label className="block text-xs font-bold text-slate-700 mb-1">18. Monthly Household Expenses</label>
               <div className="relative md:w-1/3">
                 <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                <input type="number" value={monthlyHouseholdExpensesAmount} onChange={(e) => setMonthlyHouseholdExpensesAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount / month" />
+                <input
+                  type="number"
+                  value={monthlyHouseholdExpensesAmount}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? '' : Number(e.target.value);
+                    setMonthlyHouseholdExpensesAmount(val);
+                    if (val !== '') {
+                      setHouseholdExpenses(Number(val));
+                    }
+                  }}
+                  className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                  placeholder="Amount / month"
+                />
               </div>
             </div>
 

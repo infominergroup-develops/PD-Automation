@@ -25,6 +25,8 @@ export function getUniversalCoverPageCSS(): string {
     .exec-table .td-label { width: 40%; color: #475569; font-weight: 600; border-right: 1px solid #e2e8f0; }
     .exec-table .td-value { color: #1e293b; font-weight: 500; }
     .exec-pill-green { background: #166534; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
+    .exec-pill-red { background: #991b1b; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
+    .exec-pill-amber { background: #d97706; color: #ffffff; padding: 6px 16px; border-radius: 20px; font-size: 9pt; font-weight: 600; display: inline-block; }
     .exec-overview-box { border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; background: #ffffff; page-break-inside: auto; break-inside: auto; }
     .exec-overview-icon { float: left; width: 60px; text-align: center; color: #1e3a8a; }
     .exec-overview-text { margin-left: 80px; font-size: 10pt; color: #334155; line-height: 1.6; border-left: 2px solid #e2e8f0; padding-left: 20px; text-align: justify; display: block; }
@@ -92,7 +94,7 @@ export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string
         <tr>
           <td class="td-icon"><div class="exec-icon"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"></polyline><polyline points="23 20 23 14 17 14"></polyline><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path></svg></div></td>
           <td class="td-label">Case Status</td>
-          <td class="td-value"><div class="exec-pill-green">${caseStatus}</div></td>
+          <td class="td-value"><div class="${String(caseStatus).toLowerCase().includes('not') ? 'exec-pill-red' : String(caseStatus).toLowerCase().includes('demerit') ? 'exec-pill-amber' : 'exec-pill-green'}">${caseStatus}</div></td>
         </tr>
       </table>
     </div>
@@ -187,6 +189,7 @@ export interface PDReportPrintData {
     isDependent: boolean;
   }>;
   monthlyHouseholdExpenses?: number;
+  monthlyHouseholdExpensesAmount?: number | string;
   residenceElectricityDetails?: string;
   residenceNeighborName?: string;
   residenceNeighborFeedback?: string;
