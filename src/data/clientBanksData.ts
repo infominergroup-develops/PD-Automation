@@ -63,6 +63,19 @@ export const CLIENT_BANKS: ClientBank[] = [
     tagline: 'Moneyboxx • Micro Credit Portal'
   },
   {
+    id: 'moneyboxx_lap',
+    name: 'MoneyBoxx LAP',
+    shortCode: 'MONEYBOXX LAP',
+    division: 'Moneyboxx LAP Division',
+    logoColor: '#004B8D',
+    accentColor: '#1D4ED8',
+    borderClass: 'border-[#004B8D]',
+    bgGradient: 'from-[#004B8D]/10 to-blue-50',
+    description: 'Moneyboxx Loan Against Property assessment portal.',
+    defaultScheme: 'Moneyboxx LAP',
+    tagline: 'Moneyboxx • LAP Portal'
+  },
+  {
     id: 'godrej',
     name: 'Godrej Finance Limited',
     shortCode: 'GODREJ',

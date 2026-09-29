@@ -222,9 +222,17 @@ export const abhiyanSchema: ClientSchema = {
   clientId: 'abhiyan'
 };
 
+// MoneyBoxx LAP schema
+export const moneyboxxLapSchema: ClientSchema = {
+  ...standardSchema,
+  clientId: 'moneyboxx_lap'
+};
+
 // Map all schemas
 export const CLIENT_SCHEMAS: Record<string, ClientSchema> = {
   'moneyboxx': moneyboxxSchema,
+  'moneyboxx_lap': moneyboxxLapSchema,
+  'moneyboxxlap': moneyboxxLapSchema,
   'godrej': godrejSchema,
   'standard': standardSchema,
   'ambit': ambitSchema,

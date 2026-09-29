@@ -643,7 +643,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  ${(data.hasCollateral && ((data.clientBankName || '').toLowerCase().includes('ambit') || (data.clientBankName || '').toLowerCase().includes('abhiyan'))) ? `
+  ${(data.hasCollateral && ((data.clientBankName || '').toLowerCase().includes('ambit') || (data.clientBankName || '').toLowerCase().includes('abhiyan') || (data.clientBankName || '').toLowerCase().includes('lap'))) ? `
   <table class="report-table" style="margin-top: 15px;">
     <tr><td colspan="2" class="sec-head">Collateral Property details</td></tr>
     <tr>
@@ -1813,7 +1813,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  ${(data.hasCollateral && ((data.clientBankName || '').toLowerCase().includes('ambit') || (data.clientBankName || '').toLowerCase().includes('abhiyan'))) ? `
+  ${(data.hasCollateral && ((data.clientBankName || '').toLowerCase().includes('ambit') || (data.clientBankName || '').toLowerCase().includes('abhiyan') || (data.clientBankName || '').toLowerCase().includes('lap'))) ? `
   <table style="margin-top: 15px;">
     <tr><td colspan="7" class="sec-title">Collateral Property details</td></tr>
     <tr>

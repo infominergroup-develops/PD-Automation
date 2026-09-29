@@ -396,6 +396,7 @@ export interface PDReportPrintData {
 
 import { generateStandardPDReportHTML } from './templates/standardTemplate';
 import { generateMoneyboxxPDReportHTML } from './templates/moneyboxxTemplate';
+import { generateMoneyboxxLapPDReportHTML } from './templates/moneyboxxLapTemplate';
 import { generateSbfcPDReportHTML } from './templates/sbfcTemplate';
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
 import { generateTataCapitalPDReportHTML } from './templates/tataCapitalTemplate';
@@ -405,6 +406,7 @@ import { generateAmbitPDReportHTML } from './templates/ambitTemplate';
 export {
   generateStandardPDReportHTML,
   generateMoneyboxxPDReportHTML,
+  generateMoneyboxxLapPDReportHTML,
   generateSbfcPDReportHTML,
   generateGodrejPDReportHTML,
   generateTataCapitalPDReportHTML,
@@ -413,31 +415,40 @@ export {
 };
 
 export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
-  if (data.clientBankName?.toLowerCase().includes('moneyboxx')) {
+  const bankLower = (data.clientBankName || '').toLowerCase();
+  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap')) {
+    openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
+    return;
+  }
+  if (bankLower.includes('moneyboxx')) {
     openPDReportPrintWindow(generateMoneyboxxPDReportHTML(data), data.applicationNumber || 'Moneyboxx');
     return;
   }
-  if (data.clientBankName?.toLowerCase().includes('sbfc')) {
+  if (bankLower.includes('sbfc')) {
     openPDReportPrintWindow(generateSbfcPDReportHTML(data), data.applicationNumber || 'SBFC');
     return;
   }
-  if (data.clientBankName?.toLowerCase().includes('godrej')) {
+  if (bankLower.includes('godrej')) {
     openPDReportPrintWindow(generateGodrejPDReportHTML(data), data.applicationNumber || 'Godrej');
     return;
   }
-  if (data.clientBankName?.toLowerCase().includes('tata capital')) {
+  if (bankLower.includes('tata capital') || bankLower.includes('tata')) {
     openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
     return;
   }
-  if (data.clientBankName?.toLowerCase().includes('abhiyan')) {
+  if (bankLower.includes('abhiyan')) {
     openPDReportPrintWindow(generateAbhiyanPDReportHTML(data), data.applicationNumber || 'Abhiyan');
     return;
   }
-  if (data.clientBankName?.toLowerCase().includes('ambit')) {
+  if (bankLower.includes('ambit')) {
     openPDReportPrintWindow(generateAmbitPDReportHTML(data), data.applicationNumber || 'Ambit');
     return;
   }
   openPDReportPrintWindow(generateStandardPDReportHTML(data), data.applicationNumber || 'Standard');
+}
+
+export function openMoneyboxxLapPDReportPrintWindow(data: PDReportPrintData) {
+  openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
 }
 
 export function openMoneyboxxPDReportPrintWindow(data: PDReportPrintData) {

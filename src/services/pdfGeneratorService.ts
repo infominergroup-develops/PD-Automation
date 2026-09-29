@@ -4,9 +4,12 @@ import { PDReportPrintData } from '../utils/pdReportPrinter';
 import {
   generateStandardPDReportHTML,
   generateMoneyboxxPDReportHTML,
+  generateMoneyboxxLapPDReportHTML,
   generateSbfcPDReportHTML,
   generateGodrejPDReportHTML,
-  generateTataCapitalPDReportHTML
+  generateTataCapitalPDReportHTML,
+  generateAbhiyanPDReportHTML,
+  generateAmbitPDReportHTML
 } from '../utils/pdReportPrinter';
 
 /**
@@ -14,6 +17,9 @@ import {
  */
 export function getReportHTMLForData(data: PDReportPrintData): string {
   const bankName = (data.clientBankName || '').toLowerCase();
+  if (bankName.includes('moneyboxx lap') || bankName.includes('moneyboxxlap')) {
+    return generateMoneyboxxLapPDReportHTML(data);
+  }
   if (bankName.includes('moneyboxx')) {
     return generateMoneyboxxPDReportHTML(data);
   }
@@ -23,8 +29,14 @@ export function getReportHTMLForData(data: PDReportPrintData): string {
   if (bankName.includes('godrej')) {
     return generateGodrejPDReportHTML(data);
   }
-  if (bankName.includes('tata capital')) {
+  if (bankName.includes('tata capital') || bankName.includes('tata')) {
     return generateTataCapitalPDReportHTML(data);
+  }
+  if (bankName.includes('abhiyan')) {
+    return generateAbhiyanPDReportHTML(data);
+  }
+  if (bankName.includes('ambit')) {
+    return generateAmbitPDReportHTML(data);
   }
   return generateStandardPDReportHTML(data);
 }

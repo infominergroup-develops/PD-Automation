@@ -5302,8 +5302,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
 
-              {/* Collateral Property Details (Ambit Specific) */}
-              {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan')) && (
+              {/* Collateral Property Details (Ambit / Abhiyan / MoneyBoxx LAP Specific) */}
+              {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan') || (selectedClient?.name || '').toLowerCase().includes('lap')) && (
                 <div className="pt-6 mt-6 border-t border-slate-200">
                   <div className="flex items-center justify-between mb-4">
                     <label className="text-sm font-bold text-slate-700">Include Collateral Property Details?</label>
