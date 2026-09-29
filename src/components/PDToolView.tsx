@@ -2364,6 +2364,74 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
+    const getHouseDetailsSummary = () => {
+      const parts: string[] = [];
+
+      // 1. Structure and Rooms
+      const structType = houseStructureType === 'Other' ? houseStructureTypeOther : houseStructureType;
+      const floorPos = houseFloorPosition === 'Other' ? houseFloorPositionOther : houseFloorPosition;
+      
+      if (houseRooms || structType || floorPos || houseFloors) {
+        const roomText = houseRooms ? `${houseRooms} room${Number(houseRooms) > 1 ? 's' : ''}` : '';
+        const structText = structType ? `${structType.toLowerCase()} structure` : '';
+        const floorText = floorPos ? `comprising a ${floorPos.toLowerCase()}` : '';
+        const floorsCountText = houseFloors ? `(${houseFloors} floor${Number(houseFloors) > 1 ? 's' : ''})` : '';
+
+        const structureParts = [roomText, structText, floorText, floorsCountText].filter(Boolean);
+        if (structureParts.length > 0) {
+          parts.push(`This house has ${houseRooms ? `${houseRooms} rooms` : 'residential accommodation'} and is a ${structType ? structType.toLowerCase() : 'residential'} structure${floorPos ? `, comprising a ${floorPos.toLowerCase()}` : ''}${houseFloors ? ` with ${houseFloors} floor${Number(houseFloors) > 1 ? 's' : ''}` : ''}.`);
+        }
+      }
+
+      // 2. Ownership details
+      let ownershipDesc = '';
+      if (propertyOwnership === 'Self-Owned' || propertyOwnership === 'Owned') {
+        ownershipDesc = `The premises is self-owned${propertyOwnerName ? ` in the name of ${propertyOwnerName}` : ''}`;
+      } else if (propertyOwnership === 'Rented') {
+        ownershipDesc = `The premises is rented${propertyRentAmount ? ` with an approximate monthly rent of ₹${Number(propertyRentAmount).toLocaleString('en-IN')}` : ''}`;
+      } else if (propertyOwnership === 'Family-Owned' || propertyOwnership === 'Parental') {
+        ownershipDesc = `The premises is family-owned/parental property`;
+      } else if (propertyOwnership === 'Leased') {
+        ownershipDesc = `The premises is on lease`;
+      } else if (propertyOwnership === 'Other' && propertyOwnershipOther) {
+        ownershipDesc = `The premises is ${propertyOwnershipOther.toLowerCase()}`;
+      } else if (propertyOwnership) {
+        ownershipDesc = `The premises is ${propertyOwnership.toLowerCase()}`;
+      }
+
+      const areaValueDesc: string[] = [];
+      if (propertyArea) {
+        areaValueDesc.push(`having an area of approximately ${propertyArea} sq.ft.`);
+      }
+      if (propertyValue) {
+        areaValueDesc.push(`with an estimated valuation of ₹${Number(propertyValue).toLocaleString('en-IN')}`);
+      }
+
+      if (ownershipDesc) {
+        if (areaValueDesc.length > 0) {
+          parts.push(`${ownershipDesc}, ${areaValueDesc.join(' and ')}.`);
+        } else {
+          parts.push(`${ownershipDesc}.`);
+        }
+      } else if (areaValueDesc.length > 0) {
+        parts.push(`The property covers an approximate area of ${propertyArea ? `${propertyArea} sq.ft.` : ''}${propertyValue ? ` with an estimated valuation of ₹${Number(propertyValue).toLocaleString('en-IN')}` : ''}.`);
+      }
+
+      // 3. Ownership document confirmation
+      if (propertyOwnershipDoc === 'Yes') {
+        parts.push(`Ownership document is confirmed available.`);
+      } else if (propertyOwnershipDoc === 'No') {
+        parts.push(`Ownership document is not available.`);
+      }
+
+      // 4. Additional details
+      if (houseAdditionalDetails && houseAdditionalDetails.trim()) {
+        parts.push(houseAdditionalDetails.trim());
+      }
+
+      return parts.length > 0 ? parts.join(' ') : 'Not provided';
+    };
+
     return {
       companyHeader: {
         name: selectedCompany.name,
@@ -2418,8 +2486,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       familyMembers: familyMembers,
       documentsSeen: [ ...documentsSeen.filter(d => d !== 'Other'), ...(documentsSeen.includes('Other') && otherDocumentsSeen ? [otherDocumentsSeen] : []) ],
 
-      residenceOwnership: propertyOwnership === 'Owned' ? `Owned Premises - Area ${propertyArea || 'Not provided'} sq.ft Approx` : (propertyOwnership === 'Rented' ? 'Rented Premises' : (propertyOwnership || (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
-      houseDetails: (houseRooms || houseStructureType || houseFloorPosition) ? `This house has ${houseRooms || 'Not provided'} rooms and is a ${houseStructureType || 'Not provided'} structure, comprising a ${houseFloorPosition || 'Not provided'} floor.` : 'Not provided',
+      residenceOwnership: propertyOwnership === 'Owned' || propertyOwnership === 'Self-Owned' ? `Self-Owned Premises${propertyArea ? ` - Area ${propertyArea} sq.ft Approx` : ''}${propertyOwnerName ? ` (Owner: ${propertyOwnerName})` : ''}` : (propertyOwnership === 'Rented' ? `Rented Premises${propertyRentAmount ? ` (Rent: ₹${Number(propertyRentAmount).toLocaleString('en-IN')}/month)` : ''}` : (propertyOwnership ? `${propertyOwnership} Premises` : (residenceOwnership ? `${residenceOwnership} Premises` : 'Not provided'))),
+      houseDetails: getHouseDetailsSummary(),
+      residenceHouseDetails: getHouseDetailsSummary(),
       monthlyHouseholdExpensesAmount: monthlyHouseholdExpensesAmount,
       monthlyHouseholdExpenses: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0),
       residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${resElectricitySupplierName || 'Not provided'}, Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
@@ -5014,7 +5083,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <input type="text" value={houseAdditionalDetails} onChange={(e) => setHouseAdditionalDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional details..." />
               </div>
               <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
-                Generated: This house has {houseRooms || 0} rooms and is a {houseStructureType === 'Other' ? houseStructureTypeOther.toLowerCase() : houseStructureType.toLowerCase()} structure, comprising {houseFloorPosition === 'Other' ? houseFloorPositionOther.toLowerCase() : houseFloorPosition.toLowerCase()}.
+                <span className="font-bold">Generated Summary:</span> {getHouseDetailsSummary()}
               </div>
             </div>
 

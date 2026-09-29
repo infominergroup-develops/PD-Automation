@@ -52,8 +52,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
-  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
+  const netProfM = totalSalesM - totalExpM;
+  const netProfY = totalSalesY - totalExpY;
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
@@ -93,8 +93,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
-  const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
+  const coAppNetProfM = coAppTotalSalesM - coAppTotalExpM;
+  const coAppNetProfY = coAppTotalSalesY - coAppTotalExpY;
 
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
