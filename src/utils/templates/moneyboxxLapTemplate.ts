@@ -164,6 +164,14 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
 </head>
 <body>
   ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
+
+  <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #1e3a8a; padding-bottom: 8px;">
+    <div style="font-size: 13pt; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">Infominer Services Private Limited</div>
+    <div style="font-size: 8.5pt; font-weight: 600; color: #475569; margin-top: 2px;">CIN : U67100UP2020PTC131346</div>
+    <div style="font-size: 9pt; font-weight: bold; color: #000; margin-top: 2px;">(Chartered Accountant)</div>
+    <div style="font-size: 8.5pt; color: #334155; margin-top: 2px;">Office No 410, Shree Siddhi Vinayak Trade Center - Agra- 282004</div>
+  </div>
+
   <table>
     <tr>
       <td colspan="2" style="width: 60%;" class="bold">To,<br/>Moneyboxx Finance Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${(data as any).applicantName || 'Applicant'}</td>
