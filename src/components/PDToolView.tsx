@@ -2492,7 +2492,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       houseDetails: getHouseDetailsSummary(),
       residenceHouseDetails: getHouseDetailsSummary(),
       monthlyHouseholdExpensesAmount: monthlyHouseholdExpensesAmount,
-      monthlyHouseholdExpenses: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0),
+      monthlyHouseholdExpenses: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : 0,
+      householdExpenses: householdExpenses || 0,
       residenceElectricityDetails: hasResElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${resElectricitySupplierName || 'Not provided'}, Consumer No: ${resElectricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${resElectricityMonthlyExpense || 0}` : 'Not provided',
       residenceGpsCoords: formattedGps,
       residenceStatus: residenceStatus || 'Not provided',
@@ -2625,12 +2626,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       existingEmiMonthly: existingEmis,
       existingEmiYearly: existingEmis * 12,
       existingEmiNotes: existingEmiNotes || generatedExistingEmiNotes,
-      householdExpensesMonthly: (monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0),
-      householdExpensesYearly: ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) * 12,
+      householdExpensesMonthly: householdExpenses || 0,
+      householdExpensesYearly: (householdExpenses || 0) * 12,
       householdExpensesNotes: householdExpensesNotes,
       comfortableEmiNotes: comfortableEmiNotes,
-      netDisposalIncomeMonthly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) - existingEmis),
-      netDisposalIncomeYearly: ((netBusinessIncome + (hasCoAppInBusiness ? coAppNetBusinessIncome : 0)) - ((monthlyHouseholdExpensesAmount !== '' && Number(monthlyHouseholdExpensesAmount) > 0) ? Number(monthlyHouseholdExpensesAmount) : (householdExpenses || 0)) - existingEmis) * 12,
+      netDisposalIncomeMonthly: (netBusinessIncome - (householdExpenses || 0) - existingEmis),
+      netDisposalIncomeYearly: (netBusinessIncome - (householdExpenses || 0) - existingEmis) * 12,
 
       dscrRatio: dscrRatio,
       foirPct: foirPct,
@@ -5139,9 +5140,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   onChange={(e) => {
                     const val = e.target.value === '' ? '' : Number(e.target.value);
                     setMonthlyHouseholdExpensesAmount(val);
-                    if (val !== '') {
-                      setHouseholdExpenses(Number(val));
-                    }
                   }}
                   className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="Amount / month"

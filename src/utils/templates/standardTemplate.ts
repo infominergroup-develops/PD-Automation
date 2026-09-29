@@ -103,8 +103,9 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const existEmiM = data.existingEmiMonthly ?? 0;
   const existEmiY = data.existingEmiYearly ?? (existEmiM * 12);
 
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
+  const hhExpM = Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 0;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
+  const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || 0;
 
   const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
@@ -623,7 +624,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Monthly Household Expenses</td>
-      <td>₹${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
+      <td>₹${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
       <td class="bold">Electricity Connection Details</td>
       <td>${data.residenceElectricityDetails || 'Not Provided'}</td>
     </tr>
@@ -1806,7 +1807,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
           `).join('')}
     <tr>
       <td colspan="2" class="bold">Monthly Household Expenses</td>
-      <td colspan="5">Rs. ${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
+      <td colspan="5">Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>

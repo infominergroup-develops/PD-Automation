@@ -115,9 +115,10 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
+  const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
+  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || 0;
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
   
   const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0 ? (data as any).prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0 ? (data as any).prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -329,7 +330,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     `).join('')}
     <tr>
       <td colspan="2" class="bold">Monthly Household Expenses</td>
-      <td colspan="5">Rs. ${Number(hhExpM).toLocaleString('en-IN')}/- Per Month</td>
+      <td colspan="5">Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
