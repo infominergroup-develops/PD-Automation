@@ -669,7 +669,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     <tr class="bold text-center">
       <td class="text-left">Comfortable Monthly EMI</td>
       <td>Comfortable Monthly EMI Post all expenses (Business and Household)</td>
-      <td colspan="2">Approx - ${Number(netDisposalM).toLocaleString('en-IN')}/- per month</td>
+      <td colspan="2">${data.comfortableEmiNotes?.trim() || 'As per Ambit Capital'}</td>
     </tr>
     <tr>
       <td colspan="4">
