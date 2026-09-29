@@ -8,7 +8,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   const appNo = data.applicationNumber || 'Not Provided';
-  const caseStatus = data.statusOfCase || 'Not Provided';
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended';
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
@@ -511,10 +511,10 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, i: number) => `
     <tr>
-      <td class="bold">Co-applicant ${i + 1} Name with relation</td>
-      <td>${c.name} (${c.relation})</td>
+      <td class="bold">Co-applicant ${data.coApplicants!.length > 1 ? `${i + 1} ` : ''}Name with relation</td>
+      <td>${c.name || 'Not Provided'}${c.relation ? ` (${c.relation})` : ''}</td>
       <td class="bold">Contact Number</td>
-      <td>${c.mobileNumber || 'Not Provided'}</td>
+      <td>${c.mobileNumber || c.phone || 'Not Provided'}</td>
     </tr>
     `).join('') : `
     <tr>
@@ -535,8 +535,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td>${data.loanType || 'Not Provided'}</td>
     </tr>
     <tr>
-      <td class="bold">Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || 'Not Provided'}</td>
+      <td class="bold">Purpose of Loan (as per applicant)</td>
+      <td colspan="3">${data.loanPurpose || (data as any).endUseOfLoan || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the residence</td>
@@ -969,7 +969,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Business Status</td>
-      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || 'Not Provided'}</td>
+      <td colspan="2" class="bold" style="color: #065f46;">${data.businessStatus || data.statusOfCase || 'Recommended'}</td>
     </tr>
   </table>
 
@@ -1369,7 +1369,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const reportDate = data.reportDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const visitDate = data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
   const appNo = data.applicationNumber || 'Not Provided';
-  const caseStatus = data.statusOfCase || 'Not Provided';
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended';
 
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [];
 
@@ -1685,10 +1685,25 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>Business firm name</td>
       <td colspan="3">${data.firmName || 'Not Provided'}</td>
     </tr>
+    ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, idx: number) => `
+    <tr>
+      <td>Co-applicant ${data.coApplicants!.length > 1 ? `${idx + 1} ` : ''}Name with relation</td>
+      <td colspan="3">${c.name || 'Not Provided'}${c.relation ? ` (${c.relation})` : ''}</td>
+    </tr>
+    <tr>
+      <td>Contact Number</td>
+      <td colspan="3">${c.mobileNumber || c.phone || 'Not Provided'}</td>
+    </tr>
+    `).join('') : `
     <tr>
       <td>Co-applicant Name with relation</td>
-      <td colspan="3">${((data.coApplicants && data.coApplicants[0]) ? data.coApplicants[0].name : "Spouse") || 'Not Provided'}</td>
+      <td colspan="3">Not Provided</td>
     </tr>
+    <tr>
+      <td>Contact Number</td>
+      <td colspan="3">Not Provided</td>
+    </tr>
+    `}
     <tr>
       <td>Female candidate is on loan or not if no please collect details</td>
       <td colspan="3">${data.femaleCandidateDetails || 'Not Provided'}</td>
@@ -1702,8 +1717,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td colspan="3">${data.loanType || 'Not Provided'}</td>
     </tr>
     <tr>
-      <td>Solar Purpose & Usage Confirmation (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || 'Not Provided'}</td>
+      <td>Purpose of Loan (as per applicant)</td>
+      <td colspan="3">${data.loanPurpose || (data as any).endUseOfLoan || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>
@@ -2056,7 +2071,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
-      <td colspan="5">${data.businessStatus || 'Not Provided'}</td>
+      <td colspan="5">${data.businessStatus || data.statusOfCase || 'Recommended'}</td>
     </tr>
   </table>
 

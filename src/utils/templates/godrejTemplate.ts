@@ -5,7 +5,7 @@ import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   const appNo = data.applicationNumber || '';
   const reportDate = data.visitDate || '';
-  const caseStatus = data.statusOfCase || 'Positive';
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
 
   // Helper arrays for iteration
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: '', relation: '', period: '', area: '' }];

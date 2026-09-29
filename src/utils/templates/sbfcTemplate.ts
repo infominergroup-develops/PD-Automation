@@ -5,7 +5,7 @@ import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const appNo = data.applicationNumber || 'Not Provided';
   const reportDate = data.visitDate || '-';
-  const caseStatus = data.statusOfCase || 'Positive';
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
   
   let photosHtml = '';
   const photos = (data as any).photos || [];
@@ -174,7 +174,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td colspan="2">Sub: AIP Report of ${data.applicantName || '-'}</td>
       <td>Case Status</td>
-      <td>${data.statusOfCase || 'Negative / Positive'}</td>
+      <td>${data.statusOfCase || data.businessStatus || 'Negative / Positive'}</td>
     </tr>
     <tr><td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td></tr>
     
@@ -474,7 +474,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Case Status</td>
-      <td class="bold">${data.statusOfCase || 'Positive'}</td>
+      <td class="bold">${data.statusOfCase || data.businessStatus || 'Positive'}</td>
     </tr>
     <tr>
       <td class="bold">Reported By</td>

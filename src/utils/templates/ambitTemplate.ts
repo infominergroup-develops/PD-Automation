@@ -7,7 +7,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
   const reportDate = (data as any).visitDate || '-';
   const visitDate = (data as any).visitDate || '-';
   const initiationDate = (data as any).caseInitiationDate || '-';
-  const caseStatus = (data as any).statusOfCase || 'Recommended';
+  const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended';
   
   let photosHtml = '';
   const photos = (data as any).photos || [];
@@ -208,6 +208,16 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
       <td>Business firm name</td>
       <td colspan="3">${(data as any).firmName || 'M/s'}</td>
     </tr>
+    ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, idx: number) => `
+    <tr>
+      <td>Co-applicant ${data.coApplicants!.length > 1 ? `${idx + 1} ` : ''}Name with relation</td>
+      <td colspan="3">${c.name || '-'}${c.relation ? ` ( ${c.relation} )` : ''}</td>
+    </tr>
+    <tr>
+      <td>Contact Number</td>
+      <td colspan="3">${c.mobileNumber || c.phone || '0'}</td>
+    </tr>
+    `).join('') : `
     <tr>
       <td>Co-applicant Name with relation</td>
       <td colspan="3">${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
@@ -216,9 +226,10 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
       <td>Contact Number</td>
       <td colspan="3">${(data as any).coApplicantPhone || '0'}</td>
     </tr>
+    `}
     <tr>
       <td>Loan Amount (as mention in application form)</td>
-      <td colspan="3">Rs. ${(data as any).appliedAmount ? Number((data as any).appliedAmount).toLocaleString('en-IN') : '0'} Lakh</td>
+      <td colspan="3">${(data.appliedAmount || data.loanAmount) ? `Rs. ${Number(data.appliedAmount || data.loanAmount).toLocaleString('en-IN')}/-` : 'Not provided'}</td>
     </tr>
     <tr>
       <td>Type of Loan (as mention in application form)</td>
@@ -226,7 +237,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${(data as any).endUseOfLoan || '-'}</td>
+      <td colspan="3">${(data as any).loanPurpose || (data as any).endUseOfLoan || (data as any).purpose || '-'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>
@@ -238,7 +249,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Address of the collateral property</td>
-      <td colspan="3">${(data as any).propertyAddress || '-'}</td>
+      <td colspan="3">${(data as any).collateralAddress || (data as any).propertyAddress || '-'}</td>
     </tr>
     <tr>
       <td>Met person during visit time.</td>
@@ -385,23 +396,23 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td style="width: 25%;">Collateral Address</td>
-      <td style="width: 75%;">${(data as any).propertyAddress || '-'}</td>
+      <td style="width: 75%;">${(data as any).collateralAddress || (data as any).propertyAddress || '-'}</td>
     </tr>
     <tr>
       <td>Property Type</td>
-      <td>${(data as any).propertyType || 'The property type is residential'}</td>
+      <td>${(data as any).collateralPropertyType || (data as any).propertyType || 'The property type is residential'}</td>
     </tr>
     <tr>
       <td>Approx. Property Area</td>
-      <td>${(data as any).propertyArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)'}</td>
+      <td>${(data as any).collateralPropertyArea || (data as any).propertyArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)'}</td>
     </tr>
     <tr>
       <td>Property Usage</td>
-      <td>${(data as any).propertyUsage || 'This property is used for residential purposes.'}</td>
+      <td>${(data as any).collateralPropertyUsage || (data as any).propertyUsage || 'This property is used for residential purposes.'}</td>
     </tr>
     <tr>
       <td>Approx Property Valuation</td>
-      <td>${(data as any).propertyValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
+      <td>${(data as any).collateralValuation || (data as any).propertyValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
     </tr>
   </table>
 

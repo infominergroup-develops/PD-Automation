@@ -140,12 +140,16 @@ export interface PDReportPrintData {
   // Applicant & Co-applicant Profile
   applicantName: string;
   applicantPhone?: string;
+  coApplicantName?: string;
+  coApplicantRelation?: string;
+  coApplicantPhone?: string;
   coApplicants?: any[];
   femaleCandidateDetails?: string;
   firmName?: string;
   loanAmount?: number | string;
   loanType?: string;
   loanPurpose?: string;
+  endUseOfLoan?: string;
   residenceAddress?: string;
   tataCapitalDistance?: string;
   additionalAddresses?: string[];

@@ -1014,8 +1014,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [documentsSeen, setDocumentsSeen] = useState<string[]>(['PAN Card', 'Aadhaar Card']);
   const [otherDocumentsSeen, setOtherDocumentsSeen] = useState('');
   const [otherIdentityProof, setOtherIdentityProof] = useState('');
-  const [executiveName, setExecutiveName] = useState(''); // Assuming logic handles current user
+  const [executiveName, setExecutiveName] = useState('');
   const [solarPurposeGeneratedText, setSolarPurposeGeneratedText] = useState('');
+  const [loanPurpose, setLoanPurpose] = useState('');
 
   // NEW STATES FOR VERIFICATION TAB
   const [businessAgeYears, setBusinessAgeYears] = useState<number | ''>('');
@@ -1118,6 +1119,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [businessNeighbourName, setBusinessNeighbourName] = useState('');
   const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState('Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
   const [businessStatus, setBusinessStatus] = useState('Recommended');
+
+  const handleStatusChange = (val: string) => {
+    setStatusOfCase(val);
+    setBusinessStatus(val);
+  };
+
   const [hasAdditionalBusiness, setHasAdditionalBusiness] = useState(false);
   const [additionalBusinessAddress, setAdditionalBusinessAddress] = useState('');
   const [additionalBusinessIncomeAssessment, setAdditionalBusinessIncomeAssessment] = useState('');
@@ -1302,8 +1309,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       otherPowerSource: '',
       monthlyEnergyExpense: '',
       solarPurposes: [],
-      otherSolarPurpose: '',
       solarPurposeGeneratedText: '',
+      loanPurpose: '',
       businessAddress: '',
       additionalAddresses: [],
       personsMet: [],
@@ -1597,7 +1604,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
     }
-    setAppliedAmount(app.appliedAmount !== undefined ? app.appliedAmount : 0);
+    setAppliedAmount(app.appliedAmount !== undefined ? app.appliedAmount : (app.loanAmount !== undefined ? app.loanAmount : 0));
     setTenureMonths(app.tenureMonths !== undefined ? app.tenureMonths : 12);
     setInterestRatePct(app.interestRatePct !== undefined ? app.interestRatePct : 12);
     setStatedMonthlySales(app.statedMonthlySales !== undefined ? app.statedMonthlySales : 0);
@@ -1658,9 +1665,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setPowerSource(app.powerSource || 'Electricity');
     setOtherPowerSource(app.otherPowerSource || '');
     setMonthlyEnergyExpense(app.monthlyEnergyExpense !== undefined ? app.monthlyEnergyExpense : '');
-    setSolarPurposes(app.solarPurposes || []);
     setOtherSolarPurpose(app.otherSolarPurpose || '');
     setSolarPurposeGeneratedText(app.solarPurposeGeneratedText || '');
+    setLoanPurpose(app.loanPurpose || app.endUseOfLoan || app.solarPurposeGeneratedText || '');
 
     setBusinessAddress(app.businessAddress || '');
     setAdditionalAddresses(app.additionalAddresses || []);
@@ -1748,8 +1755,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setProminentCustomers(app.prominentCustomers && app.prominentCustomers.length > 0 ? app.prominentCustomers : [{ id: 'c1', name: '', phone: '', feedback: '' }]);
     setProminentSuppliers(app.prominentSuppliers && app.prominentSuppliers.length > 0 ? app.prominentSuppliers : [{ id: 's1', name: '', phone: '', feedback: '' }]);
-    setHasCollateral(!!app.hasCollateral);
-    setCollateralAddress(app.collateralAddress || '');
+    setHasCollateral(app.hasCollateral !== undefined ? !!app.hasCollateral : !!(app.collateralAddress || app.propertyAddress));
+    setCollateralAddress(app.collateralAddress || app.propertyAddress || '');
     setCollateralPropertyType(app.collateralPropertyType || 'Residential');
     setCollateralPropertyArea(app.collateralPropertyArea || '');
     setCollateralPropertyUsage(app.collateralPropertyUsage || '');
@@ -1761,8 +1768,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessLongitudeVerified(!!app.businessLongitudeVerified);
     setBusinessLongitudeRemarks(app.businessLongitudeRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.');
     setBusinessNeighbourName(app.businessNeighbourName || '');
-    setBusinessNeighbourFeedback(app.businessNeighbourFeedback || 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
-    setBusinessStatus(app.businessStatus || 'Recommended');
+    const initialStatus = app.statusOfCase || app.businessStatus || 'Recommended';
+    setBusinessStatus(initialStatus);
+    setStatusOfCase(initialStatus);
+
     setHasAdditionalBusiness(!!app.hasAdditionalBusiness);
     setAdditionalBusinessAddress(app.additionalBusinessAddress || '');
     setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
@@ -1795,7 +1804,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAgriculturalIncomeText(app.agriculturalIncomeText || '');
     setSolarSavingText(app.solarSavingText || '');
     setProjectedIncomeText(app.projectedIncomeText || '');
-    setStatusOfCase(app.statusOfCase || 'Recommended');
+
 
     setActiveAppNumber(app.applicationNumber || '');
     setActiveAppId(app._id || null);
@@ -1835,7 +1844,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     photos, incomeLines, expenseLines, productsList,
     caseInitiationDate, visitDate, reportDate, coApplicants,
     hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
-    powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText,
+    powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText, loanPurpose,
     businessAddress,
     additionalAddresses,
     personsMet, personsMetOtherName, personsMetOtherRelation, identityProof, documentsSeen, otherDocumentsSeen, otherIdentityProof, executiveName, tataCapitalDistance,
@@ -2364,7 +2373,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       },
       clientBankName: selectedClient?.name || 'Moneyboxx Finance Limited',
       applicationNumber: activeAppNumber,
-      statusOfCase: statusOfCase,
+      statusOfCase: statusOfCase || businessStatus || 'Recommended',
       caseInitiationDate,
       visitDate,
       reportDate,
@@ -2378,9 +2387,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       yearsInBusiness: yearsInBusiness || 0,
       shopOwnership: shopOwnership || 'RENTED',
       loanAmount: appliedAmount || 0,
-      appliedAmount: appliedAmount || 0,
       loanType: loanType === 'Other' ? (otherLoanType || 'Not provided') : loanType,
-      loanPurpose: solarPurposeGeneratedText || 'Not provided',
+      loanPurpose: loanPurpose || solarPurposeGeneratedText || 'Not provided',
+      endUseOfLoan: loanPurpose || solarPurposeGeneratedText || 'Not provided',
+      purpose: loanPurpose || solarPurposeGeneratedText || 'Not provided',
       residenceAddress: finalResidenceAddress,
       businessAddress: finalBusinessAddress,
       additionalAddresses,
@@ -2457,18 +2467,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
       currentObligationSummary: currentObligation || 'Not provided',
       hasCollateral,
-      collateralAddress,
-      collateralPropertyType,
-      collateralPropertyArea,
-      collateralPropertyUsage,
-      collateralValuation,
-      collateralRemarks,
+      collateralAddress: collateralAddress || 'Not provided',
+      propertyAddress: collateralAddress || 'Not provided',
+      collateralPropertyType: collateralPropertyType || 'Residential',
+      collateralPropertyArea: collateralPropertyArea || '',
+      collateralPropertyUsage: collateralPropertyUsage || '',
+      collateralValuation: collateralValuation || '',
+      collateralRemarks: collateralRemarks || '',
       businessGpsCoords: formattedGps,
       businessLocationRemarks: businessLongitudeRemarks || 'Not provided',
       businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${electricitySupplierName || 'Not provided'}, Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
       businessNeighborName: businessNeighbourName || 'Not provided',
       businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
-      businessStatus: businessStatus || 'Not provided',
+      businessStatus: businessStatus || statusOfCase || 'Recommended',
       constitution,
       monthlyRent,
       shopAreaSqFt,
@@ -2507,9 +2518,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         : (salariesExpense + rentEffective + utilitiesExpense)) * 12,
 
       // Co-Applicant Financial Assessment
-      hasCoApplicantIncomeAssessment: hasCoAppInBusiness,
       coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
       coApplicantRelation: coAppBusinessPerson ? (coAppBusinessPerson.relation === 'Other' ? coAppBusinessPerson.otherRelation : coAppBusinessPerson.relation) : (coApplicants[0]?.relation || 'Co-applicant'),
+      coApplicantPhone: coAppBusinessPerson ? (coAppBusinessPerson.mobileNumber || (coAppBusinessPerson as any).phone || '') : (coApplicants[0]?.mobileNumber || (coApplicants[0] as any)?.phone || ''),
       coApplicantItemizedSales: coAppIncomeLines
         .filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '')
         .map(l => ({
@@ -3223,8 +3234,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Business Status (Recommendation)</label>
                 <select
-                  value={statusOfCase}
-                  onChange={(e) => setStatusOfCase(e.target.value)}
+                  value={statusOfCase || businessStatus || 'Recommended'}
+                  onChange={(e) => handleStatusChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 >
                   <option value="Recommended">Recommended</option>
@@ -3668,7 +3679,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
-                <select value={statusOfCase} onChange={(e) => setStatusOfCase(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                <select value={statusOfCase || businessStatus || 'Recommended'} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   <option value="Recommended">Recommended</option>
                   <option value="Not Recommended">Not Recommended</option>
                   <option value="Recommended subject to demerits">Recommended subject to demerits</option>
@@ -3896,6 +3907,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
 
+            {/* Purpose of Loan (as per applicant) */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Purpose of Loan (as per applicant)</label>
+              <textarea
+                value={loanPurpose}
+                onChange={(e) => setLoanPurpose(e.target.value)}
+                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
+                placeholder="e.g. Business Expansion / Working Capital Requirement / Solar plant installation"
+                rows={2}
+              />
+            </div>
+
             {/* 11. Solar Purpose & Usage */}
             {loanType === 'Commercial Solar Loan' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
@@ -3950,7 +3973,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       const finalSource = powerSource === 'Other' ? otherPowerSource : powerSource;
                       const finalPurposes = solarPurposes.map(p => p === 'Other' ? otherSolarPurpose : p).filter(Boolean);
                       const purposeText = finalPurposes.length > 1 ? finalPurposes.slice(0, -1).join(', ') + ' and ' + finalPurposes.slice(-1) : finalPurposes[0] || '';
-                      setSolarPurposeGeneratedText(`The applicant currently operates the business using ${finalSource.toLowerCase()}, which incurs an approximate monthly expense of ₹${monthlyEnergyExpense || 0}. Therefore, the applicant is planning to install a solar setup to ${purposeText.toLowerCase()}.`);
+                      const genText = `The applicant currently operates the business using ${finalSource.toLowerCase()}, which incurs an approximate monthly expense of ₹${monthlyEnergyExpense || 0}. Therefore, the applicant is planning to install a solar setup to ${purposeText.toLowerCase()}.`;
+                      setSolarPurposeGeneratedText(genText);
+                      if (!loanPurpose) {
+                        setLoanPurpose(genText);
+                      }
                     }} className="text-[10px] bg-orange-100 text-orange-700 px-2 py-1 rounded font-bold hover:bg-orange-200">Auto-Generate</button>
                   </div>
                   <textarea value={solarPurposeGeneratedText} onChange={(e) => setSolarPurposeGeneratedText(e.target.value)} className="w-full text-xs font-semibold text-slate-700 border-none outline-none resize-none bg-transparent" rows={3} placeholder="Click Auto-Generate to preview..." />
@@ -5549,10 +5576,23 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* G. Business Status */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
-              <label className="block text-xs font-bold text-slate-700">Business Status</label>
+              <label className="block text-xs font-bold text-slate-700">Business Status (Recommendation)</label>
               <div className="flex flex-wrap gap-2">
-                {['Recommended', 'Not Recommended'].map(opt => (
-                  <button key={opt} type="button" onClick={() => setBusinessStatus(opt)} className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${businessStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600 shadow-md' : 'bg-red-600 text-white border-red-600 shadow-md') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
+                {['Recommended', 'Not Recommended', 'Recommended subject to demerits'].map(opt => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => handleStatusChange(opt)}
+                    className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${
+                      (businessStatus === opt || statusOfCase === opt)
+                        ? (opt === 'Recommended'
+                            ? 'bg-green-600 text-white border-green-600 shadow-md'
+                            : opt === 'Not Recommended'
+                              ? 'bg-red-600 text-white border-red-600 shadow-md'
+                              : 'bg-amber-600 text-white border-amber-600 shadow-md')
+                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
                     {opt}
                   </button>
                 ))}
