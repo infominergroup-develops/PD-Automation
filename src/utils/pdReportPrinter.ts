@@ -218,6 +218,7 @@ export interface PDReportPrintData {
 
   // Co-applicant Business Visit
   hasCoApplicantBusiness?: boolean;
+  hasCoApplicantIncomeAssessment?: boolean;
   coApplicantBusinessName?: string;
   coApplicantBriefBusinessProfile?: string;
   coApplicantBusinessVintage?: string;

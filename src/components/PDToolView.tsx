@@ -2502,6 +2502,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
       
       hasCoApplicantBusiness: hasCoAppInBusiness,
+      hasCoApplicantIncomeAssessment: hasCoAppInBusiness,
       coApplicantBusinessName: coApplicantBusinessName || 'Not provided',
       coApplicantBriefBusinessProfile: coApplicantBriefBusinessProfile || 'Not provided',
       coApplicantBusinessVintage: coApplicantBusinessVintage || 'Not provided',
