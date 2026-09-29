@@ -196,6 +196,7 @@ export interface PDReportPrintData {
   }>;
   monthlyHouseholdExpenses?: number;
   monthlyHouseholdExpensesAmount?: number | string;
+  householdExpenses?: number;
   residenceElectricityDetails?: string;
   residenceNeighborName?: string;
   residenceNeighborFeedback?: string;
