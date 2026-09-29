@@ -115,9 +115,8 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -346,7 +345,35 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>₹${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
 
-    ${hasCoAppAssessment ? `
+    <tr>
+      <td colspan="2">Less: Household Expenses</td>
+      <td>${hhExpM}</td>
+      <td>${hhExpM * 12}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Add: Other Source of Income</td>
+      <td>0</td>
+      <td>0</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="bold">Net Disposal Income</td>
+      <td class="bold">${netDisposalM}</td>
+      <td class="bold">${netDisposalY}</td>
+    </tr>
+    <tr>
+      <td colspan="2">Annual Turnover & Margin</td>
+      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round(totalSalesY/100000)} lakh and net profit margin ${Math.round(((netProfM)/(totalSalesM || 1))*100)}%.</td>
+    </tr>
+    <tr>
+      <td colspan="2">Affordable EMI as per customer requirement</td>
+      <td colspan="2">As per branch.</td>
+    </tr>
+  </table>
+
+  ${hasCoAppAssessment ? `
+  <div class="page-break"></div>
+
+  <table class="report-table">
     <tr><td colspan="4" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
     <tr class="sec-head">
       <td colspan="2">Particulars (Co-applicant)</td>
@@ -382,37 +409,8 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
       <td>₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr style="font-weight: bold; background-color: #fde68a; color: #78350f;">
-      <td colspan="2">Total Combined Household Net Business Profit</td>
-      <td>₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
-    </tr>
-    ` : ''}
-
-    <tr>
-      <td colspan="2">Less: Household Expenses</td>
-      <td>${hhExpM}</td>
-      <td>${hhExpM * 12}</td>
-    </tr>
-    <tr>
-      <td colspan="2">Add: Other Source of Income</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <td colspan="2" class="bold">Net Disposal Income</td>
-      <td class="bold">${netDisposalM}</td>
-      <td class="bold">${netDisposalY}</td>
-    </tr>
-    <tr>
-      <td colspan="2">Annual Turnover & Margin</td>
-      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td>
-    </tr>
-    <tr>
-      <td colspan="2">Affordable EMI as per customer requirement</td>
-      <td colspan="2">As per branch.</td>
-    </tr>
   </table>
+  ` : ''}
 
   <div class="page-break"></div>
 

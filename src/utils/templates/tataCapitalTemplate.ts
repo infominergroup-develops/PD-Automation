@@ -113,9 +113,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0 ? data.prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -389,7 +388,12 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td></td>
     </tr>
 
-    ${hasCoAppAssessment ? `
+  </table>
+
+  ${hasCoAppAssessment ? `
+  <div class="page-break"></div>
+
+  <table class="report-table">
     <tr><td colspan="3" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
     <tr>
       <td>Co-applicant Total Sales/Receipts (A)</td>
@@ -427,20 +431,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       </td>
       <td></td>
     </tr>
-    <tr style="background-color: #fde68a;">
-      <td class="sec-head" style="text-align:left; color: #78350f;">Total Combined Household Net Business Profit</td>
-      <td style="color: #78350f; font-weight: bold;">
-        <table style="width:100%; border-collapse:collapse; height:100%;">
-          <tr>
-            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
-            <td style="width:50%; text-align:center; border:none;">₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
-          </tr>
-        </table>
-      </td>
-      <td></td>
-    </tr>
-    ` : ''}
   </table>
+  ` : ''}
 
   <div class="page-break"></div>
 

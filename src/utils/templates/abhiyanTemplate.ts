@@ -459,6 +459,52 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
+  ${(data as any).hasCoApplicantBusiness ? `
+  <div class="page-break"></div>
+  <table>
+    <tr>
+      <td colspan="2" class="sec-head">Business visit of ${(data as any).coApplicantBusinessName ? (data as any).coApplicantBusinessName : ((data as any).coApplicantName ? (data as any).coApplicantName : 'Co-Applicant')}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="sec-head">Brief Profile of Business</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="height: 200px; vertical-align: top;">
+        ${(data as any).coApplicantBriefBusinessProfile && (data as any).coApplicantBriefBusinessProfile !== 'Not provided' ? (data as any).coApplicantBriefBusinessProfile.replace(/\\n/g, '<br/>') + '<br/><br/>' : ''}
+        (All the above details are confirm verbal by co-applicant)
+      </td>
+    </tr>
+    <tr>
+      <td style="width: 25%;">Vintage of the business</td>
+      <td style="width: 75%;">${(data as any).coApplicantBusinessVintage || '-'}</td>
+    </tr>
+    <tr>
+      <td>Number of staffs</td>
+      <td>${(data as any).coApplicantStaffCount || '-'}</td>
+    </tr>
+    <tr>
+      <td>Is office premise on rented /owned</td>
+      <td>${(data as any).coApplicantBusinessPremiseOwnership || '-'}</td>
+    </tr>
+    <tr>
+      <td>Details of Office / Factory infrastructure ( Assets )</td>
+      <td>${(data as any).coApplicantFactoryInfrastructure || '-'}</td>
+    </tr>
+    <tr>
+      <td>Stock details with estimated value</td>
+      <td>${(data as any).coApplicantStockDetailsValue || '-'}</td>
+    </tr>
+    <tr>
+      <td>Equipments/ Small Tools/ Machinery Used for Business</td>
+      <td>${(data as any).coApplicantFixedAndCurrentAssetAnalysis || '-'}</td>
+    </tr>
+    <tr>
+      <td>Other source income</td>
+      <td>${(data as any).coApplicantOtherSourceIncomeDetails || 'No other regular source of income was confirmed during verification.'}</td>
+    </tr>
+  </table>
+  ` : ''}
+
   <div class="page-break"></div>
   <table>
     <tr>

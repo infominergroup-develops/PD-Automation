@@ -56,7 +56,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = totalSalesY - totalExpY;
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment || data.hasCoApplicantBusiness);
   const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -103,8 +103,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
   const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = combinedNetProfY - existEmiY - (hhExpM * 12);
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
 
   return `
 <!DOCTYPE html>
@@ -514,7 +514,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   <div class="page-break"></div>
 
-  <!-- Page 3: Business Visit Report -->
+  <!-- Page 3: Business Visit Report of Applicant -->
   <table>
     <tr>
       <td colspan="2" class="sec-title">Business visit of ${data.applicantName}</td>
@@ -527,77 +527,6 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
         ${data.briefBusinessProfile || 'Not Provided'}
       </td>
     </tr>
-
-    ${data.hasCoApplicantBusiness ? `
-    <tr>
-      <td colspan="2" class="sec-title">Business visit of co-applicant ${data.coApplicantBusinessName ? '(' + data.coApplicantBusinessName + ')' : ''}</td>
-    </tr>
-    <tr>
-      <td colspan="2" class="sec-title">Brief Profile of Business</td>
-    </tr>
-    <tr>
-      <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
-        ${data.coApplicantBriefBusinessProfile || 'Not Provided'}
-      </td>
-    </tr>
-    <tr>
-      <td style="width:30%;">Vintage of the business</td>
-      <td>${data.coApplicantBusinessVintage || 'Not Provided'}</td>
-    </tr>
-    ${(data.coApplicantPreviousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
-    <tr>
-      <td>Previous Occupation</td>
-      <td>${data.coApplicantPreviousOccupation}</td>
-    </tr>
-    ` : ''}
-    ${(data.coApplicantReasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
-    <tr>
-      <td>Reason to leave the last occupation</td>
-      <td>${data.coApplicantReasonToLeave}</td>
-    </tr>
-    ` : ''}
-    <tr>
-      <td>Number of staffs</td>
-      <td>${data.coApplicantStaffCount || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Is office premise on rented /owned</td>
-      <td>${data.coApplicantBusinessPremiseOwnership || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${data.coApplicantFactoryInfrastructure || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Stock details with estimated value</td>
-      <td>${data.coApplicantStockDetailsValue || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Fixed & Current Asset Analysis</td>
-      <td>${data.coApplicantFixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Asset Creation Through Business</td>
-      <td>${data.coApplicantAssetCreationThroughBusiness || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Business Investment</td>
-      <td>${data.coApplicantInitialBusinessInvestment || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Agricultural Income Details</td>
-      <td>${data.coApplicantAgriculturalIncomeDetails || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Other source income</td>
-      <td>${data.coApplicantOtherSourceIncomeDetails || 'Not Provided'}</td>
-    </tr>
-    <tr>
-      <td>Solar saving analysis</td>
-      <td>${data.coApplicantOperationalSavingAnalysis || 'Not Provided'}</td>
-    </tr>
-    ` : ''}
-
     <tr>
       <td style="width:30%;">Vintage of the business</td>
       <td>${data.businessVintage || 'Not Provided'}</td>
@@ -685,6 +614,81 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>${data.operationalSavingAnalysis || 'Not Provided'}</td>
     </tr>
   </table>
+
+  ${data.hasCoApplicantBusiness ? `
+  <div class="page-break"></div>
+
+  <!-- Business Visit Report of Co-Applicant (Separate Page) -->
+  <table>
+    <tr>
+      <td colspan="2" class="sec-title">Business visit of co-applicant ${data.coApplicantBusinessName ? '(' + data.coApplicantBusinessName + ')' : (data.coApplicantName ? '(' + data.coApplicantName + ')' : '')}</td>
+    </tr>
+    <tr>
+      <td colspan="2" class="sec-title">Brief Profile of Business</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="text-align: justify; line-height: 1.4; padding: 8px;">
+        ${data.coApplicantBriefBusinessProfile || 'Not Provided'}
+      </td>
+    </tr>
+    <tr>
+      <td style="width:30%;">Vintage of the business</td>
+      <td>${data.coApplicantBusinessVintage || 'Not Provided'}</td>
+    </tr>
+    ${(data.coApplicantPreviousOccupation && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Previous Occupation</td>
+      <td>${data.coApplicantPreviousOccupation}</td>
+    </tr>
+    ` : ''}
+    ${(data.coApplicantReasonToLeave && data.yearsInBusiness !== undefined && data.yearsInBusiness < 10) ? `
+    <tr>
+      <td>Reason to leave the last occupation</td>
+      <td>${data.coApplicantReasonToLeave}</td>
+    </tr>
+    ` : ''}
+    <tr>
+      <td>Number of staffs</td>
+      <td>${data.coApplicantStaffCount || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Is office premise on rented /owned</td>
+      <td>${data.coApplicantBusinessPremiseOwnership || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Details of Office / Factory infrastructure ( Assets )</td>
+      <td>${data.coApplicantFactoryInfrastructure || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Stock details with estimated value</td>
+      <td>${data.coApplicantStockDetailsValue || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Fixed & Current Asset Analysis</td>
+      <td>${data.coApplicantFixedAndCurrentAssetAnalysis || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Asset Creation Through Business</td>
+      <td>${data.coApplicantAssetCreationThroughBusiness || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Business Investment</td>
+      <td>${data.coApplicantInitialBusinessInvestment || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Agricultural Income Details</td>
+      <td>${data.coApplicantAgriculturalIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Other source income</td>
+      <td>${data.coApplicantOtherSourceIncomeDetails || 'Not Provided'}</td>
+    </tr>
+    <tr>
+      <td>Solar saving analysis</td>
+      <td>${data.coApplicantOperationalSavingAnalysis || 'Not Provided'}</td>
+    </tr>
+  </table>
+  ` : ''}
 
   <div class="page-break"></div>
 
@@ -935,10 +939,38 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
 
-    ${hasCoAppAssessment ? `
-    <!-- Assessment of the monthly income of the co-applicant -->
+    <tr class="text-center">
+      <td class="text-left bold">Less: Existing EMI</td>
+      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
+      <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
+      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="text-center">
+      <td class="text-left bold">Less: Existing Household Expenses</td>
+      <td class="text-left">${data.householdExpensesNotes || 'Not Provided'}</td>
+      <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
+      <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="sec-title text-center">
+      <td class="text-left">Net Disposal Income</td>
+      <td>Net Income after all deductions ( Monthly/Yearly )</td>
+      <td>${Number(netDisposalM).toLocaleString('en-IN')}</td>
+      <td>${Number(netDisposalY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="text-center">
+      <td class="text-left bold">Comfortable Monthly EMI</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
+      <td colspan="2" class="bold">As per ${bankName} Limited</td>
+    </tr>
+  </table>
+
+  ${hasCoAppAssessment ? `
+  <div class="page-break"></div>
+
+  <!-- Co-Applicant Monthly Income Assessment (Separate Sheet) -->
+  <table>
     <tr>
-      <td colspan="4" class="sec-title" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td>
+      <td colspan="4" class="sec-title">Calculation of Monthly and Yearly Income Assessment (Co-Applicant: ${data.coApplicantName || 'Co-Applicant'})</td>
     </tr>
     <tr class="sec-title text-center">
       <td style="width:25%;">Particulars</td>
@@ -984,37 +1016,8 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
       <td>${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
       <td>${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="sec-title text-center" style="background-color: #fde68a;">
-      <td colspan="2" class="text-left bold" style="color: #78350f;">Total Combined Household Net Business Profit</td>
-      <td class="bold" style="color: #78350f;">${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
-      <td class="bold" style="color: #78350f;">${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
-    </tr>
-    ` : ''}
-
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
-      <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td class="text-left">${data.householdExpensesNotes || 'Not Provided'}</td>
-      <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="sec-title text-center">
-      <td class="text-left">Net Disposal Income</td>
-      <td>Net Income after all deductions ( Monthly/Yearly )</td>
-      <td>${Number(netDisposalM).toLocaleString('en-IN')}</td>
-      <td>${Number(netDisposalY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
-      <td colspan="2" class="bold">As per ${bankName} Limited</td>
-    </tr>
   </table>
+  ` : ''}
 
 
 

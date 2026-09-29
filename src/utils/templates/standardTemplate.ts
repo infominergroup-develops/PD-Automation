@@ -106,8 +106,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 0;
   const hhExpY = data.householdExpensesYearly ?? (hhExpM * 12);
 
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = combinedNetProfY - existEmiY - (hhExpM * 12);
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
 
   return `
 <!DOCTYPE html>
@@ -783,6 +783,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   </table>
 
   ${data.hasCoApplicantBusiness ? `
+  <div class="page-break"></div>
   <!-- SECTION 3B: CO-APPLICANT BUSINESS VISIT REPORT -->
   <table class="report-table" style="margin-top: 10px;">
     <tr>
@@ -851,6 +852,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
   ` : ''}
+
+  <div class="page-break"></div>
 
   <!-- SECTION 4: CUSTOMERS, SUPPLIERS, BANKING & LIABILITIES -->
   <table class="report-table" style="margin-top: 10px;">
@@ -1114,8 +1117,40 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="text-right">₹${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
 
-    ${hasCoAppAssessment ? `
-    <!-- Assessment of the monthly income of the co-applicant -->
+    <tr>
+      <td>Less: Existing EMI</td>
+      <td>${data.existingEmiNotes || 'No any existing obligation / Current active loans'}</td>
+      <td class="text-right">₹${Number(existEmiM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(existEmiY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr>
+      <td>Less: Existing Household Expenses</td>
+      <td>${data.householdExpensesNotes || 'Family monthly living, medical & education expenses'}</td>
+      <td class="text-right">₹${Number(hhExpM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(hhExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr style="font-weight: bold; background-color: #d1fae5; color: #065f46;">
+      <td colspan="2">Net Disposal Income (Net Income after all deductions)</td>
+      <td class="text-right">₹${Number(netDisposalM).toLocaleString('en-IN')}</td>
+      <td class="text-right">₹${Number(netDisposalY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr>
+      <td class="bold">Comfortable Monthly EMI</td>
+      <td colspan="2" class="bold">
+        Comfortable Monthly EMI Post all expenses (As per moneyboxx )
+      </td>
+      <td class="bold text-right">
+        As per ${bankName} (Approx ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')})
+      </td>
+    </tr>
+  </table>
+
+  ${hasCoAppAssessment ? `
+  <!-- PAGE BREAK FOR CO-APPLICANT CASH FLOW TABLE -->
+  <div class="page-break"></div>
+
+  <!-- CO-APPLICANT CASH FLOW & ASSESSMENT OF MONTHLY INCOME TABLE (SEPARATE SHEET) -->
+  <table class="report-table">
     <tr>
       <td colspan="4" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td>
     </tr>
@@ -1167,41 +1202,8 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       <td class="text-right">₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
       <td class="text-right">₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
     </tr>
-
-    <tr style="font-weight: bold; background-color: #fde68a; color: #78350f;">
-      <td colspan="2">Total Combined Household Net Business Profit</td>
-      <td class="text-right">₹${Number(combinedNetProfM).toLocaleString('en-IN')}</td>
-      <td class="text-right">₹${Number(combinedNetProfY).toLocaleString('en-IN')}</td>
-    </tr>
-    ` : ''}
-
-    <tr>
-      <td>Less: Existing EMI</td>
-      <td>${data.existingEmiNotes || 'No any existing obligation / Current active loans'}</td>
-      <td class="text-right">₹${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td class="text-right">₹${Number(existEmiY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr>
-      <td>Less: Existing Household Expenses</td>
-      <td>${data.householdExpensesNotes || 'Family monthly living, medical & education expenses'}</td>
-      <td class="text-right">₹${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td class="text-right">₹${Number(hhExpY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr style="font-weight: bold; background-color: #d1fae5; color: #065f46;">
-      <td colspan="2">Net Disposal Income (Net Income after all deductions)</td>
-      <td class="text-right">₹${Number(netDisposalM).toLocaleString('en-IN')}</td>
-      <td class="text-right">₹${Number(netDisposalY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr>
-      <td class="bold">Comfortable Monthly EMI</td>
-      <td colspan="2" class="bold">
-        Comfortable Monthly EMI Post all expenses (As per moneyboxx )
-      </td>
-      <td class="bold text-right">
-        As per ${bankName} (Approx ₹${Math.round(Number(data.appliedAmount || 0) * 0.05).toLocaleString('en-IN')})
-      </td>
-    </tr>
   </table>
+  ` : ''}
 
 
 
