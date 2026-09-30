@@ -193,7 +193,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     `).join('') : ''}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
     <tr><td colspan="2">Documents Seen</td><td colspan="2">${data.documentsSeen && data.documentsSeen.length > 0 ? data.documentsSeen.join(', ') : 'Not provided'}</td></tr>
-    <tr><td colspan="2">Loan Amount applied (as per applicant)</td><td colspan="2">${data.appliedAmount || '-'}</td></tr>
+    <tr><td colspan="2">Quotation Amount (as per applicant)</td><td colspan="2">${(data.appliedAmount || data.loanAmount || (data as any).quotationAmount) ? (String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || (data as any).quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).toLocaleString('en-IN')}/-`) : 'Not provided'}</td></tr>
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>

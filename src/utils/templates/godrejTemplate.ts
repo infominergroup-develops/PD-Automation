@@ -133,8 +133,8 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td colspan="3">${data.businessVintage || ''}</td>
     </tr>
     <tr>
-      <td class="bg-green">Loan Amount applied (as per applicant)</td>
-      <td>${data.appliedAmount || '-'}</td>
+      <td class="bg-green">Quotation Amount (as per applicant)</td>
+      <td>${(data.appliedAmount || data.loanAmount || (data as any).quotationAmount) ? (String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || (data as any).quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).toLocaleString('en-IN')}/-`) : '-'}</td>
       <td class="bg-green">Office Accessibility</td>
       <td colspan="3">${data.officeAccessibility || ''}</td>
     </tr>

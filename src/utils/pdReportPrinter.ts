@@ -185,6 +185,7 @@ export interface PDReportPrintData {
   solarPurposeUsage?: string;
   purpose?: string;
   appliedAmount?: number | string;
+  quotationAmount?: number | string;
   familyMembers?: Array<{
     name: string;
     age: number | string;

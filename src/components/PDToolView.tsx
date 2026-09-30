@@ -2456,6 +2456,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       firmName: firmName || 'Not provided',
       yearsInBusiness: yearsInBusiness || 0,
       shopOwnership: shopOwnership || 'RENTED',
+      appliedAmount: appliedAmount || 0,
+      quotationAmount: appliedAmount || 0,
       loanAmount: appliedAmount || 0,
       loanType: loanType === 'Other' ? (otherLoanType || 'Not provided') : loanType,
       loanPurpose: loanPurpose || solarPurposeGeneratedText || 'Not provided',
