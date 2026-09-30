@@ -4,9 +4,9 @@ import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
   const appNo = (data as any).applicationNumber || 'Not Provided';
-  const reportDate = (data as any).visitDate || '-';
-  const visitDate = (data as any).visitDate || '-';
-  const initiationDate = (data as any).caseInitiationDate || '-';
+  const reportDate = (data as any).reportDate || (data as any).visitDate || '-';
+  const visitDate = (data as any).visitDate || reportDate || '-';
+  const initiationDate = (data as any).caseInitiationDate || visitDate || '-';
   const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended';
   
   let photosHtml = '';
@@ -30,11 +30,11 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     `;
   }
 
-  const existEmiM = (data as any).existingEmiMonthly || 0;
-  const existEmiY = (data as any).existingEmiYearly || (existEmiM * 12);
-  const hasItemizedSales = Boolean((data as any).itemizedSales && (data as any).itemizedSales.length > 0 && (data as any).itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
+  const existEmiM = Number((data as any).existingEmiMonthly) || Number((data as any).existingEmis) || Number((data as any).existingEMI) || 0;
+  const existEmiY = Number((data as any).existingEmiYearly) || (existEmiM * 12);
+  const hasItemizedSales = Boolean((data as any).itemizedSales && (data as any).itemizedSales.length > 0 && (data as any).itemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
-    ? (data as any).itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? (data as any).itemizedSales!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: `${(data as any).firmName || 'Business'} Assessed Monthly Turnover`,
@@ -44,15 +44,15 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
         }
       ];
   const totalSalesM = hasItemizedSales
-    ? salesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    ? salesItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
     : (Number((data as any).totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
   const totalSalesY = hasItemizedSales
-    ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    ? salesItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number((data as any).totalSalesYearly) || totalSalesM * 12);
 
-  const hasItemizedExpenses = Boolean((data as any).itemizedExpenses && (data as any).itemizedExpenses.length > 0 && (data as any).itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
+  const hasItemizedExpenses = Boolean((data as any).itemizedExpenses && (data as any).itemizedExpenses.length > 0 && (data as any).itemizedExpenses.some((i: any) => (Number(i.monthly) || 0) > 0));
   const expenseItems = hasItemizedExpenses
-    ? (data as any).itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? (data as any).itemizedExpenses!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Operating Expenses & Direct Costs',
@@ -62,10 +62,10 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
         }
       ];
   const totalExpM = hasItemizedExpenses
-    ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    ? expenseItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
     : (Number((data as any).totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
   const totalExpY = hasItemizedExpenses
-    ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    ? expenseItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number((data as any).totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
@@ -80,7 +80,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     ((data as any).coApplicantBriefBusinessProfile && (data as any).coApplicantBriefBusinessProfile !== 'Not provided')
   );
   const coAppSalesItems = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? (data as any).coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? (data as any).coApplicantItemizedSales.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: `${(data as any).coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
@@ -91,14 +91,14 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
       ];
 
   const coAppTotalSalesM = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    ? coAppSalesItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
     : (Number((data as any).coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
   const coAppTotalSalesY = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    ? coAppSalesItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number((data as any).coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
 
   const coAppExpenseItems = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? (data as any).coApplicantItemizedExpenses.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? (data as any).coApplicantItemizedExpenses.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Co-applicant Operating Expenses',
@@ -109,10 +109,10 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
       ];
 
   const coAppTotalExpM = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
+    ? coAppExpenseItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
     : (Number((data as any).coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
   const coAppTotalExpY = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
+    ? coAppExpenseItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number((data as any).coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
@@ -121,14 +121,38 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
-  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || 0;
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
+  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || hhExpM;
   const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
   const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
-  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0 ? (data as any).prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
-  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0 ? (data as any).prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
-  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0 ? (data as any).bankingDetails : [{ bankName: 'Not shared', branchName: 'NA', accountNo: 'NA', limit: 'NA', remark: 'NA' }];
+  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0
+    ? (data as any).prominentCustomers.map((c: any) => ({
+        name: c.name || '-',
+        phone: c.phone || c.contactNo || c.mobile || '-',
+        remark: c.remark || c.feedback || 'Regular customer, positive feedback received.'
+      }))
+    : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
+
+  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0
+    ? (data as any).prominentSuppliers.map((s: any) => ({
+        name: s.name || '-',
+        phone: s.phone || s.contactNo || s.mobile || '-',
+        remark: s.remark || s.feedback || '-'
+      }))
+    : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
+
+  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0
+    ? (data as any).bankingDetails.map((b: any) => ({
+        bankName: b.bankName || '-',
+        branchName: b.branchName || '-',
+        accountType: b.accountType || b.accountTypes || 'Saving',
+        limit: b.limit || b.ccOdLimit || 'NA',
+        accountNo: b.accountNo || b.accountNumber || '-',
+        remark: b.remark || b.remarks || 'The account belongs to applicant'
+      }))
+    : [{ bankName: 'Not shared', branchName: 'NA', accountType: 'Saving', limit: 'NA', accountNo: 'NA', remark: 'NA' }];
+
   const crifAccounts = (data as any).parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
     ? crifAccounts.map((acc: any) => ({
@@ -392,7 +416,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Residence Status</td>
-      <td colspan="5">Recommended</td>
+      <td colspan="5">${(data as any).residenceStatus || caseStatus || 'Recommended'}</td>
     </tr>
   </table>
 
@@ -419,7 +443,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Approx Property Valuation</td>
-      <td>${(data as any).collateralValuation || (data as any).propertyValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
+      <td>${(data as any).collateralValuation || (data as any).collateralMarketValue || (data as any).propertyValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
     </tr>
   </table>
 
@@ -438,11 +462,11 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td style="width: 25%;">Vintage of the business</td>
-      <td style="width: 75%;">${(data as any).businessVintage || 'The applicant has been operating the business at the current address for the past 04 years.'}</td>
+      <td style="width: 75%;">${(data as any).businessVintage ? ((data as any).businessVintage.toLowerCase().includes('operating') || (data as any).businessVintage.toLowerCase().includes('year') ? (data as any).businessVintage : 'The applicant has been operating the business at the current address for the past ' + (data as any).businessVintage) : 'The applicant has been operating the business at the current address for the past 04 years.'}</td>
     </tr>
     <tr>
       <td>Number of staffs</td>
-      <td>${(data as any).numberOfStaff || 'He is self-employed and operates the business by himself.'}</td>
+      <td>${(data as any).numberOfStaff || ((data as any).staffCount ? ((data as any).staffCount === '0' || (data as any).staffCount === 0 ? 'He is self-employed and operates the business by himself.' : `${(data as any).staffCount} staff`) : 'He is self-employed and operates the business by himself.')}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
@@ -450,19 +474,19 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${(data as any).businessInfra || '-'}</td>
+      <td>${(data as any).businessInfra || (data as any).assetDetails || (data as any).officeInfrastructure || '-'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${(data as any).stockDetails || '-'}</td>
+      <td>${(data as any).stockDetails || (data as any).stockDetailsValue || '-'}</td>
     </tr>
     <tr>
       <td>Equipments/ Small Tools/ Machinery Used for Business</td>
-      <td>${(data as any).equipmentDetails || '-'}</td>
+      <td>${(data as any).equipmentDetails || (data as any).machineryDetails || (data as any).fixedAndCurrentAssetAnalysis || '-'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${(data as any).otherIncome || 'No other regular source of income was confirmed during verification.'}</td>
+      <td>${(data as any).otherIncome || (data as any).otherIncomeSource || (data as any).otherIncomeSourceDetails || 'No other regular source of income was confirmed during verification.'}</td>
     </tr>
   </table>
 
@@ -487,27 +511,27 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Number of staffs</td>
-      <td>${(data as any).coApplicantStaffCount || '-'}</td>
+      <td>${(data as any).coApplicantStaffCount || (data as any).coApplicantNumberOfStaff || '-'}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
-      <td>${(data as any).coApplicantBusinessPremiseOwnership || '-'}</td>
+      <td>${(data as any).coApplicantBusinessPremiseOwnership || (data as any).coApplicantBusinessOwnership || '-'}</td>
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${(data as any).coApplicantFactoryInfrastructure || '-'}</td>
+      <td>${(data as any).coApplicantFactoryInfrastructure || (data as any).coApplicantBusinessInfra || '-'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${(data as any).coApplicantStockDetailsValue || '-'}</td>
+      <td>${(data as any).coApplicantStockDetailsValue || (data as any).coApplicantStockDetails || '-'}</td>
     </tr>
     <tr>
       <td>Equipments/ Small Tools/ Machinery Used for Business</td>
-      <td>${(data as any).coApplicantFixedAndCurrentAssetAnalysis || '-'}</td>
+      <td>${(data as any).coApplicantFixedAndCurrentAssetAnalysis || (data as any).coApplicantEquipmentDetails || '-'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${(data as any).coApplicantOtherSourceIncomeDetails || 'No other regular source of income was confirmed during verification.'}</td>
+      <td>${(data as any).coApplicantOtherSourceIncomeDetails || (data as any).coApplicantOtherIncome || 'No other regular source of income was confirmed during verification.'}</td>
     </tr>
   </table>
   ` : ''}
@@ -579,7 +603,7 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Remarks</td>
-      <td colspan="2">${(data as any).businessLocationRemarks || 'The location was checked using the provided coordinates.'}</td>
+      <td colspan="2">${(data as any).businessLocationRemarks || (data as any).businessLongitudeRemarks || (data as any).gpsRemarks || 'The location was checked using the provided coordinates.'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
@@ -587,15 +611,15 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
-      <td colspan="2">${(data as any).businessNeighborName || '-'}</td>
+      <td colspan="2">${(data as any).businessNeighborName || (data as any).businessNeighbourName || (data as any).residenceNeighborName || '-'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="2">${(data as any).businessNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.'}</td>
+      <td colspan="2">${(data as any).businessNeighborFeedback || (data as any).businessNeighbourFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
-      <td colspan="2">Recommended</td>
+      <td colspan="2">${(data as any).businessStatus || caseStatus || 'Recommended'}</td>
     </tr>
   </table>
 

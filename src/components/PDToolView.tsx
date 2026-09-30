@@ -3971,6 +3971,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="Home Loan">Home Loan</option>
                   <option value="Business Loan">Business Loan</option>
                   <option value="Vehicle Loan">Vehicle Loan</option>
+                  <option value="LAP">LAP</option>
+                  <option value="Micro Buisness Loan">Micro Buisness Loan</option>
+                  <option value="Education Loan">Education Loan</option>
                   <option value="Other">Other</option>
                 </select>
                 {loanType === 'Other' && (
@@ -4232,6 +4235,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 <option value="Daughter">Daughter</option>
                                 <option value="Brother">Brother</option>
                                 <option value="Sister">Sister</option>
+                                <option value="Mother in law">Mother in law</option>
+                                <option value="Father in law">Father in law</option>
+                                <option value="Sister in law">Sister in law</option>
+                                <option value="Brother in law">Brother in law</option>
+                                <option value="Neice">Neice</option>
+                                <option value="Nephew">Nephew</option>
+                                <option value="Grand Mother">Grand Mother</option>
+                                <option value="Grand Father">Grand Father</option>
                                 <option value="Other">Other</option>
                               </select>
                             ) : (
