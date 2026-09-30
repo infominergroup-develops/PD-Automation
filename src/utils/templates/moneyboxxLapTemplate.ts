@@ -1,4 +1,6 @@
 import { PDReportPrintData } from '../pdReportPrinter';
+import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
+import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
@@ -215,8 +217,10 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     : ((data as any).existingLoans && (data as any).existingLoans.length > 0 ? (data as any).existingLoans : []);
 
   const emiNotes = loansList.length > 0
-    ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )`
-    : (existEmiM > 0 ? `Running obligations Rs. ${existEmiM}/- per month` : '#REF!');
+    ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )${(data as any).coApplicantName ? '<br/>The co-applicant currently has 0 running obligations.' : ''}`
+    : (existEmiM > 0 
+        ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.`
+        : `The applicant currently has 0 running obligations.${(data as any).coApplicantName ? '<br/>The co-applicant currently has 0 running obligations.' : ''}`);
 
   const earningCount = familyList.filter((f: any) => {
     const occ = String(f.occupation || '').toLowerCase();
@@ -314,9 +318,12 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     .photo-card { border: 1px solid #000; padding: 4px; text-align: center; background: #fff; page-break-inside: avoid; }
     .photo-card img { width: 100%; max-height: 280px; object-fit: contain; display: block; margin: 0 auto; background: #f8fafc; }
     @media print { body { padding: 0; } .no-print { display: none !important; } }
+    ${getUniversalCoverPageCSS()}
   </style>
 </head>
 <body>
+  ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
+  <div class="page-break"></div>
 
   <!-- ==================== PAGE 1 ==================== -->
   <div style="text-align: center; margin-bottom: 20px;">

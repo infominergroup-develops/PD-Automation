@@ -424,7 +424,7 @@ export {
 
 export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   const bankLower = (data.clientBankName || '').toLowerCase();
-  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap')) {
+  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap') || (bankLower.includes('moneyboxx') && (String((data as any).loanType || '').toUpperCase().includes('LAP') || String((data as any).productType || '').toUpperCase().includes('LAP')))) {
     openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
     return;
   }
