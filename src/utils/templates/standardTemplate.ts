@@ -2234,7 +2234,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
       <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
-      <td colspan="2" class="bold">As per ${bankName} Limited</td>
+      <td colspan="2" class="bold">As per ${bankName}</td>
     </tr>
   </table>
 
