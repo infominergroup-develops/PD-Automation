@@ -1422,6 +1422,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
   const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpenses) || 4000;
   const hhExpY = data.householdExpensesYearly || (hhExpM * 12);
+  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || hhExpM;
   const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
 

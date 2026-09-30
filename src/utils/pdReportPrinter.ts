@@ -287,8 +287,6 @@ export interface PDReportPrintData {
 
   // Co-applicant Financial Assessment
   hasCoApplicantIncomeAssessment?: boolean;
-  coApplicantName?: string;
-  coApplicantRelation?: string;
   coApplicantItemizedSales?: Array<{
     particulars: string;
     businessNotes: string;

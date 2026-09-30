@@ -1,44 +1,154 @@
 import { PDReportPrintData } from '../pdReportPrinter';
-import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
+  const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
   const appNo = (data as any).applicationNumber || 'Not Provided';
-  const reportDate = (data as any).visitDate || '-';
-  const visitDate = (data as any).visitDate || '-';
-  const initiationDate = (data as any).caseInitiationDate || '-';
-  const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended';
+  const initiationDate = (data as any).caseInitiationDate || (data as any).visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const reportDate = (data as any).reportDate || (data as any).visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const visitDate = (data as any).visitDate || reportDate;
+  const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended/Not- Recommended';
   
-  let photosHtml = '';
-  const photos = (data as any).photos || [];
-  if (photos && photos.length > 0) {
-    photosHtml = `
-      <div class="page-break"></div>
-      <table class="report-table">
-        <tr><td class="sec-head" style="text-align:center;">Photographs</td></tr>
-        <tr><td>
-          <div class="photo-grid">
-            ${photos.map((p: any) => `
-              <div class="photo-card">
-                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
-                <div style="font-size:8pt; margin-top:5px; font-weight:bold;">${p.label || 'Site Photo'}</div>
-              </div>
-            `).join('')}
-          </div>
-        </td></tr>
-      </table>
+  const applicantName = (data as any).applicantName || 'Applicant';
+  const applicantPhone = (data as any).applicantPhone || '0';
+  const firmName = (data as any).firmName || 'M/s';
+  
+  // Co-applicants handling
+  const coApplicants = (data as any).coApplicants || [];
+  const primaryCoAppName = (data as any).coApplicantName || '';
+  const primaryCoAppRelation = (data as any).coApplicantRelation || '';
+  const primaryCoAppPhone = (data as any).coApplicantPhone || '0';
+
+  let coApplicantsHtml = '';
+  if (coApplicants.length > 0) {
+    coApplicantsHtml = coApplicants.map((c: any, idx: number) => `
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Co-applicant ${coApplicants.length > 1 ? `${idx + 1} ` : ''}Name with relation</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${c.name || '-'}${c.relation ? ` ( ${c.relation} )` : ''}</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Contact Number</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${c.mobileNumber || c.phone || '0'}</td>
+      </tr>
+    `).join('');
+  } else if (primaryCoAppName) {
+    coApplicantsHtml = `
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Co-applicant Name with relation</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${primaryCoAppName}${primaryCoAppRelation ? ` ( ${primaryCoAppRelation} )` : ''}</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Contact Number</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${primaryCoAppPhone}</td>
+      </tr>
+    `;
+  } else {
+    coApplicantsHtml = `
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Co-applicant Name with relation</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">None</td>
+      </tr>
+      <tr>
+        <td style="border: 1px solid #000; padding: 5px 8px;">Contact Number</td>
+        <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">0</td>
+      </tr>
     `;
   }
 
-  const existEmiM = (data as any).existingEmiMonthly || 0;
-  const existEmiY = (data as any).existingEmiYearly || (existEmiM * 12);
+  const rawLoanAmount = data.appliedAmount || data.loanAmount;
+  let loanAmountText = 'Not provided';
+  if (rawLoanAmount) {
+    const num = Number(rawLoanAmount);
+    if (!isNaN(num) && num > 0) {
+      if (num >= 100000) {
+        loanAmountText = `Rs. ${num >= 100000 && num % 100000 === 0 ? (num / 100000) + ' Lakh' : Number(num).toLocaleString('en-IN')}`;
+      } else {
+        loanAmountText = `Rs. ${Number(num).toLocaleString('en-IN')}`;
+      }
+    } else {
+      loanAmountText = String(rawLoanAmount);
+    }
+  }
+
+  const loanPurposeText = (data as any).loanPurpose || (data as any).endUseOfLoan || (data as any).purpose || 'Business Expenses';
+  const residenceAddress = (data as any).residenceAddress || '-';
+  const businessAddress = (data as any).businessAddress || '-';
+  const collateralAddress = (data as any).collateralAddress || (data as any).propertyAddress || residenceAddress || '-';
+
+  const metPerson = (data as any).metPersonName || (primaryCoAppName ? `${applicantName} & ${primaryCoAppName}${primaryCoAppRelation ? ` ( ${primaryCoAppRelation} )` : ''}` : `${applicantName} ( Self )`);
+  const metPersonIdProof = (data as any).metPersonIdProof || (data as any).kycType || 'PAN Card';
+  const executiveName = (data as any).executiveName || '';
+
+  // Residence details
+  const meetingAddress = (data as any).meetingAddress || residenceAddress;
+  const residenceLocationType = (data as any).residenceLocationType || 'The residence premises are located in a village area';
+  const residenceOwnership = (data as any).residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 20-25 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)';
+  const residenceHouseDetails = (data as any).residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.';
+
+  // Family details
+  const familyList = (data as any).familyMembers && (data as any).familyMembers.length > 0
+    ? (data as any).familyMembers
+    : [{ name: applicantName, age: '45 Years', relationship: 'Self', qualification: '8th', occupation: 'Self-employed', dependent: false }];
+
+  const existEmiM = Number((data as any).existingEmiMonthly) || 0;
+  const existEmiY = Number((data as any).existingEmiYearly) || (existEmiM * 12);
+  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 10000;
+  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || hhExpM;
+
+  const residenceElectricityDetails = (data as any).residenceElectricityDetails || `During verification, the electricity bill/meter was checked and found to be in the name of ${primaryCoAppName || applicantName}, with account number under electricity board.`;
+  const residenceNeighborName = (data as any).residenceNeighborName || 'Mr. Vishu and Mr. Sanju';
+  const residenceNeighborFeedback = (data as any).residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address for approximately 40–45 years. The feedback received was positive.';
+  const residenceGpsCoords = (data as any).residenceGpsCoords || (data as any).businessGpsCoords || '';
+
+  // Collateral property details
+  const collateralPropertyType = (data as any).collateralPropertyType || 'The property type is residential';
+  const collateralArea = (data as any).collateralArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)';
+  const collateralUsage = (data as any).collateralUsage || 'This property is used for residential purposes.';
+  const collateralValuation = (data as any).collateralValuation || (data as any).collateralMarketValue || 'The property valuation is approximately in Rs. 20-25 Lakh. (as per verbal confirmation)';
+
+  // Business visit details & Narrative
+  const businessNarrative = (data as any).briefBusinessProfile || (() => {
+    return `${applicantName} has been engaged in business operations for the past approximately ${(data as any).businessVintage || '05 years'}, indicating continuity in the same line of activity. The business is being managed under a family setup where family members are involved in day-to-day operations.<br/><br/>The business activity is being managed from ${businessAddress} with regular local operations.<br/>(All the above details are confirm verbal by applicant)`;
+  })();
+
+  const businessVintageText = (data as any).businessVintage
+    ? `The applicant has been operating the business at the current address for the past ${(data as any).businessVintage}.`
+    : 'The applicant has been operating the business at the current address for the past 05 years.';
+  const staffCountText = (data as any).staffCount && Number((data as any).staffCount) > 0
+    ? `The business employs ${(data as any).staffCount} staff members.`
+    : 'He is self-employed and operates the business by himself.';
+  const businessPremisesOwnershipText = (data as any).businessOwnership || 'The applicant is managing and operating the business from his residence.';
+  const assetDetailsText = (data as any).assetDetails || (data as any).officeInfrastructure || 'The applicant owns livestock assets and business equipment, which are being used for business operations and production.';
+  const stockDetailsText = (data as any).stockDetails || 'stock is maintained with an approximate value of 2,000-3,000';
+  const equipmentsText = (data as any).equipmentDetails || (data as any).machineryDetails || 'Business include basic tools, containers, and routine equipment required for handling and maintaining operations.';
+  const otherIncomeSourceText = (data as any).otherIncomeSource || 'No other regular source of income was confirmed during verification.';
+
+  // Customer & Supplier details
+  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0
+    ? (data as any).prominentCustomers
+    : [{ name: 'Not provided', phone: '0000000000', remark: 'Regular customer, positive feedback received.' }];
+  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0
+    ? (data as any).prominentSuppliers
+    : [{ name: 'Not applicable', phone: '', remark: '' }];
+
+  // Banking Details
+  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0
+    ? (data as any).bankingDetails
+    : [{ bankName: 'HDFC Bank', branchName: 'Jeoni Mandi', accountTypes: 'Saving', limit: 'NA', accountNo: '********** 2937', remark: 'The account belongs to applicant' }];
+
+  const businessGpsCoords = (data as any).businessGpsCoords || residenceGpsCoords || '';
+  const gpsRemarks = (data as any).gpsRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.';
+  const businessElectricityDetails = (data as any).businessElectricityDetails || 'A separate electricity meter is not required, as the applicant is operating the business from the residence.';
+  const businessNeighborName = (data as any).businessNeighborName || residenceNeighborName;
+  const businessNeighborFeedback = (data as any).businessNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.';
+
+  // Assessed Financials
   const hasItemizedSales = Boolean((data as any).itemizedSales && (data as any).itemizedSales.length > 0 && (data as any).itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
     ? (data as any).itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
-          particulars: `${(data as any).firmName || 'Business'} Assessed Monthly Turnover`,
-          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification',
+          particulars: 'Income from Business',
+          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification & assessment',
           monthly: Number((data as any).totalSalesMonthly) || 0,
           yearly: Number((data as any).totalSalesYearly) || (Number((data as any).totalSalesMonthly) || 0) * 12
         }
@@ -55,90 +165,134 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     ? (data as any).itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
-          particulars: 'Operating Expenses & Direct Costs',
-          businessNotes: (Number((data as any).totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly expenditure' : 'Nil / No direct operating expenses recorded',
-          monthly: Number((data as any).totalExpensesMonthly) || 0,
-          yearly: Number((data as any).totalExpensesYearly) || (Number((data as any).totalExpensesMonthly) || 0) * 12
+          particulars: 'Purchase',
+          businessNotes: 'Dry fodder, green fodder, khal, choker, feed / Raw materials',
+          monthly: 0,
+          yearly: 0
+        },
+        {
+          particulars: 'Monthly Electricity Expenses',
+          businessNotes: 'A separate electricity meter is not required',
+          monthly: 0,
+          yearly: 0
+        },
+        {
+          particulars: 'Salary of Employees',
+          businessNotes: 'He is self-employed and operates the business by himself.',
+          monthly: 0,
+          yearly: 0
+        },
+        {
+          particulars: 'Business Premises Rent (if the premises is on rent)',
+          businessNotes: 'The applicant is managing and operating the business from owned premises.',
+          monthly: 0,
+          yearly: 0
+        },
+        {
+          particulars: 'Other expenses',
+          businessNotes: 'Monthly veterinary and maintenance expenditure',
+          monthly: 0,
+          yearly: 0
         }
       ];
+
   const totalExpM = hasItemizedExpenses
     ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
+    : (Number((data as any).totalExpensesMonthly) || 0);
   const totalExpY = hasItemizedExpenses
     ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number((data as any).totalExpensesYearly) || totalExpM * 12);
 
-  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = (data as any).netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
+  const netProfM = totalSalesM - totalExpM;
+  const netProfY = totalSalesY - totalExpY;
 
-  // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean((data as any).hasCoApplicantIncomeAssessment);
-  const coAppSalesItems = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? (data as any).coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
-    : [
-        {
-          particulars: `${(data as any).coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
-          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification & assessment',
-          monthly: Number((data as any).coApplicantTotalSalesMonthly) || 0,
-          yearly: Number((data as any).coApplicantTotalSalesYearly) || (Number((data as any).coApplicantTotalSalesMonthly) || 0) * 12
-        }
-      ];
-
-  const coAppTotalSalesM = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
-  const coAppTotalSalesY = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? coAppSalesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
-
-  const coAppExpenseItems = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? (data as any).coApplicantItemizedExpenses.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
-    : [
-        {
-          particulars: 'Co-applicant Operating Expenses',
-          businessNotes: (Number((data as any).coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
-          monthly: Number((data as any).coApplicantTotalExpensesMonthly) || 0,
-          yearly: Number((data as any).coApplicantTotalExpensesYearly) || (Number((data as any).coApplicantTotalExpensesMonthly) || 0) * 12
-        }
-      ];
-
-  const coAppTotalExpM = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
-  const coAppTotalExpY = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? coAppExpenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
-
-  const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = (data as any).coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
-
-  const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
-  const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
-
-  const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
-  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || 0;
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
-  
-  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0 ? (data as any).prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
-  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0 ? (data as any).prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
-  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0 ? (data as any).bankingDetails : [{ bankName: 'Not shared', branchName: 'NA', accountNo: 'NA', limit: 'NA', remark: 'NA' }];
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
+
   const crifAccounts = (data as any).parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
-    ? crifAccounts.map((acc: any) => ({
-        applicantName: acc.applicantName || (data as any).applicantName || 'Applicant',
-        typeOfLoan: acc.accountType || 'NA',
-        financerName: acc.creditGrantor || 'NA',
-        lenderType: 'NA',
-        ownership: 'NA',
-        disbursedDate: acc.disbursedDate || 'NA',
-        amountInLakhs: acc.disbursedAmount ? '₹' + acc.disbursedAmount.toLocaleString('en-IN') : 'NA',
-        emi: acc.instalmentAmount ? '₹' + acc.instalmentAmount.toLocaleString('en-IN') : 'NA',
-        tenure: acc.tenureMonths || 'NA',
-        remark: acc.status || 'NA'
-      }))
+    ? crifAccounts 
     : ((data as any).existingLoans && (data as any).existingLoans.length > 0 ? (data as any).existingLoans : []);
-  const familyList = (data as any).familyMembers && (data as any).familyMembers.length > 0 ? (data as any).familyMembers : [{ name: (data as any).applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
+
+  const emiNotes = loansList.length > 0
+    ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )`
+    : (existEmiM > 0 ? `Running obligations Rs. ${existEmiM}/- per month` : '#REF!');
+
+  const earningCount = familyList.filter((f: any) => {
+    const occ = String(f.occupation || '').toLowerCase();
+    return occ && !occ.includes('student') && !occ.includes('housewife') && !occ.includes('none') && !occ.includes('-') && !occ.includes('child');
+  }).length || 1;
+
+  const householdExpensesNote = `The applicant’s family has ${earningCount} earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`;
+
+  const comfortableEmiVal = data.comfortableEmiNotes?.trim() || (data as any).comfortableEmi || (data as any).assessedEmi || '6000';
+  const comfortableEmiLeftText = `Comfortable Monthly EMI Post all expenses (Business and Household): ${Number(comfortableEmiVal).toLocaleString('en-IN') || '10,000'}.`;
+  const comfortableEmiRightText = `Approx - ${Number(comfortableEmiVal).toLocaleString('en-IN') || '6000'}/- per month`;
+
+  // Photos Categorization
+  const photos = (data as any).photos || [];
+  const photoCategories = [
+    { key: 'KYC', title: 'KYC', filter: ['KYC', 'ID', 'AADHAAR', 'PAN', 'PASSPORT', 'VOTER'] },
+    { key: 'RESIDENCE', title: 'Residence visit photos', filter: ['RESIDENCE', 'HOUSE', 'HOME', 'LIVING'] },
+    { key: 'BUSINESS', title: 'Business visit photos', filter: ['BUSINESS', 'SHOP', 'FACTORY', 'DAIRY', 'OFFICE', 'FARM', 'WORK'] },
+    { key: 'DOCUMENTS', title: 'Business Documents Photos', filter: ['DOCUMENT', 'DOC', 'BILL', 'METER', 'LICENSE', 'REGISTRATION', 'GST'] }
+  ];
+
+  const renderedPhotoKeys = new Set<string>();
+
+  const categorizedPhotoHtml = photoCategories.map(cat => {
+    const catPhotos = photos.filter((p: any) => {
+      const label = (p.label || p.category || '').toUpperCase();
+      const match = cat.filter.some(k => label.includes(k));
+      if (match) renderedPhotoKeys.add(p.dataUrl || p.id || p.label);
+      return match;
+    });
+
+    if (catPhotos.length === 0) return '';
+
+    return `
+      <div class="page-break"></div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 6px; font-size: 10pt;">
+            ${cat.title}
+          </td>
+        </tr>
+      </table>
+      <div class="photo-grid">
+        ${catPhotos.map((p: any) => `
+          <div class="photo-card">
+            <img src="${p.dataUrl}" alt="${p.label || cat.title}" />
+            ${p.label ? `<div style="font-size: 8pt; margin-top: 4px; font-weight: bold;">${p.label}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+
+  // Any remaining photos not matched
+  const remainingPhotos = photos.filter((p: any) => !renderedPhotoKeys.has(p.dataUrl || p.id || p.label));
+  let remainingPhotosHtml = '';
+  if (remainingPhotos.length > 0) {
+    remainingPhotosHtml = `
+      <div class="page-break"></div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+        <tr>
+          <td style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 6px; font-size: 10pt;">
+            Additional Site Photos
+          </td>
+        </tr>
+      </table>
+      <div class="photo-grid">
+        ${remainingPhotos.map((p: any) => `
+          <div class="photo-card">
+            <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
+            ${p.label ? `<div style="font-size: 8pt; margin-top: 4px; font-weight: bold;">${p.label}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
 
   return `
 <!DOCTYPE html>
@@ -147,501 +301,479 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   <meta charset="utf-8">
   <title>MoneyBoxx LAP - ${appNo}</title>
   <style>
-    @page { size: A4; margin: 10mm 10mm 10mm 10mm; }
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 9pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.35; }
-    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; page-break-inside: avoid; }
-    th, td { border: 1px solid #000; padding: 4px 6px; font-size: 8.5pt; }
-    .sec-head { background-color: #f2f2f2; font-weight: bold; text-align: left; padding: 4px 6px; font-size: 9pt; text-transform: uppercase; }
-    .text-left { text-align: left; }
-    .text-right { text-align: right; }
+    @page { size: A4 portrait; margin: 12mm 15mm 12mm 15mm; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 8.5pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.3; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 0; page-break-inside: avoid; }
+    th, td { border: 1px solid #000; padding: 4px 6px; vertical-align: middle; font-size: 8.5pt; }
+    .page-break { page-break-before: always; }
     .bold { font-weight: bold; }
     .text-center { text-align: center; }
-    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
-    .photo-card { border: 1px solid #000; padding: 5px; text-align: center; }
-    .photo-card img { max-width: 100%; max-height: 250px; width: auto; height: auto; display: block; margin: 0 auto; object-fit: contain; background: #f3f4f6; }
+    .text-left { text-align: left; }
+    .text-right { text-align: right; }
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 10px; }
+    .photo-card { border: 1px solid #000; padding: 4px; text-align: center; background: #fff; page-break-inside: avoid; }
+    .photo-card img { width: 100%; max-height: 280px; object-fit: contain; display: block; margin: 0 auto; background: #f8fafc; }
     @media print { body { padding: 0; } .no-print { display: none !important; } }
-    ${getUniversalCoverPageCSS()}
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
 
-  <div style="text-align: center; margin-bottom: 15px; border-bottom: 2px solid #1e3a8a; padding-bottom: 8px;">
-    <div style="font-size: 13pt; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">Infominer Services Private Limited</div>
-    <div style="font-size: 8.5pt; font-weight: 600; color: #475569; margin-top: 2px;">CIN : U67100UP2020PTC131346</div>
+  <!-- ==================== PAGE 1 ==================== -->
+  <div style="text-align: center; margin-bottom: 20px;">
+    <div style="font-size: 11pt; font-weight: bold; color: #000;">Infominer Services Private Limited</div>
+    <div style="font-size: 9pt; font-weight: bold; color: #000; margin-top: 2px;">CIN : U67100UP2020PTC131346</div>
     <div style="font-size: 9pt; font-weight: bold; color: #000; margin-top: 2px;">(Chartered Accountant)</div>
-    <div style="font-size: 8.5pt; color: #334155; margin-top: 2px;">Office No 410, Shree Siddhi Vinayak Trade Center - Agra- 282004</div>
+    <div style="font-size: 9pt; font-weight: bold; color: #000; margin-top: 2px;">Office No 410, Shree Siddhi Vinayak Trade Center - Agra- 282004</div>
   </div>
 
-  <table>
+  <table style="width: 100%; border-collapse: collapse;">
     <tr>
-      <td colspan="2" style="width: 60%;" class="bold">To,<br/>Moneyboxx Finance Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${(data as any).applicantName || 'Applicant'}</td>
-      <td colspan="2" style="width: 40%; vertical-align: top;">
-        <table style="margin-bottom: 0; border: none; height: 100%;">
+      <td colspan="2" style="width: 50%; vertical-align: top; border: 1px solid #000; padding: 6px 8px;">
+        <strong>To,</strong><br/>
+        <strong>${bankName}</strong><br/>
+        <strong>Dear Sir/Madam,</strong><br/><br/>
+        <strong>Sub: Income Assesment of ${applicantName}</strong>
+      </td>
+      <td colspan="2" style="width: 50%; padding: 0; vertical-align: top; border: 1px solid #000;">
+        <table style="width: 100%; border-collapse: collapse; border: none;">
           <tr>
-            <td class="bold text-center" style="border-top: none; border-left: none; width: 40%;">Date of Initiation</td>
-            <td class="text-center" style="border-top: none; border-right: none; width: 60%;">${initiationDate}</td>
+            <td style="width: 45%; border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Date of Initiation</td>
+            <td style="width: 55%; border: none; border-bottom: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">${initiationDate}</td>
           </tr>
           <tr>
-            <td class="bold text-center" style="border-left: none;">Application ID</td>
-            <td class="text-center" style="border-right: none;">${appNo}</td>
+            <td style="border: none; border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Application ID</td>
+            <td style="border: none; border-bottom: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">${appNo}</td>
           </tr>
           <tr>
-            <td class="bold text-center" style="border-left: none; border-bottom: none;">Status of case</td>
-            <td class="text-center" style="border-right: none; border-bottom: none; font-weight: bold;">${caseStatus}</td>
+            <td style="border: none; border-right: 1px solid #000; padding: 4px 6px; text-align: center; font-weight: bold;">Status of case</td>
+            <td style="border: none; padding: 4px 6px; text-align: center; font-weight: bold;">${caseStatus}</td>
           </tr>
         </table>
       </td>
     </tr>
     <tr>
-      <td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td>
-    </tr>
-    
-    <tr>
-      <td colspan="4" class="sec-head">Case Profile</td>
+      <td colspan="4" style="border: 1px solid #000; padding: 6px 8px; font-size: 8.5pt;">
+        Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:
+      </td>
     </tr>
     <tr>
-      <td style="width: 25%;">Visit date</td>
-      <td style="width: 25%;">${visitDate}</td>
-      <td style="width: 25%;">Report date</td>
-      <td style="width: 25%;">${reportDate}</td>
+      <td colspan="4" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Case Profile
+      </td>
     </tr>
     <tr>
-      <td>Name of applicant</td>
-      <td colspan="3">${(data as any).applicantName || '-'}</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">Visit date</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">${visitDate}</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">Report date</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">${reportDate}</td>
     </tr>
     <tr>
-      <td>Contact Number</td>
-      <td colspan="3">${(data as any).applicantPhone || '0'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Name of applicant</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${applicantName}</td>
     </tr>
     <tr>
-      <td>Business firm name</td>
-      <td colspan="3">${(data as any).firmName || 'M/s'}</td>
-    </tr>
-    ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, idx: number) => `
-    <tr>
-      <td>Co-applicant ${data.coApplicants!.length > 1 ? `${idx + 1} ` : ''}Name with relation</td>
-      <td colspan="3">${c.name || '-'}${c.relation ? ` ( ${c.relation} )` : ''}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Contact Number</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${applicantPhone}</td>
     </tr>
     <tr>
-      <td>Contact Number</td>
-      <td colspan="3">${c.mobileNumber || c.phone || '0'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Business firm name</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${firmName}</td>
     </tr>
-    `).join('') : `
+    ${coApplicantsHtml}
     <tr>
-      <td>Co-applicant Name with relation</td>
-      <td colspan="3">${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
-    </tr>
-    <tr>
-      <td>Contact Number</td>
-      <td colspan="3">${(data as any).coApplicantPhone || '0'}</td>
-    </tr>
-    `}
-    <tr>
-      <td>Loan Amount (as mention in application form)</td>
-      <td colspan="3">${(data.appliedAmount || data.loanAmount) ? `Rs. ${Number(data.appliedAmount || data.loanAmount).toLocaleString('en-IN')}/-` : 'Not provided'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Loan Amount (as mention in application form)</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${loanAmountText}</td>
     </tr>
     <tr>
-      <td>Type of Loan (as mention in application form)</td>
-      <td colspan="3">${(data as any).loanType || 'Business Expansion/ Working Capital Requirement'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Purpose of Loan (as per applicant)</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${loanPurposeText}</td>
     </tr>
     <tr>
-      <td>Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${(data as any).loanPurpose || (data as any).endUseOfLoan || (data as any).purpose || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Address of the residence</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${residenceAddress}</td>
     </tr>
     <tr>
-      <td>Address of the residence</td>
-      <td colspan="3">${(data as any).residenceAddress || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Address of the business</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${businessAddress}</td>
     </tr>
     <tr>
-      <td>Address of the business</td>
-      <td colspan="3">${(data as any).businessAddress || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Address of the collateral property</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${collateralAddress}</td>
     </tr>
     <tr>
-      <td>Address of the collateral property</td>
-      <td colspan="3">${(data as any).collateralAddress || (data as any).propertyAddress || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Met person during visit time.</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${metPerson}</td>
     </tr>
     <tr>
-      <td>Met person during visit time.</td>
-      <td colspan="3">${(data as any).applicantName || '-'} & ${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Met person identity proof</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${metPersonIdProof}</td>
     </tr>
     <tr>
-      <td>Met person identity proof</td>
-      <td colspan="3">${(data as any).kycType || 'PAN Card'}</td>
-    </tr>
-    <tr>
-      <td>Executive Name</td>
-      <td colspan="3">${(data as any).executiveName || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Executive Name</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${executiveName}</td>
     </tr>
   </table>
 
-  <table>
+  <!-- ==================== PAGE 2 ==================== -->
+  <div class="page-break"></div>
+
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
     <tr>
-      <td colspan="2" class="sec-head">Details of residence visit</td>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Details of residence visit
+      </td>
     </tr>
     <tr>
-      <td style="width: 25%;">Met person during visit time.</td>
-      <td style="width: 75%;">${(data as any).applicantName || '-'} & ${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">Met person during visit time.</td>
+      <td style="width: 75%; border: 1px solid #000; padding: 5px 8px;">${metPerson}</td>
     </tr>
     <tr>
-      <td>Address of the meeting</td>
-      <td>${(data as any).residenceAddress || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Address of the meeting</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${meetingAddress}</td>
     </tr>
     <tr>
-      <td>Locating Premises Type</td>
-      <td>${(data as any).residenceLocationType || 'The residence premises are located in a village area'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Locating Premises Type</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${residenceLocationType}</td>
     </tr>
     <tr>
-      <td colspan="2" class="sec-head">Residential Details</td>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Residential Details
+      </td>
     </tr>
     <tr>
-      <td class="bold">Ownership (If rented then rent amount)</td>
-      <td>${(data as any).residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 8-10 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Ownership (If rented then rent amount)</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${residenceOwnership}</td>
     </tr>
     <tr>
-      <td class="bold">House Details</td>
-      <td>${(data as any).residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">House Details</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${residenceHouseDetails}</td>
+    </tr>
+    <tr>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Family Background of the Applicant
+      </td>
     </tr>
   </table>
 
-  <table>
-    <tr>
-      <td colspan="7" class="sec-head">Family Background of the Applicant</td>
-    </tr>
-    <tr class="bold text-center">
-      <td>Sr No.</td>
-      <td>Famly Member Name</td>
-      <td>Age</td>
-      <td>Relation with applicant</td>
-      <td>Qualification</td>
-      <td>Occupation</td>
-      <td>Dependents ( Yes/ No )</td>
+  <table style="width: 100%; border-collapse: collapse; border-top: none;">
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="width: 7%; border: 1px solid #000; border-top: none; padding: 4px;">Sr No.</td>
+      <td style="width: 23%; border: 1px solid #000; border-top: none; padding: 4px;">Famly Member Name</td>
+      <td style="width: 12%; border: 1px solid #000; border-top: none; padding: 4px;">Age</td>
+      <td style="width: 18%; border: 1px solid #000; border-top: none; padding: 4px;">Relation with applicant</td>
+      <td style="width: 15%; border: 1px solid #000; border-top: none; padding: 4px;">Qualification</td>
+      <td style="width: 15%; border: 1px solid #000; border-top: none; padding: 4px;">Occupation</td>
+      <td style="width: 10%; border: 1px solid #000; border-top: none; padding: 4px;">Dependents<br/>( Yes/ No )</td>
     </tr>
     ${familyList.map((f: any, idx: number) => `
-      <tr class="text-center">
-        <td class="bold">${idx + 1}</td>
-        <td class="bold">${f.name || '-'}</td>
-        <td>${f.age || '-'}</td>
-        <td>${f.relationship || f.relation || '-'}</td>
-        <td>${f.qualification || '-'}</td>
-        <td>${f.occupation || '-'}</td>
-        <td>${f.dependent ? 'Yes' : 'No'}</td>
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px;">${idx + 1}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">${f.name || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.age ? (String(f.age).toLowerCase().includes('year') ? f.age : `${f.age} Years`) : '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.relationship || f.relation || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.qualification || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.occupation || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${(f.dependent === true || f.isDependent === true || f.dependent === 'Yes' || f.isDependent === 'Yes') ? 'Yes' : 'No'}</td>
       </tr>
     `).join('')}
     <tr>
-      <td colspan="2" class="bold">Monthly Household Expenses</td>
-      <td colspan="5">Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Monthly Household</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px;">Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
     </tr>
     <tr>
-      <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${(data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : ((data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Electricity Connection Details</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px;">${residenceElectricityDetails}</td>
     </tr>
     <tr>
-      <td colspan="2" class="bold">Neighbor Name</td>
-      <td colspan="5">${(data as any).residenceNeighborName || '-'}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Neighbor Name</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px;">${residenceNeighborName}</td>
     </tr>
     <tr>
-      <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${(data as any).residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive.'}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Neighbor Feedback</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px; text-align: justify;">${residenceNeighborFeedback}</td>
     </tr>
     <tr>
-      <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${(data as any).residenceGpsCoords || '-'}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Latitude & Longitude of the business premises</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px;">${residenceGpsCoords || '-'}</td>
     </tr>
     <tr>
-      <td colspan="2" class="bold">Distance from Infominers Branch</td>
-      <td colspan="5">${(data as any).residenceDistanceFromBranch || '30 Km'}</td>
-    </tr>
-  </table>
-
-  <table>
-    <tr>
-      <td colspan="2" class="sec-head">Collateral Property details</td>
-    </tr>
-    <tr>
-      <td style="width: 25%;">Collateral Address</td>
-      <td style="width: 75%;">${(data as any).collateralAddress || (data as any).propertyAddress || 'Tajganj Fatehabd Road Agra'}</td>
-    </tr>
-    <tr>
-      <td>Property Type</td>
-      <td>${(data as any).collateralPropertyType || 'Residential'}</td>
-    </tr>
-    <tr>
-      <td>Property Structure</td>
-      <td>${(data as any).collateralStructure || 'Ground Floor'}</td>
-    </tr>
-    <tr>
-      <td>Property Age</td>
-      <td>${(data as any).collateralAge || '5-10 Years'}</td>
-    </tr>
-    <tr>
-      <td>Property Area</td>
-      <td>${(data as any).collateralArea || '800-900 Sq. Ft.'}</td>
-    </tr>
-    <tr>
-      <td>Collateral Boundaries Details</td>
-      <td>${(data as any).collateralBoundaries || 'North: Road, South: Others Property, East: Road, West: Others Property'}</td>
-    </tr>
-    <tr>
-      <td>Latitude & Longitude of the collateral property</td>
-      <td>${(data as any).collateralGpsCoords || (data as any).residenceGpsCoords || '-'}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Residence Status</td>
+      <td colspan="5" style="border: 1px solid #000; padding: 5px 8px;">${caseStatus}</td>
     </tr>
   </table>
 
-  <table>
+  <!-- ==================== PAGE 3 ==================== -->
+  <div class="page-break"></div>
+
+  <table style="width: 100%; border-collapse: collapse;">
     <tr>
-      <td colspan="2" class="sec-head">Details of business visit</td>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Collateral Property details
+      </td>
     </tr>
     <tr>
-      <td style="width: 25%;">Met person during visit time</td>
-      <td style="width: 75%;">${(data as any).applicantName || '-'} & ${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">Collateral Address</td>
+      <td style="width: 75%; border: 1px solid #000; padding: 5px 8px;">${collateralAddress}</td>
     </tr>
     <tr>
-      <td>Address of the business</td>
-      <td>${(data as any).businessAddress || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Property Type</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${collateralPropertyType}</td>
     </tr>
     <tr>
-      <td>Locating Premises Type</td>
-      <td>${(data as any).businessLocationType || 'The business premises are located in a commercial area'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Approx. Property Area</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${collateralArea}</td>
     </tr>
     <tr>
-      <td>Ownership ( If rented then rent amount )</td>
-      <td>${(data as any).businessOwnership || 'Rented Premises - Rent Rs. 3000/- Per Month'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Property Usage</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${collateralUsage}</td>
     </tr>
     <tr>
-      <td>Business Vintage</td>
-      <td>${(data as any).businessVintage || '5-7 Years'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Approx Property Valuation</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${collateralValuation}</td>
+    </tr>
+  </table>
+
+  <!-- ==================== PAGE 4 ==================== -->
+  <div class="page-break"></div>
+
+  <table style="width: 100%; border-collapse: collapse;">
+    <tr>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Business visit of ${applicantName}
+      </td>
     </tr>
     <tr>
-      <td>Stock Details ( Approx )</td>
-      <td>${(data as any).stockDetails || 'Stock Rs. 2-3 Lakh Approx'}</td>
+      <td colspan="2" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 9.5pt;">
+        Brief Profile of Business
+      </td>
     </tr>
     <tr>
-      <td>Asset Details ( Approx )</td>
-      <td>${(data as any).assetDetails || 'Assets Rs. 1-2 Lakh Approx'}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 10px; font-size: 8.5pt; text-align: justify; line-height: 1.45;">
+        ${businessNarrative}
+      </td>
     </tr>
     <tr>
-      <td>Number of employees</td>
-      <td>${(data as any).staffCount || '0'}</td>
+      <td style="width: 25%; border: 1px solid #000; padding: 5px 8px;">Vintage of the business</td>
+      <td style="width: 75%; border: 1px solid #000; padding: 5px 8px;">${businessVintageText}</td>
     </tr>
     <tr>
-      <td>Monthly turnover</td>
-      <td>Rs. ${Number(totalSalesM).toLocaleString('en-IN')}/- Per Month</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Number of staffs</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${staffCountText}</td>
     </tr>
     <tr>
-      <td>Monthly Operating Expenses</td>
-      <td>Rs. ${Number(totalExpM).toLocaleString('en-IN')}/- Per Month</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Is office premise on rented /owned</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${businessPremisesOwnershipText}</td>
     </tr>
     <tr>
-      <td>Electricity Connection Details</td>
-      <td>${(data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of landlord/applicant'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Details of Office / Factory infrastructure ( Assets )</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${assetDetailsText}</td>
     </tr>
     <tr>
-      <td>Latitude & Longitude of the business premises</td>
-      <td>${(data as any).businessGpsCoords || '-'}</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Stock details with estimated value</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${stockDetailsText}</td>
     </tr>
     <tr>
-      <td>Distance from Infominers Branch</td>
-      <td>${(data as any).businessDistanceFromBranch || '30 Km'}</td>
-    </tr>
-    
-    <tr>
-      <td colspan="2" class="sec-head">Brief of Business and business model</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">Equipments/ Small Tools/ Machinery Used for Business</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${equipmentsText}</td>
     </tr>
     <tr>
-      <td colspan="2" style="vertical-align: top;">
-        ${(() => {
-          const firm = (data as any).firmName || 'The business';
-          const nature = (data as any).businessCategory || 'retail business';
-          const vintage = (data as any).businessVintage || '5-7 Years';
-          const own = String((data as any).businessOwnership || '').toLowerCase().includes('rent') ? 'rented' : 'self-owned';
-          const areaDesc = (data as any).businessLocationType || 'a commercial area';
-          const hours = (data as any).operatingHours || '09:00 AM to 08:00 PM';
-          const peak = (data as any).seasonalCycle || 'Regular through all months';
-          
-          let p1 = `M/s ${firm} has been engaged in ${nature} for the past ${vintage}. The business operates from a ${own} premise situated in ${areaDesc}. Regular business operating hours are from ${hours}. Business flow remains ${peak}. `;
-          let p2 = (data as any).briefBusinessProfile ? (data as any).briefBusinessProfile : `The applicant actively manages daily procurement, counter sales, inventory upkeep, and customer engagements. Supplies are sourced directly from trusted regional wholesalers on spot/credit basis, ensuring smooth stock turnover.`;
-          return '<div style="text-align: justify; padding: 5px;">' + p1 + '<br/><br/>' + p2 + '</div>';
-        })()}
+      <td style="border: 1px solid #000; padding: 5px 8px;">Other source income</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${otherIncomeSourceText}</td>
+    </tr>
+  </table>
+
+  <!-- ==================== PAGE 5 ==================== -->
+  <div class="page-break"></div>
+
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
+    <tr>
+      <td colspan="4" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Applicant's customer and supplier details
+      </td>
+    </tr>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="width: 8%; border: 1px solid #000; padding: 4px;">Sr. No.</td>
+      <td style="width: 32%; border: 1px solid #000; padding: 4px;">Prominent Customers (Name)</td>
+      <td style="width: 20%; border: 1px solid #000; padding: 4px;">Customers Ph. No.</td>
+      <td style="width: 40%; border: 1px solid #000; padding: 4px;">Feedback (Remark)</td>
+    </tr>
+    ${customerList.map((c: any, idx: number) => `
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px;">${idx + 1}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">${c.name || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${c.phone || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${c.remark || 'Regular customer, positive feedback received.'}</td>
+      </tr>
+    `).join('')}
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="width: 8%; border: 1px solid #000; padding: 4px;">Sr. No.</td>
+      <td style="width: 32%; border: 1px solid #000; padding: 4px;">Prominent Suppliers (Name)</td>
+      <td style="width: 20%; border: 1px solid #000; padding: 4px;">Supplier Ph. No.</td>
+      <td style="width: 40%; border: 1px solid #000; padding: 4px;">Feedback (Remark)</td>
+    </tr>
+    ${supplierList.map((s: any, idx: number) => `
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px;">${idx + 1}</td>
+        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">${s.name || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${s.phone || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${s.remark || '-'}</td>
+      </tr>
+    `).join('')}
+    <tr>
+      <td colspan="4" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Banking Details and Limit OD and CC limit with bank
       </td>
     </tr>
   </table>
 
-  <table>
-    <tr>
-      <td colspan="3" class="sec-head">Details of Prominent Customers</td>
-    </tr>
-    <tr class="bold text-center">
-      <td>Customer Name</td>
-      <td>Contact Number</td>
-      <td>Feedback</td>
-    </tr>
-    ${customerList.map((c: any) => `
-      <tr class="text-center">
-        <td class="bold">${c.name || '-'}</td>
-        <td>${c.phone || '-'}</td>
-        <td>${c.remark || 'Regular customer, positive feedback received.'}</td>
-      </tr>
-    `).join('')}
-  </table>
-
-  <table>
-    <tr>
-      <td colspan="3" class="sec-head">Details of Prominent Supplier</td>
-    </tr>
-    <tr class="bold text-center">
-      <td>Supplier Name</td>
-      <td>Contact Number</td>
-      <td>Feedback</td>
-    </tr>
-    ${supplierList.map((s: any) => `
-      <tr class="text-center">
-        <td class="bold">${s.name || '-'}</td>
-        <td>${s.phone || '-'}</td>
-        <td>${s.remark || 'Regular supplier, smooth commercial dealings.'}</td>
-      </tr>
-    `).join('')}
-  </table>
-
-  <table>
-    <tr>
-      <td colspan="5" class="sec-head">Banking Details</td>
-    </tr>
-    <tr class="bold text-center">
-      <td>Bank Name</td>
-      <td>Branch Name</td>
-      <td>Account No.</td>
-      <td>Limit (if any)</td>
-      <td>Remarks</td>
+  <table style="width: 100%; border-collapse: collapse; border-top: none; margin-bottom: 0;">
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="width: 18%; border: 1px solid #000; border-top: none; padding: 4px;">Bank Name</td>
+      <td style="width: 18%; border: 1px solid #000; border-top: none; padding: 4px;">Branch Name</td>
+      <td style="width: 14%; border: 1px solid #000; border-top: none; padding: 4px;">Account Types</td>
+      <td style="width: 12%; border: 1px solid #000; border-top: none; padding: 4px;">CC/OD Limit</td>
+      <td style="width: 18%; border: 1px solid #000; border-top: none; padding: 4px;">Account No.</td>
+      <td style="width: 20%; border: 1px solid #000; border-top: none; padding: 4px;">Remark</td>
     </tr>
     ${bankingList.map((b: any) => `
-      <tr class="text-center">
-        <td class="bold">${b.bankName || '-'}</td>
-        <td>${b.branchName || '-'}</td>
-        <td>${b.accountNo || '-'}</td>
-        <td>${b.limit || 'NA'}</td>
-        <td>${b.remark || 'Active operative account.'}</td>
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">${b.bankName || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${b.branchName || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${b.accountTypes || b.accountType || 'Saving'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${b.limit || 'NA'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${b.accountNo || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${b.remark || 'The account belongs to applicant'}</td>
       </tr>
     `).join('')}
   </table>
 
-  <table>
+  <table style="width: 100%; border-collapse: collapse; border-top: none;">
     <tr>
-      <td colspan="10" class="sec-head">Details of Existing Loan Track (As per CRIF report)</td>
+      <td style="width: 25%; border: 1px solid #000; border-top: none; padding: 5px 8px; font-weight: bold;">Latitude & Longitude of the business premises</td>
+      <td style="width: 75%; border: 1px solid #000; border-top: none; padding: 5px 8px;">${businessGpsCoords || '-'}</td>
     </tr>
-    <tr class="bold text-center">
-      <td>Applicant Name</td>
-      <td>Type of loan</td>
-      <td>Financer name</td>
-      <td>Lender Type</td>
-      <td>Ownership</td>
-      <td>Disbursed date</td>
-      <td>Loan Amount</td>
-      <td>Current POS / EMI</td>
-      <td>Tenure</td>
-      <td>Track / Status</td>
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Remarks</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${gpsRemarks}</td>
     </tr>
-    ${loansList.length > 0 ? loansList.map((l: any) => `
-      <tr class="text-center">
-        <td class="bold">${l.applicantName}</td>
-        <td>${l.typeOfLoan}</td>
-        <td>${l.financerName}</td>
-        <td>${l.lenderType}</td>
-        <td>${l.ownership}</td>
-        <td>${l.disbursedDate}</td>
-        <td>${l.amountInLakhs}</td>
-        <td>${l.emi}</td>
-        <td>${l.tenure}</td>
-        <td>${l.remark}</td>
-      </tr>
-    `).join('') : `
-      <tr class="text-center">
-        <td colspan="10">No active obligations found or verified in bureau report.</td>
-      </tr>
-    `}
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Electricity Connection Details</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${businessElectricityDetails}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Neighbour Name</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${businessNeighborName}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Neighbor Feedback</td>
+      <td style="border: 1px solid #000; padding: 5px 8px; text-align: justify;">${businessNeighborFeedback}</td>
+    </tr>
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px; font-weight: bold;">Business Status</td>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${caseStatus}</td>
+    </tr>
   </table>
 
-  <table>
+  <!-- ==================== PAGE 6 ==================== -->
+  <div class="page-break"></div>
+
+  <table style="width: 100%; border-collapse: collapse; margin-bottom: 0;">
     <tr>
-      <td colspan="4" class="sec-head">Assessed Financials (Monthly/Yearly)</td>
+      <td colspan="4" style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 5px; font-size: 10pt;">
+        Assessment of the monthly income of the applicant
+      </td>
     </tr>
-    <tr class="bold text-center bg-gray-100">
-      <td style="width: 25%;">Particulars</td>
-      <td style="width: 35%;">Business Notes</td>
-      <td style="width: 20%;">Monthly (Rs.)</td>
-      <td style="width: 20%;">Yearly (Rs.)</td>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="width: 25%; border: 1px solid #000; padding: 4px;">Particulars</td>
+      <td style="width: 45%; border: 1px solid #000; padding: 4px;">Business Notes</td>
+      <td colspan="2" style="width: 30%; border: 1px solid #000; padding: 4px;">(Period)</td>
+    </tr>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Sales/Receipts</td>
+      <td style="border: 1px solid #000; padding: 4px;"></td>
+      <td style="width: 15%; border: 1px solid #000; padding: 4px;">Monthly</td>
+      <td style="width: 15%; border: 1px solid #000; padding: 4px;">Yearly</td>
     </tr>
     ${salesItems.map((item: any) => `
-      <tr class="text-center">
-        <td class="text-left">${item.particulars}</td>
-        <td>${item.businessNotes || ''}</td>
-        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
-        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${item.particulars}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${item.businessNotes || ''}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
       </tr>
     `).join('')}
-    <tr class="bold text-center bg-gray-100">
-      <td class="text-left">Total Sales / Turnover (A)</td>
-      <td></td>
-      <td>${Number(totalSalesM).toLocaleString('en-IN')}</td>
-      <td>${Number(totalSalesY).toLocaleString('en-IN')}</td>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Total Sales/Receipts (A)</td>
+      <td style="border: 1px solid #000; padding: 4px;"></td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(totalSalesM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(totalSalesY).toLocaleString('en-IN')}</td>
     </tr>
     ${expenseItems.map((item: any) => `
-      <tr class="text-center">
-        <td class="text-left">${item.particulars}</td>
-        <td>${item.businessNotes || ''}</td>
-        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
-        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      <tr style="text-align: center;">
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${item.particulars}</td>
+        <td style="border: 1px solid #000; padding: 4px; text-align: left;">${item.businessNotes || ''}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
       </tr>
     `).join('')}
-    <tr class="bold text-center bg-gray-100">
-      <td class="text-left">Total Expenses(B)</td>
-      <td></td>
-      <td>${Number(totalExpM).toLocaleString('en-IN')}</td>
-      <td>${Number(totalExpY).toLocaleString('en-IN')}</td>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Total Expenses(B)</td>
+      <td style="border: 1px solid #000; padding: 4px;"></td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(totalExpM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(totalExpY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="bold text-center bg-gray-100">
-      <td class="text-left">Net Profit Per month(A- B)</td>
-      <td></td>
-      <td>${Number(netProfM).toLocaleString('en-IN')}</td>
-      <td>${Number(netProfY).toLocaleString('en-IN')}</td>
+    <tr style="font-weight: bold; text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Net Profit Per month(A- B)</td>
+      <td style="border: 1px solid #000; padding: 4px;"></td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(netProfM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(netProfY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing EMI</td>
-      <td>The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )<br/>The co-applicant currently has 0 running obligations.</td>
-      <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td></td>
+    <tr style="text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: bold;">Less: Existing EMI</td>
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">${emiNotes}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(existEmiM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${existEmiY ? Number(existEmiY).toLocaleString('en-IN') : ''}</td>
     </tr>
-    <tr class="text-center">
-      <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td>The applicant’s family has ${familyList.filter((f: any) => f.occupation !== 'Student' && f.occupation !== 'Housewife' && f.occupation).length || 2} earning members, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.</td>
-      <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(hhExpM * 12).toLocaleString('en-IN')}</td>
+    <tr style="text-align: center;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: bold;">Less: Existing Household Expenses</td>
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">${householdExpensesNote}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(hhExpM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(hhExpM * 12).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="bold text-center bg-gray-100">
-      <td class="text-left">Net Disposal Income</td>
-      <td>Net Income after all deductions ( Monthly/ Yearly)</td>
-      <td>${Number(netDisposalM).toLocaleString('en-IN')}</td>
-      <td>${Number(netDisposalY).toLocaleString('en-IN')}</td>
+    <tr style="text-align: center; font-weight: bold;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Net Disposal Income</td>
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Net Income after all deductions ( Monthly/ Yearly)</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(netDisposalM).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(netDisposalY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="bold text-center">
-      <td class="text-left">Comfortable Monthly EMI</td>
-      <td>Comfortable Monthly EMI Post all expenses (Business and Household)</td>
-      <td colspan="2">${data.comfortableEmiNotes?.trim() || 'As per Moneyboxx Finance Limited'}</td>
+    <tr style="text-align: center; font-weight: bold;">
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">Comfortable Monthly EMI</td>
+      <td style="border: 1px solid #000; padding: 4px; text-align: left;">${comfortableEmiLeftText}</td>
+      <td colspan="2" style="border: 1px solid #000; padding: 4px;">${comfortableEmiRightText}</td>
     </tr>
     <tr>
-      <td colspan="4">
-        <span class="bold">Limitation and Disclaimer clause: -</span><br/>
-        This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions with personnel available at the time of visit, and reflect conditions as observed at that point in time only. Document-related inputs are based solely on information shared during field interactions and do not constitute independent authentication or forensic validation by any issuing or competent authority. This report does not constitute an audit, legal investigation, or forensic activity and shall not be treated as legal evidence or relied upon by any external party, including law enforcement agencies, courts, or regulatory bodies. Any reliance placed on this report shall be strictly at the sole risk of the recipient. The issuing entity expressly disclaims all consequences, direct or indirect, arising from such reliance.<br/><br/>
-        <span class="bold">Important Notes:</span><br/>
-        Actual Profit and Loss figures were not made available by "Moneyboxx Finance Limited" hence only estimated figures are captured as per the information and understanding provided by the applicant during visit.<br/><br/><br/><br/><br/>
-        <span class="bold">(Sign of Agency authorized signatory)</span>
+      <td colspan="4" style="border: 1px solid #000; padding: 8px; font-size: 8pt; line-height: 1.35;">
+        <strong>Limitation and Disclaimer clause: -</strong><br/>
+        This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field 
+        verification, comprising site visits, on-ground observations, and verbal interactions with personnel available at the time of visit, and reflect conditions as 
+        observed at that point in time only. Document-related inputs are based solely on information shared during field interactions and do not constitute 
+        independent authentication or forensic validation by any issuing or competent authority. This report does not constitute an audit, legal investigation, or 
+        forensic activity and shall not be treated as legal evidence or relied upon by any external party, including law enforcement agencies, courts, or regulatory 
+        bodies. Any reliance placed on this report shall be strictly at the sole risk of the recipient. The issuing entity expressly disclaims all consequences, direct 
+        or indirect, arising from such reliance.<br/><br/>
+        <strong>Important Notes:</strong><br/>
+        Actual Profit and Loss figures were not made available by "${bankName}" hence only estimated figures are captured as per 
+        the information and understanding provided by the applicant during visit.<br/><br/><br/><br/>
+        <strong>(Sign of Agency authorized signatory)</strong>
       </td>
     </tr>
   </table>
 
-  ${photosHtml}
+  <!-- ==================== PAGES 7+ (PHOTOS) ==================== -->
+  ${categorizedPhotoHtml}
+  ${remainingPhotosHtml}
 
 </body>
 </html>
-`;
+  `;
 }

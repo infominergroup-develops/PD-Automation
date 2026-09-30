@@ -115,6 +115,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
+  const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
   const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
   
