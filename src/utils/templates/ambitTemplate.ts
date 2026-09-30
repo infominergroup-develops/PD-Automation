@@ -338,17 +338,20 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
       <td>Occupation</td>
       <td>Dependents ( Yes/ No )</td>
     </tr>
-    ${familyList.map((f: any, idx: number) => `
+    ${familyList.map((f: any, idx: number) => {
+      const isDep = (f.isDependent === true || f.dependent === true || f.isDependent === 'Yes' || f.dependent === 'Yes' || String(f.isDependent).toLowerCase() === 'true' || String(f.dependent).toLowerCase() === 'true');
+      return `
       <tr class="text-center">
         <td class="bold">${idx + 1}</td>
         <td class="bold">${f.name || '-'}</td>
-        <td>${f.age || '-'}</td>
+        <td>${f.age ? (String(f.age).toLowerCase().includes('year') ? f.age : `${f.age} Years`) : '-'}</td>
         <td>${f.relationship || f.relation || '-'}</td>
-        <td>${f.qualification || '-'}</td>
-        <td>${f.occupation || '-'}</td>
-        <td>${f.dependent ? 'Yes' : 'No'}</td>
+        <td>${f.qualification || f.education || '-'}</td>
+        <td>${f.occupation || f.profession || '-'}</td>
+        <td>${isDep ? 'Yes' : 'No'}</td>
       </tr>
-    `).join('')}
+      `;
+    }).join('')}
     <tr>
       <td colspan="2" class="bold">Monthly Household Expenses</td>
       <td colspan="5">Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/- Per Month</td>
