@@ -72,7 +72,13 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   const netProfY = (data as any).netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean((data as any).hasCoApplicantIncomeAssessment);
+  const hasCoAppAssessment = Boolean(
+    (data as any).hasCoApplicantIncomeAssessment ||
+    (data as any).hasCoApplicantBusiness ||
+    ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0 && (data as any).coApplicantItemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0)) ||
+    (Number((data as any).coApplicantTotalSalesMonthly) || 0) > 0 ||
+    ((data as any).coApplicantBriefBusinessProfile && (data as any).coApplicantBriefBusinessProfile !== 'Not provided')
+  );
   const coAppSalesItems = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
     ? (data as any).coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -117,8 +123,8 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
 
   const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
   const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || 0;
-  const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
+  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
+  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
   const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0 ? (data as any).prominentCustomers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0 ? (data as any).prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
@@ -460,7 +466,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
     </tr>
   </table>
 
-  ${(data as any).hasCoApplicantBusiness ? `
+  ${hasCoAppAssessment ? `
   <div class="page-break"></div>
   <table>
     <tr>
@@ -652,48 +658,28 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
       <td style="width: 15%;">Monthly</td>
       <td style="width: 15%;">Yearly</td>
     </tr>
-    <tr class="text-center">
-      <td class="text-left">Income from Business</td>
-      <td></td>
-      <td>${Number(totalSalesM).toLocaleString('en-IN')}</td>
-      <td>${Number(totalSalesY).toLocaleString('en-IN')}</td>
-    </tr>
+    ${salesItems.map((item: any) => `
+      <tr class="text-center">
+        <td class="text-left">${item.particulars}</td>
+        <td class="text-left">${item.businessNotes || ''}</td>
+        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
     <tr class="bold text-center bg-gray-100">
       <td class="text-left">Total Sales/Receipts (A)</td>
       <td></td>
       <td>${Number(totalSalesM).toLocaleString('en-IN')}</td>
       <td>${Number(totalSalesY).toLocaleString('en-IN')}</td>
     </tr>
-    <tr class="text-center">
-      <td class="text-left">Purchase</td>
-      <td></td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left">Monthly Electricity Expenses</td>
-      <td>A separate electricity meter is not required, as the applicant is operating the business from the residence.</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left">Salary of Employees</td>
-      <td>He is self-employed and operates the business by himself.</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left">Business Premises Rent<br/>(if the premises is on rent)</td>
-      <td>The applicant is managing and operating the business from his residence.</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr class="text-center">
-      <td class="text-left">Other expenses</td>
-      <td>Monthly veterinary and maintenance expenditure</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
+    ${expenseItems.map((item: any) => `
+      <tr class="text-center">
+        <td class="text-left">${item.particulars}</td>
+        <td class="text-left">${item.businessNotes || ''}</td>
+        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
     <tr class="bold text-center bg-gray-100">
       <td class="text-left">Total Expenses(B)</td>
       <td></td>
@@ -729,8 +715,65 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
       <td>Comfortable Monthly EMI Post all expenses (Business and Household)</td>
       <td colspan="2">${data.comfortableEmiNotes?.trim() || 'As per Abhiyan Capital'}</td>
     </tr>
+  </table>
+
+  ${hasCoAppAssessment ? `
+  <div style="margin-top: 15px;"></div>
+  <table>
     <tr>
-      <td colspan="4">
+      <td colspan="4" class="sec-head" style="text-decoration: underline;">Assessment of the monthly income of the co-applicant (${(data as any).coApplicantName || 'Co-Applicant'})</td>
+    </tr>
+    <tr class="bold text-center">
+      <td style="width: 30%;">Particulars</td>
+      <td style="width: 40%;">Business Notes<br/><span style="font-weight: normal; font-size: 8pt;">Income assessment considered for ${(data as any).workingDays || 28} working days</span></td>
+      <td colspan="2" style="width: 30%;">(Period)</td>
+    </tr>
+    <tr class="bold text-center bg-gray-100">
+      <td class="text-left">Sales/Receipts</td>
+      <td></td>
+      <td style="width: 15%;">Monthly</td>
+      <td style="width: 15%;">Yearly</td>
+    </tr>
+    ${coAppSalesItems.map((item: any) => `
+      <tr class="text-center">
+        <td class="text-left">${item.particulars}</td>
+        <td class="text-left">${item.businessNotes || ''}</td>
+        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    <tr class="bold text-center bg-gray-100">
+      <td class="text-left">Total Sales/Receipts (A)</td>
+      <td></td>
+      <td>${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
+      <td>${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
+    </tr>
+    ${coAppExpenseItems.map((item: any) => `
+      <tr class="text-center">
+        <td class="text-left">${item.particulars}</td>
+        <td class="text-left">${item.businessNotes || ''}</td>
+        <td>${Number(item.monthly || 0).toLocaleString('en-IN')}</td>
+        <td>${Number(item.yearly || ((Number(item.monthly) || 0) * 12)).toLocaleString('en-IN')}</td>
+      </tr>
+    `).join('')}
+    <tr class="bold text-center bg-gray-100">
+      <td class="text-left">Total Expenses(B)</td>
+      <td></td>
+      <td>${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
+      <td>${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
+    </tr>
+    <tr class="bold text-center bg-gray-100">
+      <td class="text-left">Co-applicant Net Profit Per month(A- B)</td>
+      <td></td>
+      <td>${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
+      <td>${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+    </tr>
+  </table>
+  ` : ''}
+
+  <table style="margin-top: 15px;">
+    <tr>
+      <td style="padding: 8px; font-size: 8pt; line-height: 1.35;">
         <span class="bold">Limitation and Disclaimer clause: -</span><br/>
         This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions with personnel available at the time of visit, and reflect conditions as observed at that point in time only. Document-related inputs are based solely on information shared during field interactions and do not constitute independent authentication or forensic validation by any issuing or competent authority. This report does not constitute an audit, legal investigation, or forensic activity and shall not be treated as legal evidence or relied upon by any external party, including law enforcement agencies, courts, or regulatory bodies. Any reliance placed on this report shall be strictly at the sole risk of the recipient. The issuing entity expressly disclaims all consequences, direct or indirect, arising from such reliance.<br/><br/>
         <span class="bold">Important Notes:</span><br/>
