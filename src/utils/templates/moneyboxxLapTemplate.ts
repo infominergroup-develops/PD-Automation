@@ -217,10 +217,10 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     : ((data as any).existingLoans && (data as any).existingLoans.length > 0 ? (data as any).existingLoans : []);
 
   const emiNotes = loansList.length > 0
-    ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )${(data as any).coApplicantName ? '<br/>The co-applicant currently has 0 running obligations.' : ''}`
+    ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )`
     : (existEmiM > 0 
         ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.`
-        : `The applicant currently has 0 running obligations.${(data as any).coApplicantName ? '<br/>The co-applicant currently has 0 running obligations.' : ''}`);
+        : `The applicant currently has 0 running obligations.`);
 
   const earningCount = familyList.filter((f: any) => {
     const occ = String(f.occupation || '').toLowerCase();
@@ -229,9 +229,8 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
 
   const householdExpensesNote = `The applicant’s family has ${earningCount} earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`;
 
-  const comfortableEmiVal = data.comfortableEmiNotes?.trim() || (data as any).comfortableEmi || (data as any).assessedEmi || '6000';
-  const comfortableEmiLeftText = `Comfortable Monthly EMI Post all expenses (Business and Household): ${Number(comfortableEmiVal).toLocaleString('en-IN') || '10,000'}.`;
-  const comfortableEmiRightText = `Approx - ${Number(comfortableEmiVal).toLocaleString('en-IN') || '6000'}/- per month`;
+  const comfortableEmiLeftText = data.comfortableEmiNotes?.trim() || 'Comfortable Monthly EMI Post all expenses (Business and Household):-';
+  const comfortableEmiRightText = `As per ${bankName}`;
 
   // Photos Categorization
   const photos = (data as any).photos || [];

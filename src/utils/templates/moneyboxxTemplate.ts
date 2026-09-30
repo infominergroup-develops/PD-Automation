@@ -942,7 +942,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || 'Not Provided'}</td>
+      <td class="text-left">${data.existingEmiNotes || (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
@@ -960,7 +960,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Comfortable Monthly EMI</td>
-      <td class="text-left bold">${data.comfortableEmiNotes || 'Not Provided'}</td>
+      <td class="text-left bold">${data.comfortableEmiNotes || 'Comfortable Monthly EMI Post all expenses (Business and Household):-'}</td>
       <td colspan="2" class="bold">As per ${bankName}</td>
     </tr>
   </table>

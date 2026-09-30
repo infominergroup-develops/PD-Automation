@@ -718,7 +718,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td>The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )<br/>The co-applicant currently has 0 running obligations.</td>
+      <td>${loansList.length > 0 ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )` : (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td></td>
     </tr>
@@ -736,8 +736,8 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr class="bold text-center">
       <td class="text-left">Comfortable Monthly EMI</td>
-      <td>Comfortable Monthly EMI Post all expenses (Business and Household)</td>
-      <td colspan="2">${data.comfortableEmiNotes?.trim() || 'As per Abhiyan Capital'}</td>
+      <td>${data.comfortableEmiNotes?.trim() || 'Comfortable Monthly EMI Post all expenses (Business and Household):-'}</td>
+      <td colspan="2">As per Abhiyan Capital</td>
     </tr>
   </table>
 
