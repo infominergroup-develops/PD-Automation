@@ -14,7 +14,7 @@ import {
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot, Cloud
+  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -158,6 +158,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [isAppSearchOpen, setIsAppSearchOpen] = useState(false);
   const [isAppGalleryOpen, setIsAppGalleryOpen] = useState(false);
+  const [galleryFilter, setGalleryFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
+  const [gallerySearchQuery, setGallerySearchQuery] = useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [rawWhatsappText, setRawWhatsappText] = useState('');
   const [isExtractingWhatsapp, setIsExtractingWhatsapp] = useState(false);
@@ -303,6 +305,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // save code wrote the record (old code used `applicantEntity` / nested `formData`).
   const normaliseApplicant = (raw: any) => {
     const formData = raw.formData || {};
+    const isClosedVal = raw.isClosed !== undefined ? Boolean(raw.isClosed) : (formData.isClosed !== undefined ? Boolean(formData.isClosed) : (raw.status === 'CLOSED' || formData.status === 'CLOSED'));
     return {
       ...raw,
       // Spread legacy nested formData fields so they surface at the top level
@@ -317,6 +320,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       firmName: raw.firmName || formData.firmName || '',
       // Ensure applicationNumber is present
       applicationNumber: raw.applicationNumber || raw.appIdRefNo || '',
+      // Case closure & delivery metadata
+      isClosed: isClosedVal,
+      caseDeliveryStatus: raw.caseDeliveryStatus || formData.caseDeliveryStatus || (isClosedVal ? 'DELIVERED' : 'IN_PROGRESS'),
+      closedAt: raw.closedAt || formData.closedAt || null,
+      closedBy: raw.closedBy || formData.closedBy || null,
+      updatedAt: raw.updatedAt || formData.updatedAt || raw.createdAt || null,
+      createdAt: raw.createdAt || formData.createdAt || null,
     };
   };
 
@@ -1228,6 +1238,50 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     }
   };
 
+  // TOGGLE CLOSE / REOPEN CASE (Manager / Admin only)
+  const handleToggleCloseCase = async (app: any, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (currentUser?.role === 'EMPLOYEE') {
+      alert('Restricted: Only Managers and Admins can mark cases as closed or reopen them.');
+      return;
+    }
+
+    const isCurrentlyClosed = Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED');
+    const newClosedState = !isCurrentlyClosed;
+    const nowIso = new Date().toISOString();
+    const actorName = currentUser?.name || currentUser?.email || (currentUser?.role === 'ADMIN' ? 'Admin' : 'Manager');
+
+    const updatePayload = {
+      isClosed: newClosedState,
+      status: newClosedState ? 'CLOSED' : 'IN_PROGRESS',
+      caseDeliveryStatus: newClosedState ? 'DELIVERED' : 'IN_PROGRESS',
+      closedAt: newClosedState ? nowIso : null,
+      closedBy: newClosedState ? actorName : null,
+      updatedAt: nowIso
+    };
+
+    // Optimistically update local list state
+    setApplicantsList(prev => prev.map(a => {
+      const isMatch = (a._id && a._id === app._id) || (a.applicationNumber && a.applicationNumber === app.applicationNumber);
+      return isMatch ? { ...a, ...updatePayload } : a;
+    }));
+
+    if (selectedClient?.id && app._id) {
+      try {
+        await api.updateApplicant(selectedClient.id, app._id, updatePayload);
+      } catch (err) {
+        console.error('Failed to update case closure status on server:', err);
+      }
+    }
+
+    setLoadedToastMessage(
+      newClosedState
+        ? `✅ Case #${app.applicationNumber || app.applicantName} marked as CLOSED & Delivered to Client.`
+        : `🔄 Case #${app.applicationNumber || app.applicantName} Re-opened for Editing.`
+    );
+    setTimeout(() => setLoadedToastMessage(null), 4000);
+  };
+
   // CREATE NEW APPLICANT
   const handleCreateNewApplicant = async () => {
     if (!selectedClient) return;
@@ -2080,20 +2134,64 @@ ${qaPairs.join('\n\n')}`;
 
   }, [aataChakkiData, currentCategory, workingDays, applicantName, firmName, yearsInBusiness, shopOwnership, shopAreaSqFt]);
 
-  // Search Results for Autocomplete Dropdown
+  // Helper to extract numeric timestamp for latest-first sorting
+  const getAppTimestamp = (app: any): number => {
+    const ts = app.updatedAt || app.createdAt || app.dateOfVisit || app.reportDate || app.visitDate;
+    if (!ts) return 0;
+    const time = new Date(ts).getTime();
+    return isNaN(time) ? 0 : time;
+  };
+
+  const sortLatestFirst = (list: any[]) => {
+    return [...list].sort((a, b) => {
+      const timeA = getAppTimestamp(a);
+      const timeB = getAppTimestamp(b);
+      if (timeA !== timeB) return timeB - timeA;
+      return String(b.applicationNumber || b._id || '').localeCompare(String(a.applicationNumber || a._id || ''));
+    });
+  };
+
+  // Search Results for Autocomplete Dropdown - sorted latest first
   const searchedApplications = useMemo(() => {
-    if (!appSearchQuery.trim()) return applicantsList;
-    const query = appSearchQuery.toLowerCase();
-    return applicantsList.filter(app =>
-      app.applicationNumber?.toLowerCase().includes(query) ||
-      app.applicantName?.toLowerCase().includes(query) ||
-      app.firmName?.toLowerCase().includes(query)
-    );
+    let list = applicantsList;
+    if (appSearchQuery.trim()) {
+      const query = appSearchQuery.toLowerCase();
+      list = list.filter(app =>
+        app.applicationNumber?.toLowerCase().includes(query) ||
+        app.applicantName?.toLowerCase().includes(query) ||
+        app.firmName?.toLowerCase().includes(query)
+      );
+    }
+    return sortLatestFirst(list);
   }, [appSearchQuery, applicantsList]);
 
-  // Gallery Filtered Applications — only real DB applicants, no mock data
+  // Gallery Filtered Applications — sorted latest first with ALL / OPEN / CLOSED tabs and search filter
   const galleryApplications = useMemo(() => {
-    return [...applicantsList];
+    let list = [...applicantsList];
+    if (galleryFilter === 'OPEN') {
+      list = list.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
+    } else if (galleryFilter === 'CLOSED') {
+      list = list.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
+    }
+    if (gallerySearchQuery.trim()) {
+      const query = gallerySearchQuery.toLowerCase();
+      list = list.filter(app =>
+        app.applicationNumber?.toLowerCase().includes(query) ||
+        app.applicantName?.toLowerCase().includes(query) ||
+        app.firmName?.toLowerCase().includes(query) ||
+        app.bankName?.toLowerCase().includes(query) ||
+        app.categoryName?.toLowerCase().includes(query)
+      );
+    }
+    return sortLatestFirst(list);
+  }, [applicantsList, galleryFilter, gallerySearchQuery]);
+
+  const openCasesCount = useMemo(() => {
+    return applicantsList.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
+  }, [applicantsList]);
+
+  const closedCasesCount = useMemo(() => {
+    return applicantsList.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
   }, [applicantsList]);
 
 
@@ -2966,29 +3064,41 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {/* Autocomplete Dropdown */}
               {isAppSearchOpen && searchedApplications.length > 0 && (
                 <div className="absolute left-0 right-0 top-11 bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-64 overflow-y-auto divide-y divide-slate-100">
-                  {searchedApplications.map((app) => (
-                    <div
-                      key={app.applicationNumber}
-                      onClick={() => handleLoadSampleApp(app)}
-                      className="p-3 hover:bg-amber-50/60 cursor-pointer transition flex items-center justify-between text-xs"
-                    >
-                      <div>
-                        <div className="font-extrabold text-[#eb8a23] font-mono">
-                          #{app.applicationNumber}
+                  {searchedApplications.map((app) => {
+                    const isClosed = Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED');
+                    return (
+                      <div
+                        key={app._id || app.applicationNumber}
+                        onClick={() => handleLoadSampleApp(app)}
+                        className={`p-3 hover:bg-amber-50/60 cursor-pointer transition flex items-center justify-between text-xs ${
+                          isClosed ? 'bg-emerald-50/30' : ''
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-[#eb8a23] font-mono">
+                              #{app.applicationNumber}
+                            </span>
+                            {isClosed && (
+                              <span className="px-1.5 py-0.2 rounded text-[9px] font-black bg-emerald-600 text-white uppercase tracking-wider flex items-center gap-0.5">
+                                <CheckCheck className="w-2.5 h-2.5" /> CLOSED
+                              </span>
+                            )}
+                          </div>
+                          <div className="font-bold text-[#2d3e50]">{app.applicantName}</div>
+                          <div className="text-[10px] text-slate-500">{app.firmName} • {app.categoryName}</div>
                         </div>
-                        <div className="font-bold text-[#2d3e50]">{app.applicantName}</div>
-                        <div className="text-[10px] text-slate-500">{app.firmName} • {app.categoryName}</div>
-                      </div>
-                      <div className="text-right">
-                        <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
-                          {app.bankName}
-                        </span>
-                        <div className="text-[11px] font-extrabold text-emerald-700 mt-0.5">
-                          ₹{(app.appliedAmount / 100000).toFixed(2)} Lakh
+                        <div className="text-right">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-700">
+                            {app.bankName}
+                          </span>
+                          <div className="text-[11px] font-extrabold text-emerald-700 mt-0.5">
+                            ₹{((app.appliedAmount || 0) / 100000).toFixed(2)} Lakh
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -7073,110 +7183,221 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </button>
             </div>
 
+            {/* Filter Tabs, Search Bar & Admin Actions */}
+            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 shrink-0 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                {/* Search in Gallery */}
+                <div className="relative flex-1 min-w-[220px] max-w-sm">
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    type="text"
+                    placeholder="Search by name, app #, bank, category..."
+                    value={gallerySearchQuery}
+                    onChange={(e) => setGallerySearchQuery(e.target.value)}
+                    className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-[#2d3e50] focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
+                  />
+                  {gallerySearchQuery && (
+                    <button
+                      onClick={() => setGallerySearchQuery('')}
+                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
 
-            {/* Applicant Count & Admin Actions */}
-            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 shrink-0 flex items-center justify-between">
-              <div className="text-xs text-slate-500 font-medium">
-                {loadingApplicants && galleryApplications.length === 0 ? (
-                  <span className="flex items-center gap-2"><div className="w-3 h-3 rounded-full border-2 border-[#eb8a23] border-t-transparent animate-spin"></div> Loading...</span>
-                ) : (
-                  <>Showing <strong>{galleryApplications.length}</strong> applications</>
+                {/* Filter Pills */}
+                <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
+                  <button
+                    onClick={() => setGalleryFilter('ALL')}
+                    className={`px-3 py-1 rounded-lg transition ${
+                      galleryFilter === 'ALL'
+                        ? 'bg-white text-[#2d3e50] shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    All ({applicantsList.length})
+                  </button>
+                  <button
+                    onClick={() => setGalleryFilter('OPEN')}
+                    className={`px-3 py-1 rounded-lg transition flex items-center gap-1 ${
+                      galleryFilter === 'OPEN'
+                        ? 'bg-amber-500 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full bg-amber-300"></span>
+                    Open ({openCasesCount})
+                  </button>
+                  <button
+                    onClick={() => setGalleryFilter('CLOSED')}
+                    className={`px-3 py-1 rounded-lg transition flex items-center gap-1 ${
+                      galleryFilter === 'CLOSED'
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                  >
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    Closed / Delivered ({closedCasesCount})
+                  </button>
+                </div>
+
+                {/* Admin Danger Delete All Button */}
+                {currentUser?.role !== 'EMPLOYEE' && galleryApplications.length > 0 && (
+                  <button
+                    onClick={async () => {
+                      if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
+                      try {
+                        const result = await api.deleteAllApplicants();
+                        setApplicantsList([]);
+                        setActiveAppId(null);
+                        activeAppIdRef.current = null;
+                        lastSavedStrRef.current = '';
+                        setLoadedToastMessage(`✅ Permanently deleted ${result.deletedCount} applicants from database.`);
+                        setTimeout(() => setLoadedToastMessage(null), 5000);
+                      } catch (err) {
+                        console.error('Failed to delete all applicants:', err);
+                        alert('Failed to delete all applicants. Check console.');
+                      }
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm ml-auto"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    Delete All Applicants
+                  </button>
                 )}
               </div>
-              {currentUser?.role !== 'EMPLOYEE' && galleryApplications.length > 0 && (
-                <button
-                  onClick={async () => {
-                    if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
-                    try {
-                      const result = await api.deleteAllApplicants();
-                      setApplicantsList([]);
-                      setActiveAppId(null);
-                      activeAppIdRef.current = null;
-                      lastSavedStrRef.current = '';
-                      setLoadedToastMessage(`✅ Permanently deleted ${result.deletedCount} applicants from database.`);
-                      setTimeout(() => setLoadedToastMessage(null), 5000);
-                    } catch (err) {
-                      console.error('Failed to delete all applicants:', err);
-                      alert('Failed to delete all applicants. Check console.');
-                    }
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm"
-                >
-                  <Trash2 className="w-3 h-3" />
-                  Delete All Applicants
-                </button>
-              )}
             </div>
-
 
             {/* Application Cards Grid */}
             <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {galleryApplications.length === 0 && !loadingApplicants && (
                 <div className="col-span-3 text-center py-16 text-slate-400">
                   <div className="text-4xl mb-3">📂</div>
-                  <p className="font-bold text-sm">No applicants saved yet</p>
-                  <p className="text-xs mt-1">Click "+ New Applicant" to create your first entry.</p>
+                  <p className="font-bold text-sm">No applications found</p>
+                  <p className="text-xs mt-1">
+                    {galleryFilter === 'CLOSED'
+                      ? 'No closed/delivered cases yet. Managers and Admins can mark completed cases as closed.'
+                      : galleryFilter === 'OPEN'
+                      ? 'No open cases matching your filter.'
+                      : 'Click "+ New Applicant" to create your first entry.'}
+                  </p>
                 </div>
               )}
-              {galleryApplications.map((app) => (
-                <div
-                  key={app._id || app.applicationNumber}
-                  className="bg-white border border-slate-200 hover:border-amber-400 rounded-2xl p-4 shadow-sm hover:shadow-md transition flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono font-black text-xs text-[#eb8a23] bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                        #{app.applicationNumber}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${app.riskScore >= 80
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : 'bg-amber-100 text-amber-800 border border-amber-300'
-                        }`}>
-                        {app.riskScore >= 80 ? 'APPROVED' : 'CONDITIONAL'}
-                      </span>
+              {galleryApplications.map((app) => {
+                const isClosed = Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED');
+                return (
+                  <div
+                    key={app._id || app.applicationNumber}
+                    className={`rounded-2xl p-4 transition flex flex-col justify-between space-y-3 relative ${
+                      isClosed
+                        ? 'bg-gradient-to-b from-emerald-50/80 via-white to-emerald-50/30 border-2 border-emerald-500 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/20'
+                        : 'bg-white border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-md'
+                    }`}
+                  >
+                    <div className="space-y-2.5">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono font-black text-xs text-[#eb8a23] bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                          #{app.applicationNumber}
+                        </span>
+                        {isClosed ? (
+                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-600 text-white border border-emerald-700 uppercase tracking-wider flex items-center gap-1 shadow-xs">
+                            <CheckCheck className="w-3 h-3" /> CLOSED (DELIVERED)
+                          </span>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                            app.riskScore >= 80
+                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                              : 'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
+                            {app.riskScore >= 80 ? 'APPROVED' : 'CONDITIONAL'}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Closed Status Delivery Banner */}
+                      {isClosed && (
+                        <div className="bg-emerald-100/70 border border-emerald-300/90 rounded-xl p-2.5 text-xs text-emerald-950 flex items-start gap-2">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                          <div className="space-y-0.5">
+                            <p className="font-extrabold text-[11px] leading-tight text-emerald-950">Case Report Completed & Delivered</p>
+                            <p className="text-[10px] text-emerald-800 font-medium">
+                              {app.closedAt ? `Delivered: ${new Date(app.closedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Delivered to client'}
+                              {app.closedBy ? ` • by ${app.closedBy}` : ''}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div>
+                        <h4 className="text-sm font-black text-[#2d3e50]">{app.applicantName}</h4>
+                        <p className="text-xs font-bold text-slate-600">{app.firmName}</p>
+                        <p className="text-[11px] text-slate-500 font-medium">{app.categoryName} • {app.constitution}</p>
+                      </div>
+
+                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">Client Bank:</span>
+                          <span className="font-bold text-[#2d3e50]">{app.bankName}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">Applied Amount:</span>
+                          <span className="font-extrabold text-emerald-700">₹{(app.appliedAmount || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-500 font-medium">CIBIL / Vintage:</span>
+                          <span className="font-bold text-slate-700">Vintage: {app.yearsInBusiness} yrs</span>
+                        </div>
+                      </div>
                     </div>
 
-                    <div>
-                      <h4 className="text-sm font-black text-[#2d3e50]">{app.applicantName}</h4>
-                      <p className="text-xs font-bold text-slate-600">{app.firmName}</p>
-                      <p className="text-[11px] text-slate-500 font-medium">{app.categoryName} • {app.constitution}</p>
-                    </div>
+                    <div className="space-y-1.5 pt-1">
+                      <button
+                        onClick={() => handleLoadSampleApp(app)}
+                        className={`w-full py-2 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group ${
+                          isClosed
+                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                            : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300'
+                        }`}
+                      >
+                        <Zap className="w-3.5 h-3.5" />
+                        Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
+                      </button>
 
-                    <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Client Bank:</span>
-                        <span className="font-bold text-[#2d3e50]">{app.bankName}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">Applied Amount:</span>
-                        <span className="font-extrabold text-emerald-700">₹{(app.appliedAmount || 0).toLocaleString('en-IN')}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500 font-medium">CIBIL / Vintage:</span>
-                        <span className="font-bold text-slate-700">Vintage: {app.yearsInBusiness} yrs</span>
-                      </div>
+                      {currentUser?.role !== 'EMPLOYEE' && (
+                        <div className="flex items-center gap-1.5">
+                          {isClosed ? (
+                            <button
+                              onClick={(e) => handleToggleCloseCase(app, e)}
+                              className="flex-1 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
+                              title="Re-open this case for further editing"
+                            >
+                              <RotateCcw className="w-3 h-3" />
+                              Re-open Case
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => handleToggleCloseCase(app, e)}
+                              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 rounded-xl text-[11px] font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs"
+                              title="Mark this case report as completed and delivered to the client"
+                            >
+                              <CheckCheck className="w-3.5 h-3.5" />
+                              Mark as Closed (Delivered)
+                            </button>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleDeleteApplication(app._id || app.applicationNumber); }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 shadow-xs"
+                            title="Delete application"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:text-white" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => handleLoadSampleApp(app)}
-                    className="w-full py-2 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-emerald-600 group-hover:text-white" />
-                    Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
-                  </button>
-
-                  {currentUser?.role !== 'EMPLOYEE' && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteApplication(app._id || app.applicationNumber); }}
-                      className="w-full mt-1 py-1 bg-rose-50 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 rounded-lg text-[10px] font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:text-white" />
-                      Delete App
-                    </button>
-                  )}
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
