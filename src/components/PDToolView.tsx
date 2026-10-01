@@ -57,7 +57,7 @@ const updateItemizedLine = (lines: ItemizedCalculationLine[], id: string, field:
     return newLine;
   });
 
-// Copies the list, sets one field on the item at `index` (mutating that item, as the inline handlers always did) and stores the copy.
+// Copies the list, sets one field on the item at `index` (mutating that item in place, matching the original per-field handlers) and stores the copy.
 const updateListItem = <T,>(list: T[], setList: (next: T[]) => void, index: number, field: keyof T, value: any) => {
   const next = [...list];
   (next[index] as any)[field] = value;
