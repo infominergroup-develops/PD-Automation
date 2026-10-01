@@ -4289,7 +4289,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             <div className="pt-6 border-t border-slate-100">
               <label className="block text-xs font-bold text-slate-700 mb-2">15.1 Documents Seen</label>
               <div className="flex flex-wrap gap-3">
-                {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Bank Statement', 'Other'].map(doc => (
+                {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Buisness Invoices', 'Other'].map(doc => (
                   <label key={doc} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                     <input 
                       type="checkbox" 
@@ -4454,7 +4454,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100 text-center">
-                            <select value={(member.isDependent === false || member.dependent === false) ? 'No' : 'Yes'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; newFm[idx].dependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
+                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
                               <option value="Yes">Yes</option>
                               <option value="No">No</option>
                             </select>
