@@ -502,15 +502,19 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td class="sec-head" style="width:25%; text-align:left;">Strength</td>
       <td>
-        1. The Applicant has been running this business under the name ${data.firmName || '-'} for the last ${data.businessVintage || '-'} years.<br/>
-        2. The applicant was available at the time of verification and provided all details.<br/>
-        3. During the visit, the applicant's business activity was observed.<br/>
+        ${data.godrejStrengths && data.godrejStrengths.length > 0 
+          ? data.godrejStrengths.map((s: any, i: number) => `${i + 1}. ${s.text}<br/>`).join('')
+          : `1. The Applicant has been running this business under the name ${data.firmName || '-'} for the last ${data.businessVintage || '-'} years.<br/>
+             2. The applicant was available at the time of verification and provided all details.<br/>
+             3. During the visit, the applicant's business activity was observed.<br/>`}
       </td>
     </tr>
     <tr>
       <td class="sec-head" style="text-align:left;">Weakness</td>
       <td>
-        1. Standard business risks apply.
+        ${data.godrejWeaknesses && data.godrejWeaknesses.length > 0 
+          ? data.godrejWeaknesses.map((w: any, i: number) => `${i + 1}. ${w.text}<br/>`).join('')
+          : '1. Standard business risks apply.'}
       </td>
     </tr>
     <tr>
