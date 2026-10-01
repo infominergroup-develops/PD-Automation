@@ -458,26 +458,6 @@ export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   openPDReportPrintWindow(generateStandardPDReportHTML(data), data.applicationNumber || 'Standard');
 }
 
-export function openMoneyboxxLapPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
-}
-
-export function openMoneyboxxPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateMoneyboxxPDReportHTML(data), data.applicationNumber || 'Moneyboxx');
-}
-
-export function openSbfcPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateSbfcPDReportHTML(data), data.applicationNumber || 'SBFC');
-}
-
-export function openGodrejPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateGodrejPDReportHTML(data), data.applicationNumber || 'Godrej');
-}
-
-export function openTataCapitalPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
-}
-
 export function openPDReportPrintWindow(htmlContent: string, windowName: string) {
   const newWin = window.open('', '_blank');
   if (newWin) {
