@@ -39,6 +39,34 @@ export interface ItemizedCalculationLine {
   monthlyAmount: number;
 }
 
+// Applies a field edit to one itemized line; editing qty/price/days/unit recomputes the monthly amount and notes.
+const updateItemizedLine = (lines: ItemizedCalculationLine[], id: string, field: keyof ItemizedCalculationLine, value: any) =>
+  lines.map(line => {
+    if (line.id !== id) return line;
+    const newLine = { ...line, [field]: value };
+    if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+      const { quantity: q, price: p, workingDays: w, unit: u } = newLine;
+      if (!q || !p || !w || !u) {
+        newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+        newLine.monthlyAmount = 0;
+      } else {
+        newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+        newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+      }
+    }
+    return newLine;
+  });
+
+const newItemizedLine = (id: string, unit: string, workingDays: number): ItemizedCalculationLine => ({
+  id,
+  particulars: '',
+  unit,
+  quantity: 1,
+  price: 0,
+  workingDays,
+  monthlyAmount: 0
+});
+
 export interface CoApplicant {
   name: string;
   relation: string;
@@ -724,40 +752,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Income
   const handleUpdateIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setIncomeLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setIncomeLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddIncomeLine = () => {
-    const newId = `inc-custom-${Date.now()}`;
-    setIncomeLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Piece',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`inc-custom-${Date.now()}`, 'Piece', workingDays || 26);
+    setIncomeLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveIncomeLine = (id: string) => {
@@ -766,40 +766,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Expenditure
   const handleUpdateExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setExpenseLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setExpenseLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddExpenseLine = () => {
-    const newId = `exp-custom-${Date.now()}`;
-    setExpenseLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`exp-custom-${Date.now()}`, 'Month', workingDays || 26);
+    setExpenseLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveExpenseLine = (id: string) => {
@@ -811,40 +783,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [coAppExpenseLines, setCoAppExpenseLines] = useState<ItemizedCalculationLine[]>([]);
 
   const handleUpdateCoAppIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setCoAppIncomeLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setCoAppIncomeLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddCoAppIncomeLine = () => {
-    const newId = `coapp-inc-${Date.now()}`;
-    setCoAppIncomeLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`coapp-inc-${Date.now()}`, 'Month', workingDays || 26);
+    setCoAppIncomeLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveCoAppIncomeLine = (id: string) => {
@@ -852,40 +796,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   const handleUpdateCoAppExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setCoAppExpenseLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setCoAppExpenseLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddCoAppExpenseLine = () => {
-    const newId = `coapp-exp-${Date.now()}`;
-    setCoAppExpenseLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`coapp-exp-${Date.now()}`, 'Month', workingDays || 26);
+    setCoAppExpenseLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveCoAppExpenseLine = (id: string) => {
