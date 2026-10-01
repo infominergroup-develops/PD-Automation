@@ -67,6 +67,167 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
   monthlyAmount: 0
 });
 
+const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
+
+const ITEMIZED_ACCENTS = {
+  emerald: { icon: 'text-emerald-600', amount: 'text-emerald-700', addButton: 'bg-emerald-600 hover:bg-emerald-700' },
+  rose: { icon: 'text-rose-600', amount: 'text-rose-700', addButton: 'bg-rose-600 hover:bg-rose-700' }
+};
+
+interface ItemizedLinesTableProps {
+  accent: keyof typeof ITEMIZED_ACCENTS;
+  title: string;
+  subtitle: string;
+  headerRight: React.ReactNode;
+  firstColumnLabel: string;
+  emptyMessage: React.ReactNode;
+  notesPlaceholder: string;
+  deleteTitle: string;
+  addLabel: string;
+  lines: ItemizedCalculationLine[];
+  onUpdate: (id: string, field: keyof ItemizedCalculationLine, value: any) => void;
+  onRemove: (id: string) => void;
+  onAdd: () => void;
+}
+
+// Editable Qty × Price × Days table used for both itemized income and itemized expenditure.
+const ItemizedLinesTable: React.FC<ItemizedLinesTableProps> = ({
+  accent, title, subtitle, headerRight, firstColumnLabel, emptyMessage, notesPlaceholder, deleteTitle, addLabel, lines, onUpdate, onRemove, onAdd
+}) => {
+  const colors = ITEMIZED_ACCENTS[accent];
+  return (
+    <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <div>
+          <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
+            <DollarSign className={`w-4 h-4 ${colors.icon}`} />
+            {title}
+          </h4>
+          <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
+        </div>
+
+        {headerRight}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left">
+          <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
+            <tr>
+              <th className="p-2.5">{firstColumnLabel}</th>
+              <th className="p-2.5">Business Notes</th>
+              <th className="p-2.5">Unit</th>
+              <th className="p-2.5 text-right">Qty</th>
+              <th className="p-2.5 text-right">Price (₹)</th>
+              <th className="p-2.5 text-right">Days/Mo</th>
+              <th className="p-2.5 text-right">Monthly (₹)</th>
+              <th className="p-2.5 text-right">Yearly (₹)</th>
+              <th className="p-2.5 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 bg-white font-medium">
+            {lines.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              lines.map((line) => (
+                <tr key={line.id} className="hover:bg-slate-50">
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={line.particulars}
+                      onChange={(e) => onUpdate(line.id, 'particulars', e.target.value)}
+                      className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={line.businessNotes || ''}
+                      onChange={(e) => onUpdate(line.id, 'businessNotes', e.target.value)}
+                      className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                      placeholder={notesPlaceholder}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <select
+                      value={line.unit || ''}
+                      onChange={(e) => onUpdate(line.id, 'unit', e.target.value)}
+                      className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                    >
+                      <option value="">Select...</option>
+                      {ITEMIZED_UNITS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                    </select>
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.quantity || ''}
+                      onChange={(e) => onUpdate(line.id, 'quantity', Number(e.target.value))}
+                      className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.price || ''}
+                      onChange={(e) => onUpdate(line.id, 'price', Number(e.target.value))}
+                      className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.workingDays || ''}
+                      onChange={(e) => onUpdate(line.id, 'workingDays', Number(e.target.value))}
+                      className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.monthlyAmount || 0}
+                      onChange={(e) => onUpdate(line.id, 'monthlyAmount', Number(e.target.value))}
+                      className={`w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black ${colors.amount}`}
+                    />
+                  </td>
+                  <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
+                    ₹{((line.monthlyAmount || 0) * 12).toLocaleString('en-IN')}
+                  </td>
+                  <td className="p-2 text-center">
+                    <button
+                      onClick={() => onRemove(line.id)}
+                      className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
+                      title={deleteTitle}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-between items-center pt-1">
+        <button
+          onClick={onAdd}
+          className={`px-3 py-1.5 ${colors.addButton} text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {addLabel}
+        </button>
+        <div className="text-xs font-bold text-slate-500">
+          Direct Monthly Basis
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export interface CoApplicant {
   name: string;
   relation: string;
@@ -6146,16 +6307,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* Price x Quantity x Days Itemized Income Breakdown */}
-            <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                <div>
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                    Itemized Income & Goods Revenue ({currentCategory.name})
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-medium">Editable Price × Quantity per Day × Working Days format.</p>
-                </div>
-
+            <ItemizedLinesTable
+              accent="emerald"
+              title={`Itemized Income & Goods Revenue (${currentCategory.name})`}
+              subtitle="Editable Price × Quantity per Day × Working Days format."
+              headerRight={
                 <div className="flex items-center gap-2">
                   <div className="text-xs font-extrabold px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg">
                     Itemized Total: ₹{itemizedMonthlyIncomeTotal.toLocaleString('en-IN')} / mo
@@ -6167,273 +6323,38 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     Sync to Stated Turnover
                   </button>
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-2.5">Item / Particulars</th>
-                      <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5">Unit</th>
-                      <th className="p-2.5 text-right">Qty</th>
-                      <th className="p-2.5 text-right">Price (₹)</th>
-                      <th className="p-2.5 text-right">Days/Mo</th>
-                      <th className="p-2.5 text-right">Monthly (₹)</th>
-                      <th className="p-2.5 text-right">Yearly (₹)</th>
-                      <th className="p-2.5 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {incomeLines.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
-                          No itemized product lines added yet. Click &quot;+ Add Income Item Line&quot; to specify itemized quantities and rates, or use the Stated Monthly Sales Turnover below.
-                        </td>
-                      </tr>
-                    ) : (
-                      incomeLines.map((line) => {
-                      const monthlyLineTotal = line.monthlyAmount || 0;
-                      return (
-                        <tr key={line.id} className="hover:bg-slate-50">
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.particulars}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'particulars', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.businessNotes || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'businessNotes', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                              placeholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <select
-                              value={line.unit || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'unit', e.target.value)}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                            >
-                              <option value="">Select...</option>
-                              <option value="Litre">Litre</option>
-                              <option value="Kg">Kg</option>
-                              <option value="Piece">Piece</option>
-                              <option value="Box">Box</option>
-                              <option value="Dozen">Dozen</option>
-                              <option value="Quintal">Quintal</option>
-                              <option value="Ton">Ton</option>
-                            </select>
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.quantity || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'quantity', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.price || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'price', Number(e.target.value))}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.workingDays || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'workingDays', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.monthlyAmount || 0}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-emerald-700"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
-                            ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleRemoveIncomeLine(line.id)}
-                              className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
-                              title="Delete Item Line"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    }))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-between items-center pt-1">
-                <button
-                  onClick={handleAddIncomeLine}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Income Item Line
-                </button>
-                <div className="text-xs font-bold text-slate-500">
-                  Direct Monthly Basis
-                </div>
-              </div>
-            </div>
+              }
+              firstColumnLabel="Item / Particulars"
+              emptyMessage={<>No itemized product lines added yet. Click &quot;+ Add Income Item Line&quot; to specify itemized quantities and rates, or use the Stated Monthly Sales Turnover below.</>}
+              notesPlaceholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
+              deleteTitle="Delete Item Line"
+              addLabel="Add Income Item Line"
+              lines={incomeLines}
+              onUpdate={handleUpdateIncomeLine}
+              onRemove={handleRemoveIncomeLine}
+              onAdd={handleAddIncomeLine}
+            />
 
             {/* Direct Monthly Expenditure Breakdown */}
-            <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                <div>
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-rose-600" />
-                    Itemized Operating Expenditures & Direct Costs ({currentCategory.name})
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-medium">Direct Monthly Basis format.</p>
-                </div>
-
+            <ItemizedLinesTable
+              accent="rose"
+              title={`Itemized Operating Expenditures & Direct Costs (${currentCategory.name})`}
+              subtitle="Direct Monthly Basis format."
+              headerRight={
                 <div className="text-xs font-extrabold px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg">
                   Itemized Expense Total: ₹{itemizedMonthlyExpenseTotal.toLocaleString('en-IN')} / mo
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-2.5">Expenditure / Cost Line</th>
-                      <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5">Unit</th>
-                      <th className="p-2.5 text-right">Qty</th>
-                      <th className="p-2.5 text-right">Price (₹)</th>
-                      <th className="p-2.5 text-right">Days/Mo</th>
-                      <th className="p-2.5 text-right">Monthly (₹)</th>
-                      <th className="p-2.5 text-right">Yearly (₹)</th>
-                      <th className="p-2.5 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {expenseLines.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
-                          No custom expense lines added. Standard operating expenses (COGS, Salaries, Rent, Utilities, etc.) configured below will be included in the assessment.
-                        </td>
-                      </tr>
-                    ) : (
-                      expenseLines.map((line) => {
-                      const monthlyLineTotal = line.monthlyAmount || 0;
-                      return (
-                        <tr key={line.id} className="hover:bg-slate-50">
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.particulars}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'particulars', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.businessNotes || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'businessNotes', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                              placeholder="e.g. Estimated based on usage"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <select
-                              value={line.unit || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'unit', e.target.value)}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                            >
-                              <option value="">Select...</option>
-                              <option value="Litre">Litre</option>
-                              <option value="Kg">Kg</option>
-                              <option value="Piece">Piece</option>
-                              <option value="Box">Box</option>
-                              <option value="Dozen">Dozen</option>
-                              <option value="Quintal">Quintal</option>
-                              <option value="Ton">Ton</option>
-                            </select>
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.quantity || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'quantity', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.price || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'price', Number(e.target.value))}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.workingDays || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'workingDays', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.monthlyAmount || 0}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-rose-700"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
-                            ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleRemoveExpenseLine(line.id)}
-                              className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
-                              title="Delete Expense Line"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    }))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-between items-center pt-1">
-                <button
-                  onClick={handleAddExpenseLine}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Expenditure Line
-                </button>
-                <div className="text-xs font-bold text-slate-500">
-                  Direct Monthly Basis
-                </div>
-              </div>
-            </div>
+              }
+              firstColumnLabel="Expenditure / Cost Line"
+              emptyMessage="No custom expense lines added. Standard operating expenses (COGS, Salaries, Rent, Utilities, etc.) configured below will be included in the assessment."
+              notesPlaceholder="e.g. Estimated based on usage"
+              deleteTitle="Delete Expense Line"
+              addLabel="Add Expenditure Line"
+              lines={expenseLines}
+              onUpdate={handleUpdateExpenseLine}
+              onRemove={handleRemoveExpenseLine}
+              onAdd={handleAddExpenseLine}
+            />
 
             {/* Assessment of the monthly income of the co-applicant */}
             {hasCoAppInBusiness && (
