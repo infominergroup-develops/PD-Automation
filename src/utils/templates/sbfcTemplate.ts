@@ -3,6 +3,16 @@ import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReport
 import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
+  const bankName = data.clientBankName || 'SBFC Finance LTD';
+  return generateSbfcLayoutPDReportHTML(data, bankName, bankName);
+}
+
+export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string {
+  return generateSbfcLayoutPDReportHTML(data, 'Tata Capital Limited', 'Tata Capital');
+}
+
+// Shared layout for SBFC and Tata Capital; only the lender names differ.
+function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string): string {
   const appNo = data.applicationNumber || 'Not Provided';
   const reportDate = data.visitDate || '-';
   const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
@@ -128,7 +138,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>${data.clientBankName || 'SBFC Finance LTD'} PD Report - ${appNo}</title>
+  <title>${bankName} PD Report - ${appNo}</title>
   <style>
     @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 8.5pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.35; }
@@ -163,7 +173,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr><td colspan="4" class="text-center">Personal Discussion Report</td></tr>
     <tr><td colspan="4">To,</td></tr>
     <tr>
-      <td colspan="2" style="width: 50%;">${data.clientBankName || 'SBFC Finance LTD'}</td>
+      <td colspan="2" style="width: 50%;">${bankName}</td>
       <td style="width: 25%;">Initiated Date</td>
       <td style="width: 25%;">${data.visitDate || '-'}</td>
     </tr>
@@ -530,7 +540,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>${data.executiveName || 'Verification Officer'}</td>
     </tr>
     <tr>
-      <td class="sec-head" style="text-align:left;">• Distance from ${data.clientBankName || 'SBFC Finance LTD'} Office (In Km’s):</td>
+      <td class="sec-head" style="text-align:left;">• Distance from ${officeName} Office (In Km’s):</td>
       <td>${data.tataCapitalDistance || '5-10 Km (Approx)'}</td>
     </tr>
     <tr>

@@ -408,11 +408,9 @@ export interface PDReportPrintData {
 import { generateStandardPDReportHTML } from './templates/standardTemplate';
 import { generateMoneyboxxPDReportHTML } from './templates/moneyboxxTemplate';
 import { generateMoneyboxxLapPDReportHTML } from './templates/moneyboxxLapTemplate';
-import { generateSbfcPDReportHTML } from './templates/sbfcTemplate';
+import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from './templates/sbfcTemplate';
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
-import { generateTataCapitalPDReportHTML } from './templates/tataCapitalTemplate';
-import { generateAbhiyanPDReportHTML } from './templates/abhiyanTemplate';
-import { generateAmbitPDReportHTML } from './templates/ambitTemplate';
+import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from './templates/abhiyanTemplate';
 
 export {
   generateStandardPDReportHTML,
