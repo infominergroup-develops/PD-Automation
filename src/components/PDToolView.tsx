@@ -57,6 +57,13 @@ const updateItemizedLine = (lines: ItemizedCalculationLine[], id: string, field:
     return newLine;
   });
 
+// Copies the list, sets one field on the item at `index` (mutating that item, as the inline handlers always did) and stores the copy.
+const updateListItem = <T,>(list: T[], setList: (next: T[]) => void, index: number, field: keyof T, value: any) => {
+  const next = [...list];
+  (next[index] as any)[field] = value;
+  setList(next);
+};
+
 const newItemizedLine = (id: string, unit: string, workingDays: number): ItemizedCalculationLine => ({
   id,
   particulars: '',
@@ -3370,7 +3377,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     />
                     {godrejStrengths.map((s, idx) => (
                       <div key={s.id} className="flex gap-2 mb-2">
-                        <input type="text" value={s.text} onChange={(e) => { const st = [...godrejStrengths]; st[idx].text = e.target.value; setGodrejStrengths(st); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <input type="text" value={s.text} onChange={(e) => updateListItem(godrejStrengths, setGodrejStrengths, idx, 'text', e.target.value)} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
                         <button onClick={() => { const st = [...godrejStrengths]; st.splice(idx, 1); setGodrejStrengths(st); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
@@ -3394,7 +3401,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     />
                     {godrejWeaknesses.map((w, idx) => (
                       <div key={w.id} className="flex gap-2 mb-2">
-                        <input type="text" value={w.text} onChange={(e) => { const wk = [...godrejWeaknesses]; wk[idx].text = e.target.value; setGodrejWeaknesses(wk); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <input type="text" value={w.text} onChange={(e) => updateListItem(godrejWeaknesses, setGodrejWeaknesses, idx, 'text', e.target.value)} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
                         <button onClick={() => { const wk = [...godrejWeaknesses]; wk.splice(idx, 1); setGodrejWeaknesses(wk); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
@@ -3816,11 +3823,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
                     <div>
                       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Co-applicant Name</label>
-                      <input type="text" value={coApp.name} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].name = e.target.value;
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
+                      <input type="text" value={coApp.name} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'name', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship</label>
@@ -3845,39 +3848,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {coApp.relation === 'Other' && (
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
-                        <input type="text" value={coApp.otherRelation || ''} onChange={(e) => {
-                          const newCoApps = [...coApplicants];
-                          newCoApps[idx].otherRelation = e.target.value;
-                          setCoApplicants(newCoApps);
-                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
+                        <input type="text" value={coApp.otherRelation || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'otherRelation', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                       </div>
                     )}
                     <div>
                       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">7. Contact Number</label>
-                      <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].mobileNumber = e.target.value.replace(/\D/g, '');
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
+                      <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'mobileNumber', e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Profession</label>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Salaried';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Business';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Other';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
                       </div>
                     </div>
                   </div>
@@ -4200,7 +4183,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       familyMembers.map((member, idx) => (
                         <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-2 border-r border-slate-100">
-                            <input type="text" value={member.name} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].name = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
+                            <input type="text" value={member.name} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'name', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             {!member._otherRelation ? (
@@ -4239,13 +4222,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.relationship || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.relationship || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'relationship', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherRelation = false; newFm[idx].relationship = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100">
-                            <input type="number" value={member.age} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].age = Number(e.target.value); setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
+                            <input type="number" value={member.age} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'age', Number(e.target.value))} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             {!member._otherProfession ? (
@@ -4274,7 +4257,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.profession || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].profession = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.profession || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'profession', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherProfession = false; newFm[idx].profession = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
@@ -4305,13 +4288,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.qualification || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].qualification = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.qualification || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'qualification', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherQualification = false; newFm[idx].qualification = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100 text-center">
-                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
+                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'isDependent', e.target.value === 'Yes')} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
                               <option value="Yes">Yes</option>
                               <option value="No">No</option>
                             </select>
@@ -4514,16 +4497,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="space-y-2">
                 {businessAssets.map((asset, idx) => (
                   <div key={asset.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                    <input type="text" value={asset.name} onChange={(e) => { const arr = [...businessAssets]; arr[idx].name = e.target.value; setBusinessAssets(arr); }} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <input type="number" value={asset.quantity} onChange={(e) => { const arr = [...businessAssets]; arr[idx].quantity = Number(e.target.value); setBusinessAssets(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <input type="text" value={asset.size} onChange={(e) => { const arr = [...businessAssets]; arr[idx].size = e.target.value; setBusinessAssets(arr); }} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <select value={asset.condition} onChange={(e) => { const arr = [...businessAssets]; arr[idx].condition = e.target.value; setBusinessAssets(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                    <input type="text" value={asset.name} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'name', e.target.value)} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="number" value={asset.quantity} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'quantity', Number(e.target.value))} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="text" value={asset.size} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'size', e.target.value)} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <select value={asset.condition} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'condition', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                       <option value="Operational">Operational</option>
                       <option value="Non-Operational">Non-Operational</option>
                       <option value="Needs Repair">Needs Repair</option>
                     </select>
                     <div className="flex items-center gap-1">
-                      <input type="text" value={asset.remarks} onChange={(e) => { const arr = [...businessAssets]; arr[idx].remarks = e.target.value; setBusinessAssets(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={asset.remarks} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       <button onClick={() => { const arr = [...businessAssets]; arr.splice(idx, 1); setBusinessAssets(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -4571,15 +4554,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="space-y-2">
                   {stockDetails.map((stock, idx) => (
                     <div key={stock.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                      <input type="text" value={stock.name} onChange={(e) => { const arr = [...stockDetails]; arr[idx].name = e.target.value; setStockDetails(arr); }} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                      <input type="number" value={stock.quantity} onChange={(e) => { const arr = [...stockDetails]; arr[idx].quantity = Number(e.target.value); setStockDetails(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                      <input type="text" value={stock.unit} onChange={(e) => { const arr = [...stockDetails]; arr[idx].unit = e.target.value; setStockDetails(arr); }} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={stock.name} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'name', e.target.value)} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="number" value={stock.quantity} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'quantity', Number(e.target.value))} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={stock.unit} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'unit', e.target.value)} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       <div className="relative">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                        <input type="number" value={stock.value} onChange={(e) => { const arr = [...stockDetails]; arr[idx].value = Number(e.target.value); setStockDetails(arr); }} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="number" value={stock.value} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'value', Number(e.target.value))} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       </div>
                       <div className="flex items-center gap-1">
-                        <input type="text" value={stock.remarks} onChange={(e) => { const arr = [...stockDetails]; arr[idx].remarks = e.target.value; setStockDetails(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="text" value={stock.remarks} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                         <button onClick={() => { const arr = [...stockDetails]; arr.splice(idx, 1); setStockDetails(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -4838,7 +4821,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                   {otherIncomeSources.map((inc, idx) => (
                     <div key={inc.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 border border-slate-200 rounded-lg bg-white items-center">
-                      <select value={inc.source} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].source = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                      <select value={inc.source} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'source', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                         <option value="Salary">Salary</option>
                         <option value="Rent">Rent</option>
                         <option value="Agriculture">Agriculture</option>
@@ -4847,16 +4830,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <option value="Investment">Investment</option>
                         <option value="Other">Other</option>
                       </select>
-                      <select value={inc.frequency} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].frequency = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                      <select value={inc.frequency} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'frequency', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                         <option value="Monthly">Monthly</option>
                         <option value="Annual">Annual</option>
                       </select>
                       <div className="relative">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                        <input type="number" value={inc.amount} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].amount = Number(e.target.value); setOtherIncomeSources(arr); }} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="number" value={inc.amount} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'amount', Number(e.target.value))} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       </div>
                       <div className="flex items-center gap-1 col-span-2">
-                        <input type="text" value={inc.remarks} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].remarks = e.target.value; setOtherIncomeSources(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="text" value={inc.remarks} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                         <button onClick={() => { const arr = [...otherIncomeSources]; arr.splice(idx, 1); setOtherIncomeSources(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -5263,8 +5246,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
                 {neighbors.map((neighbor, idx) => (
                   <div key={neighbor.id} className="flex items-center gap-2">
-                    <input type="text" value={neighbor.name} onChange={(e) => { const arr = [...neighbors]; arr[idx].name = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
-                    <input type="text" value={neighbor.remark} onChange={(e) => { const arr = [...neighbors]; arr[idx].remark = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
+                    <input type="text" value={neighbor.name} onChange={(e) => updateListItem(neighbors, setNeighbors, idx, 'name', e.target.value)} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
+                    <input type="text" value={neighbor.remark} onChange={(e) => updateListItem(neighbors, setNeighbors, idx, 'remark', e.target.value)} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
                     <button onClick={() => { const arr = [...neighbors]; arr.splice(idx, 1); setNeighbors(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}
@@ -5394,9 +5377,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       {prominentCustomers.map((cust, idx) => (
                         <tr key={cust.id}>
                           <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].name = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].feedback = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
                           <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentCustomers]; arr.splice(idx, 1); setProminentCustomers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                         </tr>
                       ))}
@@ -5428,9 +5411,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       {prominentSuppliers.map((sup, idx) => (
                         <tr key={sup.id}>
                           <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].name = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].feedback = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
                           <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentSuppliers]; arr.splice(idx, 1); setProminentSuppliers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                         </tr>
                       ))}
@@ -5511,10 +5494,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <tbody className="divide-y divide-slate-100">
                     {bankingDetails.map((bank, idx) => (
                       <tr key={bank.id}>
-                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].bankName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].branchName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'bankName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'branchName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
                         <td className="py-2 pr-2">
-                          <select value={bank.accountType} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountType = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
+                          <select value={bank.accountType} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountType', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
                             <option value="Saving Account">Saving Account</option>
                             <option value="Current Account">Current Account</option>
                             <option value="OD">OD</option>
@@ -5523,14 +5506,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                           </select>
                         </td>
                         <td className="py-2 pr-2">
-                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
+                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'limit', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
                           <datalist id="limit-options">
                             <option value="NA" />
                             <option value="Not Disclosed" />
                           </datalist>
                         </td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountNo = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].remark = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountNo', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
                         <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
                     ))}
@@ -5564,13 +5547,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <tbody className="divide-y divide-slate-100">
                     {existingLoans.map((loan, idx) => (
                       <tr key={loan.id}>
-                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => { const arr = [...existingLoans]; arr[idx].typeOfLoan = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => { const arr = [...existingLoans]; arr[idx].financerName = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => { const arr = [...existingLoans]; arr[idx].amountInLakhs = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => { const arr = [...existingLoans]; arr[idx].emi = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].tenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].balanceTenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => { const arr = [...existingLoans]; arr[idx].remark = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'typeOfLoan', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'financerName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'amountInLakhs', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'emi', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'tenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'balanceTenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
                         <td className="py-2 text-center"><button onClick={() => { const arr = [...existingLoans]; arr.splice(idx, 1); setExistingLoans(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
                     ))}
@@ -5592,31 +5575,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Salaried';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Business';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Other';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
                       </div>
                     </div>
                     {coApp.profession === 'Business' && (
                       <div>
                         <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
-                        <textarea value={coApp.businessRole || ''} onChange={(e) => {
-                          const arr = [...coApplicants];
-                          arr[idx].businessRole = e.target.value;
-                          setCoApplicants(arr);
-                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
+                        <textarea value={coApp.businessRole || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'businessRole', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
                       </div>
                     )}
                   </div>
@@ -6747,11 +6714,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <tbody className="divide-y divide-slate-200">
                         {newProducts.map((p, idx) => (
                           <tr key={p.id}>
-                            <td className="p-2"><input type="text" value={p.productName} onChange={(e) => { const arr = [...newProducts]; arr[idx].productName = e.target.value; setNewProducts(arr); }} className="w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. Repairs" /></td>
-                            <td className="p-2"><input type="number" value={p.revenueContributionPct} onChange={(e) => { const arr = [...newProducts]; arr[idx].revenueContributionPct = Number(e.target.value); setNewProducts(arr); }} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
-                            <td className="p-2"><input type="number" value={p.averageMarginPct} onChange={(e) => { const arr = [...newProducts]; arr[idx].averageMarginPct = Number(e.target.value); setNewProducts(arr); }} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
+                            <td className="p-2"><input type="text" value={p.productName} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'productName', e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. Repairs" /></td>
+                            <td className="p-2"><input type="number" value={p.revenueContributionPct} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'revenueContributionPct', Number(e.target.value))} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
+                            <td className="p-2"><input type="number" value={p.averageMarginPct} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'averageMarginPct', Number(e.target.value))} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
                             <td className="p-2">
-                              <select value={p.inventoryType} onChange={(e) => { const arr = [...newProducts]; arr[idx].inventoryType = e.target.value as any; setNewProducts(arr); }} className="border border-slate-300 rounded px-2 py-1">
+                              <select value={p.inventoryType} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'inventoryType', e.target.value as any)} className="border border-slate-300 rounded px-2 py-1">
                                 <option value="FAST_MOVING">Fast Moving</option>
                                 <option value="SLOW_MOVING">Slow Moving</option>
                                 <option value="PERISHABLE">Perishable</option>
