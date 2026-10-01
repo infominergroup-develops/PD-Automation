@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 // @ts-ignore
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
-import { CreditProvider, ReportItem, CreditAccount, ApplicantInfo, CreditSummary } from '../types/creditTypes';
+import { CreditAccount, ApplicantInfo, CreditSummary } from '../types/creditTypes';
 import { parseNumericValue } from '../utils/creditFormatters';
 
 // Configure worker using local Vite asset URL
@@ -398,83 +398,4 @@ export function parseCibilAccounts(text: string, applicantName?: string | null):
   });
 
   return accounts.filter(acc => acc.status === 'Active');
-}
-
-/**
- * Main Client Extraction Pipeline for a File
- */
-export async function parsePdfReportFile(
-  file: File,
-  preferredProvider: CreditProvider = 'CRIF'
-): Promise<ReportItem> {
-  const text = await extractTextFromPdfFile(file);
-  if (!text || text.trim().length === 0) {
-    throw new Error('PDF has no extractable text content or is password protected.');
-  }
-
-  // Auto-detect provider if needed
-  let effectiveProvider: CreditProvider = preferredProvider;
-  const isCrif = /CRIF|HIGH\s*MARK|CHM\s*REF|PERFORM\s*CONSUMER/i.test(text);
-  const isCibil = /CIBIL|TRANSUNION|CIR\s*REPORT|CONTROL\s*NUMBER/i.test(text);
-  if (isCrif && !isCibil) effectiveProvider = 'CRIF';
-  if (isCibil && !isCrif) effectiveProvider = 'CIBIL';
-
-  let applicant: ApplicantInfo;
-  let summary: CreditSummary;
-  let accounts: CreditAccount[];
-
-  if (effectiveProvider === 'CRIF') {
-    applicant = parseCrifApplicant(text);
-    summary = parseCrifSummary(text);
-    accounts = parseCrifAccounts(text, applicant.name);
-  } else {
-    applicant = parseCibilApplicant(text);
-    summary = parseCibilSummary(text);
-    accounts = parseCibilAccounts(text, applicant.name);
-  }
-
-  // Cross-reconciliation of summary with accounts
-  if (accounts.length > 0) {
-    if (summary.totalAccounts === 0) {
-      summary.totalAccounts = accounts.length;
-    }
-    const liveActive = accounts.filter((a) => a.status === 'Active').length;
-    if (summary.activeAccounts === 0 && liveActive > 0) {
-      summary.activeAccounts = liveActive;
-    }
-    const overdueCount = accounts.filter((a) => a.overdueAmount > 0).length;
-    if (summary.overdueAccounts === 0 && overdueCount > 0) {
-      summary.overdueAccounts = overdueCount;
-    }
-    const computedBal = accounts.reduce((acc, curr) => acc + (curr.currentBalance || 0), 0);
-    if (summary.totalCurrentBalance === 0 && computedBal > 0) {
-      summary.totalCurrentBalance = computedBal;
-    }
-    const computedOverdue = accounts.reduce((acc, curr) => acc + (curr.overdueAmount || 0), 0);
-    if (summary.totalAmountOverdue === 0 && computedOverdue > 0) {
-      summary.totalAmountOverdue = computedOverdue;
-    }
-    const computedSanctioned = accounts.reduce((acc, curr) => acc + (curr.disbursedAmount || 0), 0);
-    if (summary.totalSanctionedAmount === 0 && computedSanctioned > 0) {
-      summary.totalSanctionedAmount = computedSanctioned;
-      summary.totalDisbursedAmount = computedSanctioned;
-    }
-  }
-
-  const reportId = `rep_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-
-  return {
-    id: reportId,
-    ownerId: 'current_user',
-    provider: effectiveProvider,
-    fileName: file.name,
-    storagePath: `reports/${effectiveProvider}/${new Date().toISOString().slice(0, 7)}/${reportId}_${file.name}`,
-    status: 'completed',
-    uploadedAt: new Date().toISOString(),
-    processedAt: new Date().toISOString(),
-    applicant,
-    summary,
-    accountCount: accounts.length,
-    accounts,
-  };
 }

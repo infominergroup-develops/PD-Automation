@@ -63,25 +63,3 @@ export interface ReportItem {
   accountCount?: number;
   accounts?: CreditAccount[];
 }
-
-export interface QueueFile {
-  id: string;
-  file: File;
-  name: string;
-  size: number;
-  provider: CreditProvider;
-  status: ReportStatus;
-  progress: number;
-  errorMessage?: string;
-  reportId?: string;
-  result?: ReportItem;
-}
-
-export interface FilterOptions {
-  searchApplicant: string;
-  searchAccount: string;
-  status: 'ALL' | 'Active' | 'Closed';
-  lenderType: 'ALL' | 'Bank' | 'NBFC' | 'MFI' | 'Other';
-  overdueOnly: boolean;
-  sortBy: 'default' | 'score-desc' | 'score-asc' | 'balance-desc' | 'balance-asc';
-}

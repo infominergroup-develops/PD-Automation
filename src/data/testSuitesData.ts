@@ -1,43 +1,5 @@
 import { HTMLToolTestResult, HTMLToolValidationRun } from '../types';
 
-export const DEFAULT_VALIDATION_SUITES = [
-  {
-    suiteId: 'suite-01',
-    suiteName: 'Mandatory Fields & Dynamic Form Integrity',
-    description: 'Validates presence, autocomplete, inputs, and conditional display of mandatory applicant, business, and landlord fields.'
-  },
-  {
-    suiteId: 'suite-02',
-    suiteName: 'Financial Calculation & Reconciliation Engine',
-    description: 'Tests accuracy of Gross Profit, Net Business Income, Surplus, DSCR, and FOIR auto-calculation formulas across all 21 categories.'
-  },
-  {
-    suiteId: 'suite-03',
-    suiteName: 'Business Validation & Anomaly Detection Engine',
-    description: 'Verifies detection of footfall vs revenue anomalies, bank credit variances, Drug License compliance, and GST reconciliation.'
-  },
-  {
-    suiteId: 'suite-04',
-    suiteName: 'Product Mapping & Category Business Rules',
-    description: 'Checks product margins, revenue contribution totals, and category-specific profile rule constraints.'
-  },
-  {
-    suiteId: 'suite-05',
-    suiteName: 'Document Photo Classifier & GPS EXIF Parsing',
-    description: 'Tests photo drag-and-drop, EXIF GPS coordinate extraction, category tagging, and base64 storage limits.'
-  },
-  {
-    suiteId: 'suite-06',
-    suiteName: 'Print & PDF Layout Compatibility',
-    description: 'Ensures print CSS media queries hide interactive UI controls, format cover pages cleanly, and eliminate empty field gaps.'
-  },
-  {
-    suiteId: 'suite-07',
-    suiteName: 'Persistence, Security & Audit Tracking',
-    description: 'Validates JSON progress save/load, auto-save triggers, device activation locking, and audit log generation.'
-  }
-];
-
 export function runHtmlToolValidationSuite(): HTMLToolValidationRun {
   const startTime = Date.now();
   
