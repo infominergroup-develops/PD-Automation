@@ -3523,6 +3523,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <label className="block text-xs font-bold text-slate-700">Strengths</label>
                       <button onClick={() => setGodrejStrengths([...godrejStrengths, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
                     </div>
+                    <textarea 
+                      placeholder="Paste numbered list here to auto-fill..."
+                      onChange={(e) => {
+                        const text = e.target.value;
+                        if (!text.trim()) return;
+                        const parts = text.split(/\n|(?:\s|^)\d+[\.\)]\s+/).map(p => p.trim()).filter(Boolean);
+                        setGodrejStrengths(parts.map((p, i) => ({ id: Date.now().toString() + i, text: p })));
+                        e.target.value = '';
+                      }}
+                      className="w-full px-3 py-1.5 text-xs border border-dashed border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23] mb-2 bg-slate-50"
+                      rows={1}
+                    />
                     {godrejStrengths.map((s, idx) => (
                       <div key={s.id} className="flex gap-2 mb-2">
                         <input type="text" value={s.text} onChange={(e) => { const st = [...godrejStrengths]; st[idx].text = e.target.value; setGodrejStrengths(st); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
@@ -3535,6 +3547,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <label className="block text-xs font-bold text-slate-700">Weaknesses</label>
                       <button onClick={() => setGodrejWeaknesses([...godrejWeaknesses, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
                     </div>
+                    <textarea 
+                      placeholder="Paste numbered list here to auto-fill..."
+                      onChange={(e) => {
+                        const text = e.target.value;
+                        if (!text.trim()) return;
+                        const parts = text.split(/\n|(?:\s|^)\d+[\.\)]\s+/).map(p => p.trim()).filter(Boolean);
+                        setGodrejWeaknesses(parts.map((p, i) => ({ id: Date.now().toString() + i, text: p })));
+                        e.target.value = '';
+                      }}
+                      className="w-full px-3 py-1.5 text-xs border border-dashed border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23] mb-2 bg-slate-50"
+                      rows={1}
+                    />
                     {godrejWeaknesses.map((w, idx) => (
                       <div key={w.id} className="flex gap-2 mb-2">
                         <input type="text" value={w.text} onChange={(e) => { const wk = [...godrejWeaknesses]; wk[idx].text = e.target.value; setGodrejWeaknesses(wk); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />

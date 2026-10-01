@@ -212,7 +212,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || 'Trading / Retail / Service'}</td></tr>
     
     <tr><td colspan="4" class="sec-head">Brief Profile of Business</td></tr>
-    <tr><td colspan="4" style="height: 120px; vertical-align: top;">${data.briefBusinessProfile || 'The applicant deals with approximately 25-30 customers daily in the business.\\n(All the above details are confirm verbally by met person)'}</td></tr>
+    <tr><td colspan="4" style="height: 120px; vertical-align: top;">${(data.briefBusinessProfile || 'The applicant deals with approximately 25-30 customers daily in the business.\\n(All the above details are confirm verbally by met person)').replace(/\\\\n|\\n/g, '<br/>')}</td></tr>
     
     <tr>
       <td colspan="2">Is office premise on rented /owned</td>
@@ -241,7 +241,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     ${data.businessRemark ? `
     <tr>
       <td colspan="2">Business Remarks</td>
-      <td colspan="2">${data.businessRemark}</td>
+      <td colspan="2">${(data.businessRemark || '').replace(/\\\\n|\\n/g, '<br/>')}</td>
     </tr>
     ` : ''}
   </table>
@@ -268,7 +268,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td>${i+1}</td>
       <td colspan="2">${c.name}</td>
       <td>${c.phone}</td>
-      <td colspan="2">${c.remark}</td>
+      <td colspan="2">${(c.remark || '').replace(/\\\\n|\\n/g, '<br/>')}</td>
     </tr>
     `).join('')}
 
@@ -283,7 +283,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       <td>${i+1}</td>
       <td colspan="2">${s.name}</td>
       <td>${s.phone}</td>
-      <td colspan="2">${s.remark}</td>
+      <td colspan="2">${(s.remark || '').replace(/\\\\n|\\n/g, '<br/>')}</td>
     </tr>
     `).join('')}
 
