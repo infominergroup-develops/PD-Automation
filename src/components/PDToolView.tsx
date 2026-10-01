@@ -266,6 +266,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [otherStateGstText, setOtherStateGstText] = useState('');
   const [familyInvolvedText, setFamilyInvolvedText] = useState('');
   const [applicantQualification, setApplicantQualification] = useState('');
+  const [partnersDirectorsDetails, setPartnersDirectorsDetails] = useState('Not applicable');
+  const [profitMargin, setProfitMargin] = useState<number | ''>('');
 
   // Observation Fields
   const [godrejStockLevel, setGodrejStockLevel] = useState('');
@@ -1809,6 +1811,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setProminentCustomers(app.prominentCustomers && app.prominentCustomers.length > 0 ? app.prominentCustomers : [{ id: 'c1', name: '', phone: '', feedback: '' }]);
     setProminentSuppliers(app.prominentSuppliers && app.prominentSuppliers.length > 0 ? app.prominentSuppliers : [{ id: 's1', name: '', phone: '', feedback: '' }]);
+    setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
+    setProfitMargin(app.profitMargin !== undefined ? app.profitMargin : '');
     setHasCollateral(app.hasCollateral !== undefined ? !!app.hasCollateral : !!(app.collateralAddress || app.propertyAddress));
     setCollateralAddress(app.collateralAddress || app.propertyAddress || '');
     setCollateralPropertyType(app.collateralPropertyType || 'Residential');
@@ -2653,6 +2657,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
       businessStatus: businessStatus || statusOfCase || 'Recommended',
       constitution,
+      partnersDirectorsDetails,
+      profitMargin,
       monthlyRent,
       shopAreaSqFt,
       inventoryValue,
@@ -2757,7 +2763,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       otherBusinessPremisesText,
       otherStateGstText,
       familyInvolvedText: familyInvolvedText || (hasCoAppInBusiness ? coApplicants.filter(c => c.profession === 'Business' || (c as any).inBusiness === true).map(c => `${c.name || 'Co-applicant'} (${c.relation})`).join(', ') : 'No other family member is involved in the business.'),
-      applicantQualification,
+      applicantQualification: familyMembers.find(f => (f.relation || f.relationship || '').toLowerCase() === 'self')?.qualification || applicantQualification,
       godrejStockLevel: godrejStockLevel || (hasStock ? (stockDetails.length > 0 ? stockDetails.map(s => s.name).join(', ') : 'Adequate') : 'No significant stock'),
       godrejRoughStockValue: godrejRoughStockValue || (hasStock ? (stockDetails.length > 0 ? `₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0).toLocaleString('en-IN')}` : (inventoryValue ? `₹${inventoryValue.toLocaleString('en-IN')}` : '')) : '₹0'),
       godrejLocality: godrejLocality || locatingPremisesType || '',
@@ -3415,6 +3421,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </select>
               </div>
 
+              {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Details of Partners/Directors</label>
+                  <input type="text" value={partnersDirectorsDetails} onChange={(e) => setPartnersDirectorsDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Not applicable" />
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Business Status (Recommendation)</label>
                 <select
@@ -3863,10 +3876,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
-                <select value={statusOfCase || businessStatus || 'Recommended'} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  <option value="Recommended">Recommended</option>
-                  <option value="Not Recommended">Not Recommended</option>
-                  <option value="Recommended subject to demerits">Recommended subject to demerits</option>
+                <select value={statusOfCase || businessStatus || (['tata', 'sbfc'].includes(selectedClient?.id || '') ? 'Positive' : 'Recommended')} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                  {['tata', 'sbfc'].includes(selectedClient?.id || '') ? (
+                    <>
+                      <option value="Positive">Positive</option>
+                      <option value="Negative">Negative</option>
+                      <option value="Refer to Credit">Refer to Credit</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value="Recommended">Recommended</option>
+                      <option value="Not Recommended">Not Recommended</option>
+                      <option value="Recommended subject to demerits">Recommended subject to demerits</option>
+                    </>
+                  )}
                 </select>
               </div>
             </div>
@@ -4431,7 +4454,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100 text-center">
-                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
+                            <select value={(member.isDependent === false || member.dependent === false) ? 'No' : 'Yes'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; newFm[idx].dependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
                               <option value="Yes">Yes</option>
                               <option value="No">No</option>
                             </select>
@@ -5131,7 +5154,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Rent</label>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                      <input type="number" value={propertyRentAmount} onChange={(e) => setPropertyRentAmount(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
+                      <input type="number" value={propertyRentAmount} onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setPropertyRentAmount(val);
+                        setMonthlyRent(val);
+                        const rentExpIndex = expenseLines.findIndex(exp => exp.particulars.toLowerCase().includes('rent'));
+                        if (rentExpIndex > -1) {
+                           const newExp = [...expenseLines];
+                           newExp[rentExpIndex].monthlyAmount = val;
+                           setExpenseLines(newExp);
+                        } else {
+                           setExpenseLines([...expenseLines, { id: 'rent-exp-' + Date.now(), particulars: 'Rent Expense', monthlyAmount: val }]);
+                        }
+                      }} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
                   </div>
                 )}
@@ -6135,6 +6170,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-2 mb-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Profit Margin (%)</label>
+                <input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20" />
+              </div>
+            </div>
 
             {/* Live Financial Waterfall Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

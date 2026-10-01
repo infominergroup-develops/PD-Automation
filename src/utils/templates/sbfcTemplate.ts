@@ -28,10 +28,8 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     `;
   }
 
-  // Helper variables for data
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);
-
   const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
     ? data.itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
@@ -49,7 +47,7 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const totalSalesY = hasItemizedSales
     ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number(data.totalSalesYearly) || totalSalesM * 12);
-  
+
   const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
   const expenseItems = hasItemizedExpenses
     ? data.itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
@@ -123,21 +121,22 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0 ? data.prominentSuppliers : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
   const bankingList = data.bankingDetails && data.bankingDetails.length > 0 ? data.bankingDetails : [{ bankName: 'Not shared', branchName: 'NA', accountNo: 'NA', limit: 'NA', remark: 'NA' }];
   const loansList = data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : [{ typeOfLoan: 'Not shared', financerName: 'NA', amountInLakhs: 'NA', emi: existEmiM || 'NA', tenure: 'NA', balanceTenure: 'NA' }];
+  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
 
   return `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
-  <title>SBFC Finance LTD PD Report - ${appNo}</title>
+  <title>${data.clientBankName || 'SBFC Finance LTD'} PD Report - ${appNo}</title>
   <style>
     @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 8.5pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.35; }
     .page-break { page-break-before: always; margin-top: 15px; }
     .report-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-    .report-table th, .report-table td { border: 1px solid #000; padding: 4px 8px; vertical-align: top; }
-    .hdr-main { text-align: center; background-color: #e2e8f0; padding: 10px; margin-bottom: 0px; border: 1px solid #000; border-bottom: none; }
-    .hdr-title { font-size: 10pt; }
+    .report-table th, .report-table td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
+    .hdr-main { text-align: center; background-color: #e2e8f0; padding: 15px; border: 1px solid #000; border-bottom: none; }
+    .hdr-title { font-size: 11pt; }
     .sec-head { background-color: #e2e8f0; text-align: center; font-weight: bold;}
     .bold { font-weight: bold; }
     .text-center { text-align: center; }
@@ -155,7 +154,9 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
 
   <div class="hdr-main">
     <div class="hdr-title">${data.companyHeader?.name || 'Mahesh & Co.'}</div>
-    <div>Email: pd4@mco.net.in</div>
+    <div>(Chartered Accountant)</div>
+    <div>207, Second Floor, Padam Business Park, Sikandara, Agra-282007</div>
+    <div>Email: info@mco.net.in</div>
   </div>
 
   <table class="report-table">
@@ -174,14 +175,22 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr>
       <td colspan="2">Sub: AIP Report of ${data.applicantName || '-'}</td>
       <td>Case Status</td>
-      <td>${data.statusOfCase || data.businessStatus || 'Negative / Positive'}</td>
+      <td>${data.statusOfCase || data.businessStatus || 'Positive'}</td>
     </tr>
     <tr><td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td></tr>
     
     <tr><td colspan="4" class="sec-head">SUMMARY INFORMATION</td></tr>
     <tr>
-      <td>Case visit date</td><td>${data.visitDate || '-'}</td>
-      <td>Report date</td><td>${data.visitDate || '-'}</td>
+      <td colspan="2" style="width:50%;">Case visit date</td>
+      <td colspan="2" style="padding:0;">
+        <table style="width:100%; height:100%; border-collapse:collapse;">
+          <tr>
+            <td style="width:50%; border:none; border-right:1px solid #000;">${data.visitDate || '-'}</td>
+            <td style="width:50%; border:none;" class="sec-head">Report date</td>
+            <td style="width:50%; border:none; border-left:1px solid #000;">${data.visitDate || '-'}</td>
+          </tr>
+        </table>
+      </td>
     </tr>
     <tr><td colspan="2">Name & Relation of person met</td><td colspan="2">${data.metPersonName || '-'} (${data.metPersonIdProof ? 'Owner' : 'Self'})</td></tr>
     <tr><td colspan="2">Contact Number</td><td colspan="2">${data.applicantPhone || '-'}</td></tr>
@@ -197,13 +206,13 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>
-    <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">Not applicable</td></tr>
+    <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">${data.partnersDirectorsDetails || 'Not applicable'}</td></tr>
     <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
     <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
     <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || 'Trading / Retail / Service'}</td></tr>
     
     <tr><td colspan="4" class="sec-head">Brief Profile of Business</td></tr>
-    <tr><td colspan="4" style="height: 100px;">${data.briefBusinessProfile || 'The products supplied by the applicant range in price from approximately Rs. 100 to Rs. 4,000.\\nThe applicant deals with approximately 25-30 customers daily in the business.\\nThe business hours are from 11:00 AM to 10:00 PM, with no weekly holidays.\\n(All the above details are confirm verbally by met person)'}</td></tr>
+    <tr><td colspan="4" style="height: 120px; vertical-align: top;">${data.briefBusinessProfile || 'The applicant deals with approximately 25-30 customers daily in the business.\\n(All the above details are confirm verbally by met person)'}</td></tr>
     
     <tr>
       <td colspan="2">Is office premise on rented /owned</td>
@@ -241,174 +250,206 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   
   <table class="report-table">
     <tr>
-      <td colspan="2" style="width: 30%;">Business Proof details (like S & E/GST Certificate/Electricity Bills)</td>
-      <td colspan="2" style="width: 70%;">Applicant has shared Udyam / GST / Utility bills as proof of business.</td>
+      <td colspan="2" class="sec-head" style="width:30%; text-align:left;">Business Proof details (like S & E/GST Certificate/Electricity Bills)</td>
+      <td colspan="4" style="width:70%;">Applicant has shared Udyam / GST / Utility bills as proof of business.</td>
     </tr>
-    <tr><td colspan="2">Number of staffs</td><td colspan="2">${data.staffCount || 'He is self-employed and operates the business by himself.'}</td></tr>
-    <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="2">Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup.</td></tr>
-    <tr><td colspan="2">Other source income</td><td colspan="2">The applicant does not have any other source of income.</td></tr>
+    <tr><td colspan="2">Number of staffs</td><td colspan="4">${data.staffCount || 'He is self-employed and operates the business by himself.'}</td></tr>
+    <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="4">Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup.</td></tr>
+    <tr><td colspan="2">Other source income</td><td colspan="4">The applicant does not have any other source of income.</td></tr>
     
     <tr class="sec-head">
       <td style="width: 10%;">Sr. No.</td>
-      <td style="width: 40%;">Customer Name & City</td>
+      <td style="width: 40%;" colspan="2">Customer Name & City</td>
       <td style="width: 25%;">Contact No.</td>
-      <td style="width: 25%;">Feedback and remark</td>
+      <td style="width: 25%;" colspan="2">Feedback and remark</td>
     </tr>
     ${customerList.map((c: any, i: number) => `
     <tr>
       <td>${i+1}</td>
-      <td>${c.name}</td>
+      <td colspan="2">${c.name}</td>
       <td>${c.phone}</td>
-      <td>${c.remark}</td>
+      <td colspan="2">${c.remark}</td>
     </tr>
     `).join('')}
 
     <tr class="sec-head">
       <td>Sr. No.</td>
-      <td>Supplier Name & City</td>
+      <td colspan="2">Supplier Name & City</td>
       <td>Contact No.</td>
-      <td>Feedback and remark</td>
+      <td colspan="2">Feedback and remark</td>
     </tr>
     ${supplierList.map((s: any, i: number) => `
     <tr>
       <td>${i+1}</td>
-      <td>${s.name}</td>
+      <td colspan="2">${s.name}</td>
       <td>${s.phone}</td>
-      <td>${s.remark}</td>
+      <td colspan="2">${s.remark}</td>
     </tr>
     `).join('')}
 
-    <tr><td colspan="4" class="sec-head">Banking Details And Limit OD And CC Limit With Bank</td></tr>
+    <tr><td colspan="6" class="sec-head">Banking Details And Limit OD And CC Limit With Bank</td></tr>
     <tr class="sec-head">
-      <td>Bank Name</td>
+      <td colspan="2">Bank Name</td>
       <td>Bank Branch</td>
-      <td>Account Number / CC/OD Limit</td>
+      <td>Account Number</td>
+      <td>CC/OD Limit</td>
       <td>Remark</td>
     </tr>
     ${bankingList.map((b: any) => `
     <tr class="text-center">
-      <td>${b.bankName}</td>
+      <td colspan="2">${b.bankName}</td>
       <td>${b.branchName}</td>
-      <td>${b.accountNo} / ${b.limit || 'NA'}</td>
+      <td>${b.accountNo}</td>
+      <td>${b.limit || 'NA'}</td>
       <td>${b.remark}</td>
     </tr>
     `).join('')}
 
-    <tr><td colspan="4" class="sec-head">EXISTING LOANS / LIABILITIES</td></tr>
+    <tr><td colspan="6" class="sec-head">EXISTING LOANS / LIABILITIES</td></tr>
     <tr class="sec-head">
-      <td>Type of Loan</td>
-      <td>FI Name / Loan Amount (Lacs)</td>
+      <td colspan="2">Type of Loan</td>
+      <td>FI Name</td>
+      <td>Loan Amount (Lacs)</td>
       <td>EMI</td>
-      <td>Tenor (yrs., moths) / Bal. Tenor</td>
+      <td>Tenor (yrs., moths)</td>
     </tr>
     ${loansList.map((l: any) => `
     <tr class="text-center">
-      <td>${l.typeOfLoan}</td>
-      <td>${l.financerName} / ${l.amountInLakhs || 'NA'}</td>
+      <td colspan="2">${l.typeOfLoan}</td>
+      <td>${l.financerName}</td>
+      <td>${l.amountInLakhs || 'NA'}</td>
       <td>${l.emi}</td>
-      <td>${l.tenure || 'NA'} / ${l.balanceTenure || 'NA'}</td>
+      <td>${l.tenure || 'NA'}</td>
     </tr>
     `).join('')}
+  </table>
 
-    <tr><td colspan="4" class="sec-head">Monthly & Yearly Income Assessment of Customer</td></tr>
+  <table class="report-table">
+    <tr><td colspan="3" class="sec-head">Monthly & Yearly Income Assessment of Customer</td></tr>
     <tr class="sec-head">
-      <td colspan="2">Particulars (Applicant)</td>
-      <td>Monthly Income</td>
-      <td>Yearly Income</td>
+      <td style="width:40%;">Particulars</td>
+      <td style="width:40%;">Applicant</td>
+      <td style="width:20%;">Remarks</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; border:none; border-right:1px solid #000;">Monthly Income</td>
+            <td style="width:50%; border:none;">Yearly Income</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
     </tr>
     ${salesItems.map(item => `
     <tr>
-      <td colspan="2">${item.particulars}</td>
-      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
-      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      <td>${item.particulars}</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">${item.businessNotes || ''}</td>
     </tr>
     `).join('')}
     <tr style="font-weight: bold; background-color: #f1f5f9;">
-      <td colspan="2">Total Sales/Receipts (A)</td>
-      <td>₹${Number(totalSalesM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(totalSalesY).toLocaleString('en-IN')}</td>
+      <td>Total Sales/Receipts (A)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(totalSalesM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(totalSalesY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
     </tr>
     ${expenseItems.map(item => `
     <tr>
-      <td colspan="2">${item.particulars}</td>
-      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
-      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      <td>${item.particulars}</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">${item.businessNotes || ''}</td>
     </tr>
     `).join('')}
-    <tr style="font-weight: bold; background-color: #f1f5f9;">
-      <td colspan="2">Total Expenses (B)</td>
-      <td>₹${Number(totalExpM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(totalExpY).toLocaleString('en-IN')}</td>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Total Expenses (B)</td>
+      <td class="sec-head">
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(totalExpM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(totalExpY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td>Total Monthly Expenses</td>
     </tr>
-    <tr style="font-weight: bold; background-color: #e2e8f0;">
-      <td colspan="2">Net Profit Per month(A- B)</td>
-      <td>₹${Number(netProfM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(netProfY).toLocaleString('en-IN')}</td>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Net Profit Per month(A- B)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(netProfM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(netProfY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
     </tr>
 
-    <tr>
-      <td colspan="2">Less: Household Expenses</td>
-      <td>${hhExpM}</td>
-      <td>${hhExpM * 12}</td>
-    </tr>
-    <tr>
-      <td colspan="2">Add: Other Source of Income</td>
-      <td>0</td>
-      <td>0</td>
-    </tr>
-    <tr>
-      <td colspan="2" class="bold">Net Disposal Income</td>
-      <td class="bold">${netDisposalM}</td>
-      <td class="bold">${netDisposalY}</td>
-    </tr>
-    <tr>
-      <td colspan="2">Annual Turnover & Margin</td>
-      <td colspan="2">Applicant informed that his yearly turnover Rs. ${Math.round(totalSalesY/100000)} lakh and net profit margin ${Math.round(((netProfM)/(totalSalesM || 1))*100)}%.</td>
-    </tr>
-    <tr>
-      <td colspan="2">Affordable EMI as per customer requirement</td>
-      <td colspan="2">As per branch.</td>
-    </tr>
   </table>
 
   ${hasCoAppAssessment ? `
   <div class="page-break"></div>
 
   <table class="report-table">
-    <tr><td colspan="4" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
-    <tr class="sec-head">
-      <td colspan="2">Particulars (Co-applicant)</td>
-      <td>Monthly Income</td>
-      <td>Yearly Income</td>
-    </tr>
-    ${coAppSalesItems.map(item => `
+    <tr><td colspan="3" class="sec-head" style="background-color: #2d3e50; color: #fff;">Assessment of the monthly income of the co-applicant ${data.coApplicantName ? `(${data.coApplicantName})` : ''}</td></tr>
     <tr>
-      <td colspan="2">${item.particulars}</td>
-      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
-      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      <td>Co-applicant Total Sales/Receipts (A)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
     </tr>
-    `).join('')}
-    <tr style="font-weight: bold; background-color: #f1f5f9;">
-      <td colspan="2">Total Sales/Receipts (A)</td>
-      <td>₹${Number(coAppTotalSalesM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(coAppTotalSalesY).toLocaleString('en-IN')}</td>
-    </tr>
-    ${coAppExpenseItems.map(item => `
     <tr>
-      <td colspan="2">${item.particulars}</td>
-      <td>₹${Number(item.monthly).toLocaleString('en-IN')}</td>
-      <td>₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+      <td class="sec-head" style="text-align:left;">Co-applicant Total Expenses (B)</td>
+      <td class="sec-head">
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td>Total Monthly Expenses</td>
     </tr>
-    `).join('')}
-    <tr style="font-weight: bold; background-color: #f1f5f9;">
-      <td colspan="2">Total Expenses (B)</td>
-      <td>₹${Number(coAppTotalExpM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(coAppTotalExpY).toLocaleString('en-IN')}</td>
-    </tr>
-    <tr style="font-weight: bold; background-color: #e2e8f0;">
-      <td colspan="2">Co-applicant Net Profit Per month(A- B)</td>
-      <td>₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
-      <td>₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Co-applicant Net Profit Per month (A- B)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(coAppNetProfM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(coAppNetProfY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td></td>
     </tr>
   </table>
   ` : ''}
@@ -416,18 +457,26 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   <div class="page-break"></div>
 
   <table class="report-table">
-    <tr><td colspan="2" class="sec-head">Residential Details</td></tr>
-    <tr><td style="width:30%;">House Address</td><td>${data.residenceAddress || '-'}</td></tr>
-    <tr><td>Locality</td><td>UMC</td></tr>
-    <tr><td>Ownership of premises</td><td>${data.residenceOwnership || '-'}</td></tr>
-    <tr><td>Area & Market Value</td><td>${data.residenceMarketValue || '-'}</td></tr>
-    
-    <tr><td colspan="2" class="sec-head">Family Background</td></tr>
-    <tr><td colspan="2">Total Family members- ${data.familyMembers?.length || 0}</td></tr>
-    
-    <tr><td colspan="2" class="sec-head">Family Details</td></tr>
+    <tr><td style="width:30%;">Less: Household Expenses</td><td>${hhExpM}</td><td>${hhExpM * 12}</td><td></td></tr>
+    <tr><td>Add: Other Source of Income</td><td>0</td><td>0</td><td></td></tr>
+    <tr class="sec-head" style="text-align:left;"><td>Net Disposal Income</td><td style="text-align:center;">${netDisposalM}</td><td style="text-align:center;">${netDisposalY}</td><td></td></tr>
+    <tr><td>Annual Turnover & Margin</td><td colspan="3">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${data.profitMargin !== undefined && data.profitMargin !== '' ? data.profitMargin : Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td></tr>
+    <tr><td>Affordable EMI as per customer requirement</td><td colspan="3">As per branch.</td></tr>
+
+    <tr><td colspan="4" class="sec-head">Residential Details</td></tr>
+    <tr><td>House Address</td><td colspan="3">${data.residenceAddress || '-'}</td></tr>
+    <tr><td>Locality (Posh area/Slum/UMC/LMC)</td><td colspan="3">UMC</td></tr>
+    <tr><td>Ownership of premises</td><td colspan="3">${data.residenceOwnership || '-'}</td></tr>
+    <tr><td>Area & Market Value</td><td colspan="3">${data.residenceMarketValue || '-'}</td></tr>
+    <tr><td>Family Background</td><td colspan="3">
+      Total family member- ${data.familyMembers?.length || 0}<br/>
+      Total earning member- ${data.familyMembers?.filter(f => (f as any).dependent === false || (f as any).isDependent === false).length || 0}<br/>
+      No. of dependents- ${data.familyMembers?.filter(f => (f as any).dependent !== false && (f as any).isDependent !== false).length || 0}
+    </td></tr>
   </table>
-  <table class="report-table" style="margin-top:-20px; border-top:none;">
+
+  <table class="report-table">
+    <tr><td colspan="6" class="sec-head">Family Details</td></tr>
     <tr class="sec-head">
       <td>S.No</td>
       <td>Members Name</td>
@@ -436,16 +485,14 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
       <td>Occupation</td>
       <td>Staying with Applicant or Not</td>
     </tr>
-    ${(data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [
-      { name: data.applicantName || 'Applicant', relationship: 'Self', age: '', profession: '', dependent: false }
-    ]).map((f: any, i: number) => `
+    ${familyList.map((f: any, i: number) => `
       <tr>
         <td>${i+1}</td>
         <td>${f.name}</td>
         <td>${f.relationship || f.relation || ''}</td>
         <td>${f.age || ''}</td>
         <td>${f.profession || f.occupation || ''}</td>
-        <td>Yes</td>
+        <td>${(f as any).dependent === false || (f as any).isDependent === false ? 'No' : 'Yes'}</td>
       </tr>
     `).join('')}
   </table>
@@ -453,47 +500,55 @@ export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   <table class="report-table">
     <tr><td colspan="2" class="sec-head">Observations</td></tr>
     <tr>
-      <td class="bold" style="width:20%;">Strength</td>
+      <td class="sec-head" style="width:25%; text-align:left;">Strength</td>
       <td>
         1. The Applicant has been running this business under the name ${data.firmName || '-'} for the last ${data.businessVintage || '-'} years.<br/>
         2. The applicant was available at the time of verification and provided all details.<br/>
         3. During the visit, the applicant's business activity was observed.<br/>
-        4. The applicant presented a PAN card as a KYC document.<br/>
       </td>
     </tr>
     <tr>
-      <td class="bold">Weakness</td>
+      <td class="sec-head" style="text-align:left;">Weakness</td>
       <td>
         1. Standard business risks apply.
       </td>
     </tr>
     <tr>
-      <td class="bold">Latitude & Longitude</td>
+      <td class="sec-head" style="text-align:left;">Latitude & Longitude of the business premises</td>
       <td>${data.businessGpsCoords || '-'}</td>
     </tr>
     <tr>
-      <td class="bold">Case Status</td>
+      <td class="sec-head" style="text-align:left;">Case Status</td>
       <td class="bold">${data.statusOfCase || data.businessStatus || 'Positive'}</td>
     </tr>
     <tr>
-      <td class="bold">Reported By</td>
-      <td>• Visit Done By – ${data.executiveName || 'Verification Officer'}</td>
+      <td class="sec-head" style="text-align:left;">Reported By</td>
+      <td>${data.executiveName || 'Verification Officer'}</td>
     </tr>
     <tr>
-      <td colspan="2" style="font-size:8pt; text-align:justify; color:#555;">
-        <b>Disclaimer:-</b> This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions. It does not constitute an audit, legal investigation.
-      </td>
+      <td class="sec-head" style="text-align:left;">• Distance from ${data.clientBankName || 'SBFC Finance LTD'} Office (In Km’s):</td>
+      <td>${data.tataCapitalDistance || '5-10 Km (Approx)'}</td>
     </tr>
     <tr>
-      <td colspan="2" style="height: 60px; vertical-align: bottom;">
-        <b>Authorized Signature</b>
+      <td colspan="2" style="font-size:8pt; text-align:justify; color:#555; background-color:#e2e8f0;">
+        <span style="text-decoration: underline; font-weight: bold; color: #000;">Disclamer :-</span><br/>
+        This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions with personnel available at the time of visit, and reflect conditions as observed at that point in time only. Document related inputs are based solely on information shared during field interactions and do not constitute independent authentication or forensic validation by any issuing or competent authority. This report does not constitute an audit, legal investigation, or forensic activity and shall not be treated as legal evidence or relied upon by any external party, including law enforcement agencies, courts, or regulatory bodies. Any reliance placed on this report shall be strictly at the sole risk of the recipient. The issuing entity expressly disclaims all consequences, direct or indirect, arising from such reliance.
       </td>
     </tr>
+  </table>
+  
+  <div class="page-break"></div>
+
+  <table class="report-table" style="border:none;">
+    <tr><td style="height: 100px; border:none; border-bottom:1px solid #000; width: 300px; padding:0; vertical-align:top; background-color:#e2e8f0;">
+      <span style="font-size:8pt; padding:5px; display:block;">Authorized Signature</span>
+    </td>
+    <td style="border:none;"></td></tr>
   </table>
 
   ${photosHtml}
 
 </body>
 </html>
-`;
+  `;
 }

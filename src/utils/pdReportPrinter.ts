@@ -138,6 +138,8 @@ export interface PDReportPrintData {
   documentsSeen?: string[];
   
   // Applicant & Co-applicant Profile
+  partnersDirectorsDetails?: string;
+  profitMargin?: number | string;
   applicantName: string;
   applicantPhone?: string;
   coApplicantName?: string;

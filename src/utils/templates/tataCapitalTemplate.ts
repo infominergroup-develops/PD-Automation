@@ -206,7 +206,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>
-    <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">Not applicable</td></tr>
+    <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">${data.partnersDirectorsDetails || 'Not applicable'}</td></tr>
     <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
     <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
     <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || 'Trading / Retail / Service'}</td></tr>
@@ -343,7 +343,21 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       </td>
       <td></td>
     </tr>
+    ${salesItems.map(item => `
     <tr>
+      <td>${item.particulars}</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">${item.businessNotes || ''}</td>
+    </tr>
+    `).join('')}
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
       <td>Total Sales/Receipts (A)</td>
       <td>
         <table style="width:100%; border-collapse:collapse; height:100%;">
@@ -355,15 +369,20 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
       </td>
       <td></td>
     </tr>
-    <tr style="height:40px;"><td></td><td>
-      <table style="width:100%; border-collapse:collapse; height:100%;"><tr><td style="width:50%; border:none; border-right:1px solid #000;"></td><td style="border:none;"></td></tr></table>
-    </td><td></td></tr>
-    <tr style="height:40px;"><td></td><td>
-      <table style="width:100%; border-collapse:collapse; height:100%;"><tr><td style="width:50%; border:none; border-right:1px solid #000;"></td><td style="border:none;"></td></tr></table>
-    </td><td></td></tr>
-    <tr style="height:40px;"><td></td><td>
-      <table style="width:100%; border-collapse:collapse; height:100%;"><tr><td style="width:50%; border:none; border-right:1px solid #000;"></td><td style="border:none;"></td></tr></table>
-    </td><td></td></tr>
+    ${expenseItems.map(item => `
+    <tr>
+      <td>${item.particulars}</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(item.monthly).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(item.yearly).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">${item.businessNotes || ''}</td>
+    </tr>
+    `).join('')}
     <tr>
       <td class="sec-head" style="text-align:left;">Total Expenses (B)</td>
       <td class="sec-head">
@@ -441,7 +460,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     <tr><td style="width:30%;">Less: Household Expenses</td><td>${hhExpM}</td><td>${hhExpM * 12}</td><td></td></tr>
     <tr><td>Add: Other Source of Income</td><td>0</td><td>0</td><td></td></tr>
     <tr class="sec-head" style="text-align:left;"><td>Net Disposal Income</td><td style="text-align:center;">${netDisposalM}</td><td style="text-align:center;">${netDisposalY}</td><td></td></tr>
-    <tr><td>Annual Turnover & Margin</td><td colspan="3">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td></tr>
+    <tr><td>Annual Turnover & Margin</td><td colspan="3">Applicant informed that his yearly turnover Rs. ${Math.round((totalSalesY + (hasCoAppAssessment ? coAppTotalSalesY : 0))/100000)} lakh and net profit margin ${data.profitMargin !== undefined && data.profitMargin !== '' ? data.profitMargin : Math.round(((combinedNetProfM)/(totalSalesM + (hasCoAppAssessment ? coAppTotalSalesM : 0) || 1))*100)}%.</td></tr>
     <tr><td>Affordable EMI as per customer requirement</td><td colspan="3">As per branch.</td></tr>
 
     <tr><td colspan="4" class="sec-head">Residential Details</td></tr>
@@ -449,7 +468,11 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
     <tr><td>Locality (Posh area/Slum/UMC/LMC)</td><td colspan="3">UMC</td></tr>
     <tr><td>Ownership of premises</td><td colspan="3">${data.residenceOwnership || '-'}</td></tr>
     <tr><td>Area & Market Value</td><td colspan="3">${data.residenceMarketValue || '-'}</td></tr>
-    <tr><td>Family Background</td><td colspan="3">Total Family members- ${data.familyMembers?.length || 0}</td></tr>
+    <tr><td>Family Background</td><td colspan="3">
+      Total family member- ${data.familyMembers?.length || 0}<br/>
+      Total earning member- ${data.familyMembers?.filter(f => (f as any).dependent === false || (f as any).isDependent === false).length || 0}<br/>
+      No. of dependents- ${data.familyMembers?.filter(f => (f as any).dependent !== false && (f as any).isDependent !== false).length || 0}
+    </td></tr>
   </table>
 
   <table class="report-table">
@@ -469,7 +492,7 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
         <td>${f.relationship || f.relation || ''}</td>
         <td>${f.age || ''}</td>
         <td>${f.profession || f.occupation || ''}</td>
-        <td>Yes</td>
+        <td>${(f as any).dependent === false || (f as any).isDependent === false ? 'No' : 'Yes'}</td>
       </tr>
     `).join('')}
   </table>
