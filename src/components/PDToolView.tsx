@@ -74,6 +74,18 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
   monthlyAmount: 0
 });
 
+const SUB_LABEL = 'block text-[10px] uppercase font-bold text-slate-500 mb-1';
+
+// Standard form field: a wrapper div with the label stacked above its control(s).
+const Field: React.FC<{ label: string; labelClassName?: string; className?: string; children: React.ReactNode }> = ({
+  label, labelClassName = 'block text-xs font-bold text-slate-700 mb-1', className, children
+}) => (
+  <div className={className}>
+    <label className={labelClassName}>{label}</label>
+    {children}
+  </div>
+);
+
 const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
 
 const ITEMIZED_ACCENTS = {
@@ -3088,58 +3100,52 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 {isEditingCreditReport ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Report Date</label>
+                    <Field label="Report Date" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         value={parsedCreditReport.reportDate || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, reportDate: e.target.value})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Credit Score</label>
+                    </Field>
+                    <Field label="Credit Score" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         value={parsedCreditReport.creditScore || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, creditScore: e.target.value})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Total Accounts</label>
+                    </Field>
+                    <Field label="Total Accounts" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalAccounts || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalAccounts: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Active Accounts</label>
+                    </Field>
+                    <Field label="Active Accounts" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.activeAccounts || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, activeAccounts: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Current Balance (₹)</label>
+                    </Field>
+                    <Field label="Current Balance (₹)" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalCurrentBalance || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalCurrentBalance: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Overdue Amount (₹)</label>
+                    </Field>
+                    <Field label="Overdue Amount (₹)" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalOverdueAmount || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalOverdueAmount: parseInt(e.target.value) || 0})}
                       />
-                    </div>
+                    </Field>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
@@ -3236,18 +3242,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Firm / Trade Name *</label>
+              <Field label="Firm / Trade Name *">
                 <input
                   type="text"
                   value={firmName}
                   onChange={(e) => setFirmName(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Constitution</label>
+              <Field label="Business Constitution">
                 <select
                   value={constitution}
                   onChange={(e) => setConstitution(e.target.value)}
@@ -3259,17 +3263,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="Pvt Ltd">Private Limited Company</option>
                   <option value="LLP">Limited Liability Partnership</option>
                 </select>
-              </div>
+              </Field>
 
               {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Details of Partners/Directors</label>
+                <Field label="Details of Partners/Directors">
                   <input type="text" value={partnersDirectorsDetails} onChange={(e) => setPartnersDirectorsDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Not applicable" />
-                </div>
+                </Field>
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Status (Recommendation)</label>
+              <Field label="Business Status (Recommendation)">
                 <select
                   value={statusOfCase || businessStatus || 'Recommended'}
                   onChange={(e) => handleStatusChange(e.target.value)}
@@ -3279,12 +3281,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="Not Recommended">Not Recommended</option>
                   <option value="Recommended subject to demerits">Recommended subject to demerits</option>
                 </select>
-              </div>
+              </Field>
 
 
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
+              <Field label="Premises Ownership">
                 <select
                   value={shopOwnership}
                   onChange={(e) => setShopOwnership(e.target.value as any)}
@@ -3296,56 +3297,49 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="FAMILY">Family / Ancestral Owned</option>
                   <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
                 </select>
-              </div>
+              </Field>
 
               {shopOwnership === 'RENTED' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Shop Rent (₹)</label>
+                <Field label="Monthly Shop Rent (₹)">
                   <input
                     type="number"
                     value={monthlyRent}
                     onChange={(e) => setMonthlyRent(Number(e.target.value))}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   />
-                </div>
+                </Field>
               )}
 
               {/* Additional fields requested in Business Profile */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Legal Trade Name</label>
+              <Field label="GSTIN – Legal Trade Name">
                 <input type="text" value={godrejGstinLegalName} onChange={(e) => setGodrejGstinLegalName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Date of Registration</label>
+              </Field>
+              <Field label="GSTIN – Date of Registration">
                 <input type="text" value={godrejGstinRegDate} onChange={(e) => setGodrejGstinRegDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Employee Register</label>
+              </Field>
+              <Field label="Employee Register">
                 <input type="text" value={godrejEmployeeRegister} onChange={(e) => setGodrejEmployeeRegister(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Carpet Area (Sq. Ft.)</label>
+              <Field label="Carpet Area (Sq. Ft.)">
                 <input
                   type="number"
                   value={shopAreaSqFt}
                   onChange={(e) => setShopAreaSqFt(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estimated Business Premises Value (₹)</label>
+              <Field label="Estimated Business Premises Value (₹)">
                 <input
                   type="number"
                   value={inventoryValue}
                   onChange={(e) => setInventoryValue(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Remark</label>
+              <Field label="Business Remark" className="md:col-span-3">
                 <textarea
                   value={businessRemark}
                   onChange={(e) => setBusinessRemark(e.target.value)}
@@ -3353,16 +3347,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="Enter business remarks..."
                 />
-              </div>
+              </Field>
 
               <div className="md:col-span-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Strengths, Weaknesses & Status</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-bold text-slate-700">Strengths</label>
+                    <Field label="Strengths" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-2">
                       <button onClick={() => setGodrejStrengths([...godrejStrengths, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
-                    </div>
+                    </Field>
                     <textarea 
                       placeholder="Paste numbered list here to auto-fill..."
                       onChange={(e) => {
@@ -3383,10 +3376,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     ))}
                   </div>
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-bold text-slate-700">Weaknesses</label>
+                    <Field label="Weaknesses" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-2">
                       <button onClick={() => setGodrejWeaknesses([...godrejWeaknesses, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
-                    </div>
+                    </Field>
                     <textarea 
                       placeholder="Paste numbered list here to auto-fill..."
                       onChange={(e) => {
@@ -3408,8 +3400,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 </div>
                 
-                <div className="mt-4 w-1/3">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Final Status</label>
+                <Field label="Final Status" className="mt-4 w-1/3">
                   <select
                     value={finalStatus}
                     onChange={(e) => setFinalStatus(e.target.value)}
@@ -3418,7 +3409,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <option value="POSITIVE">POSITIVE</option>
                     <option value="NEGATIVE">NEGATIVE</option>
                   </select>
-                </div>
+                </Field>
               </div>
 
               <div className="md:col-span-3">
@@ -3442,8 +3433,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 Aata Chakki Setup & Details
               </h3>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Select Available Machines</label>
+              <Field label="Select Available Machines" labelClassName="block text-xs font-bold text-slate-700 mb-2">
                 <div className="flex flex-wrap gap-4">
                   {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine', 'Engine', 'Motor'].map(machine => (
                     <label key={machine} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -3462,28 +3452,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </label>
                   ))}
                 </div>
-              </div>
+              </Field>
 
               {aataChakkiData.machines.includes('Atta Chakki') && (
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Atta Chakki Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size (Inches)</label>
+                    <Field label="Machine Size (Inches)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.size} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Capacity (Per Hr)</label>
+                    </Field>
+                    <Field label="Capacity (Per Hr)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.capacity} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, capacity: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Wheat (Kg)</label>
+                    </Field>
+                    <Field label="Daily Wheat (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.wheatKg} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, wheatKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Grinding Charge (₹/Kg)</label>
+                    </Field>
+                    <Field label="Grinding Charge (₹/Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3492,26 +3478,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Kohlu Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Bolt/Patti Details</label>
+                    <Field label="Bolt/Patti Details" labelClassName={SUB_LABEL}>
                       <input type="text" value={aataChakkiData.kohlu.boltDetails} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, boltDetails: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Mustard (Kg)</label>
+                    </Field>
+                    <Field label="Daily Mustard (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.mustardKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, mustardKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
+                    </Field>
+                    <Field label="Processing Charge (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Qty (Kg)</label>
+                    </Field>
+                    <Field label="Khali Qty (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.khaliKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Selling Rate (₹)</label>
+                    </Field>
+                    <Field label="Khali Selling Rate (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.khaliRate} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliRate: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3520,34 +3501,27 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Dhan Polisher Specifics</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
+                    <Field label="Machine Size" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.size} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, size: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Paddy (Kg)</label>
+                    </Field>
+                    <Field label="Paddy (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.paddyKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, paddyKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Charge (₹)</label>
+                    </Field>
+                    <Field label="Charge (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, charge: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi (Kg)</label>
+                    </Field>
+                    <Field label="Bhusi (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.bhusiKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi Rate (₹)</label>
+                    </Field>
+                    <Field label="Bhusi Rate (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.bhusiRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Qty (Kg)</label>
+                    </Field>
+                    <Field label="Rice Polish Qty (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.ricePolishKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Rate (₹)</label>
+                    </Field>
+                    <Field label="Rice Polish Rate (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.ricePolishRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3556,18 +3530,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Masala Grinding Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
+                    <Field label="Machine Size" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.size} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Masala (Kg)</label>
+                    </Field>
+                    <Field label="Daily Masala (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.masalaKg} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, masalaKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
+                    </Field>
+                    <Field label="Processing Charge (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3615,72 +3586,56 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {isGodrejSectionOpen && (
                 <div className="mt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Alternate Mobile Number</label>
+                    <Field label="Alternate Mobile Number">
                       <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Person Met Qualification (Overrides Auto)</label>
+                    </Field>
+                    <Field label="Person Met Qualification (Overrides Auto)">
                       <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Office Accessibility</label>
+                    </Field>
+                    <Field label="Office Accessibility">
                       <input type="text" value={officeAccessibility} onChange={(e) => setOfficeAccessibility(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Easy, Difficult" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                    </Field>
+                    <Field label="Tenor Requested">
                       <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                    </Field>
+                    <Field label="Margins Assessed">
                       <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                    </Field>
+                    <Field label="Customer GST No.">
                       <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Industry Type</label>
+                    </Field>
+                    <Field label="Industry Type">
                       <input type="text" value={industryType} onChange={(e) => setIndustryType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Manufacturing, Retail" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Product Type</label>
+                    </Field>
+                    <Field label="Product Type">
                       <input type="text" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Garments, Hardware" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">On Loan Structure</label>
+                    </Field>
+                    <Field label="On Loan Structure">
                       <input type="text" value={onLoanStructure} onChange={(e) => setOnLoanStructure(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Machinery Details</label>
+                  <Field label="Machinery Details">
                     <textarea value={machineryDetailsText} onChange={(e) => setMachineryDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List machinery details..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Key Employee Details</label>
+                  </Field>
+                  <Field label="Key Employee Details">
                     <textarea value={keyEmployeeDetailsText} onChange={(e) => setKeyEmployeeDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List key employees..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Group Company Details</label>
+                  </Field>
+                  <Field label="Group Company Details">
                     <textarea value={groupCompanyDetailsText} onChange={(e) => setGroupCompanyDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="Name, Relation, Brief business details..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Financial Details Summary</label>
+                  </Field>
+                  <Field label="Financial Details Summary">
                     <textarea value={financialDetailsText} onChange={(e) => setFinancialDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Other Business Premises</label>
+                  </Field>
+                  <Field label="Other Business Premises">
                     <textarea value={otherBusinessPremisesText} onChange={(e) => setOtherBusinessPremisesText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Other State GST Registration</label>
+                  </Field>
+                  <Field label="Other State GST Registration">
                     <input type="text" value={otherStateGstText} onChange={(e) => setOtherStateGstText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Family Members Involved</label>
+                  </Field>
+                  <Field label="Family Members Involved">
                     <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
+                  </Field>
 
                   {/* Godrej Specific Observation Fields */}
                   <div className="pt-6 border-t border-slate-200">
@@ -3734,12 +3689,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* Application ID & Status of Case */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Application ID</label>
+              <Field label="Application ID">
                 <input type="text" value={activeAppNumber} onChange={(e) => setActiveAppNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. INF/2026/88492" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
+              </Field>
+              <Field label="Status of the Case">
                 <select value={statusOfCase || businessStatus || (['tata', 'sbfc'].includes(selectedClient?.id || '') ? 'Positive' : 'Recommended')} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   {['tata', 'sbfc'].includes(selectedClient?.id || '') ? (
                     <>
@@ -3755,41 +3708,35 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </>
                   )}
                 </select>
-              </div>
+              </Field>
             </div>
 
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">1. Case Initiation Date</label>
+              <Field label="1. Case Initiation Date">
                 <input type="date" value={caseInitiationDate} onChange={(e) => setCaseInitiationDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">2. Visit Date</label>
+              </Field>
+              <Field label="2. Visit Date">
                 <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">3. Report Date</label>
+              </Field>
+              <Field label="3. Report Date">
                 <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
+              </Field>
             </div>
 
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">3. Name of Applicant *</label>
+              <Field label="3. Name of Applicant *">
                 <input type="text" required value={applicantName} onChange={(e) => setApplicantName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. Mr. Lalbabu Sahani" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">4. Contact Number</label>
+              </Field>
+              <Field label="4. Contact Number">
                 <input type="text" maxLength={10} pattern="\d{10}" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit mobile number" />
-              </div>
+              </Field>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-slate-700">5. Business Firm Name</label>
+              <Field label="5. Business Firm Name" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-1">
                 <label className="flex items-center gap-1.5 text-xs text-slate-600 font-medium cursor-pointer">
                   <input type="checkbox" checked={noFormalBusinessName} onChange={(e) => {
                     setNoFormalBusinessName(e.target.checked);
@@ -3798,18 +3745,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   }} className="rounded text-[#eb8a23] focus:ring-[#eb8a23]" />
                   No formal business name
                 </label>
-              </div>
+              </Field>
               <input type="text" value={firmName} onChange={(e) => setFirmName(e.target.value)} disabled={noFormalBusinessName} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100 disabled:text-slate-500" placeholder="Business Name" />
             </div>
 
             {/* 6. Co-applicant Name with Relation & 7. Contact */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-700">6. Co-applicant Details</label>
+              <Field label="6. Co-applicant Details" labelClassName="block text-xs font-bold text-slate-700" className="flex items-center justify-between">
                 <button type="button" onClick={() => setCoApplicants([...coApplicants, { name: '', relation: 'Spouse', mobileNumber: '' }])} className="px-3 py-1.5 bg-[#2d3e50] text-white text-xs font-bold rounded-lg hover:bg-[#1e293b]">
                   + Add Co-applicant
                 </button>
-              </div>
+              </Field>
 
               {coApplicants.length === 0 && (
                 <div className="text-xs font-semibold text-slate-500 italic p-3 text-center border border-dashed border-slate-300 rounded-lg">No Co-applicants Added</div>
@@ -3821,12 +3767,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     Remove
                   </button>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Co-applicant Name</label>
+                    <Field label="Co-applicant Name" labelClassName={SUB_LABEL}>
                       <input type="text" value={coApp.name} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'name', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship</label>
+                    </Field>
+                    <Field label="Relationship" labelClassName={SUB_LABEL}>
                       <select value={coApp.relation} onChange={(e) => {
                         const newCoApps = [...coApplicants];
                         newCoApps[idx].relation = e.target.value;
@@ -3836,33 +3780,29 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <option value="">Select Relationship ▼</option>
                         {['Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Sister', 'Business Partner', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                    </div>
+                    </Field>
                     {coApp.relation === 'Other' && (
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
+                      <Field label="Specify Relationship" labelClassName={SUB_LABEL}>
                         <input type="text" value={coApp.otherRelation || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'otherRelation', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                      </div>
+                      </Field>
                     )}
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">7. Contact Number</label>
+                    <Field label="7. Contact Number" labelClassName={SUB_LABEL}>
                       <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'mobileNumber', e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Profession</label>
+                    </Field>
+                    <Field label="Profession" labelClassName={SUB_LABEL}>
                       <div className="flex gap-2">
                         <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
                         <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
                         <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
                       </div>
-                    </div>
+                    </Field>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* 8. Female Candidate */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">8. Female candidate is on loan / application</label>
+            <Field label="8. Female candidate is on loan / application" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
                 <button type="button" onClick={() => { setHasFemaleCandidate(false); setFemaleCandidateName(''); setFemaleCandidateRelation(''); }} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${!hasFemaleCandidate ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
@@ -3870,22 +3810,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasFemaleCandidate && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Female Candidate Name</label>
+                  <Field label="Female Candidate Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={femaleCandidateName} onChange={(e) => setFemaleCandidateName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship with Applicant</label>
+                  </Field>
+                  <Field label="Relationship with Applicant" labelClassName={SUB_LABEL}>
                     <select value={femaleCandidateRelation} onChange={(e) => setFemaleCandidateRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                       <option value="">Select ▼</option>
                       {['Spouse', 'Mother', 'Daughter', 'Sister', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                   {femaleCandidateRelation === 'Other' && (
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
+                    <Field label="Specify Relationship" labelClassName={SUB_LABEL} className="md:col-span-2">
                       <input type="text" value={femaleCandidateOtherRelation} onChange={(e) => setFemaleCandidateOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                    </div>
+                    </Field>
                   )}
                   <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
                     Generated: Yes, the female candidate is already included in the application as {femaleCandidateName || '[Name]'}, {femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.
@@ -3898,12 +3835,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   Generated: We need to collect KYC documents and live photograph of the female candidate.
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Quotation Amount</label>
+              <Field label="9. Quotation Amount">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
@@ -3924,21 +3860,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {numberToWordsIndian(appliedAmount)}
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">10. Type of Loan</label>
+              </Field>
+              <Field label="10. Type of Loan">
                 <select value={loanType} onChange={(e) => setLoanType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   {['Commercial Solar Loan', 'Residential Solar Loan', 'Personal Loan', 'Home Loan', 'Business Loan', 'Vehicle Loan', 'LAP', 'Micro Buisness Loan', 'Education Loan', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 {loanType === 'Other' && (
                   <input type="text" value={otherLoanType} onChange={(e) => setOtherLoanType(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Loan Type" />
                 )}
-              </div>
+              </Field>
             </div>
 
             {/* Purpose of Loan (as per applicant) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Purpose of Loan (as per applicant)</label>
+            <Field label="Purpose of Loan (as per applicant)">
               <textarea
                 value={loanPurpose}
                 onChange={(e) => setLoanPurpose(e.target.value)}
@@ -3946,7 +3880,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 placeholder="e.g. Business Expansion / Working Capital Requirement / Solar plant installation"
                 rows={2}
               />
-            </div>
+            </Field>
 
             {/* 11. Solar Purpose & Usage */}
             {loanType === 'Commercial Solar Loan' && (
@@ -3954,26 +3888,23 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Current Power / Energy Source</label>
+                  <Field label="Current Power / Energy Source" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                     <select value={powerSource} onChange={(e) => setPowerSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                       {['Electricity', 'Electricity Engine', 'Diesel Generator', 'Solar', 'Grid Electricity', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {powerSource === 'Other' && (
                       <input type="text" value={otherPowerSource} onChange={(e) => setOtherPowerSource(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Power Source" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Approximate Monthly Expense</label>
+                  </Field>
+                  <Field label="Approximate Monthly Expense" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
                       <input type="number" value={monthlyEnergyExpense} onChange={(e) => setMonthlyEnergyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-2">Purpose of Solar Installation</label>
+                <Field label="Purpose of Solar Installation" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-2">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {['Reduce operational cost', 'Reduce electricity expense', 'Improve savings', 'Replace current power source', 'Improve business efficiency', 'Backup power', 'Other'].map(purpose => (
                       <label key={purpose} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -3988,7 +3919,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   {solarPurposes.includes('Other') && (
                     <input type="text" value={otherSolarPurpose} onChange={(e) => setOtherSolarPurpose(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Purpose" />
                   )}
-                </div>
+                </Field>
 
                 <div className="p-3 bg-white border border-orange-200 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
@@ -4010,32 +3941,29 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
             {/* 12. Address of Residence */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">12. Address of the Residence</label>
+            <Field label="12. Address of the Residence" labelClassName="block text-xs font-bold text-slate-700" className="space-y-3">
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete residence address" rows={2} />
               </div>
-            </div>
+            </Field>
 
             {/* 13. Address of Business */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">13. Address of the Business (Applicant)</label>
+              <Field label="13. Address of the Business (Applicant)" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <button type="button" onClick={() => {
                   setBusinessAddress(residenceAddress);
                 }} className="text-[10px] bg-slate-100 text-slate-700 px-3 py-1.5 rounded font-bold hover:bg-slate-200 border border-slate-300">Same as Residence Address</button>
-              </div>
+              </Field>
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700">Additional Addresses</label>
+                <Field label="Additional Addresses" labelClassName="text-xs font-semibold text-slate-700" className="flex items-center justify-between">
                   <button type="button" onClick={() => setAdditionalAddresses([...additionalAddresses, ''])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center font-semibold">
                     <Plus className="w-3 h-3 mr-1" /> Add Address
                   </button>
-                </div>
+                </Field>
                 {additionalAddresses.map((addr, idx) => (
                   <div key={idx} className="flex space-x-2 items-center mb-2">
                     <input type="text" value={addr} onChange={(e) => { const newAddrs = [...additionalAddresses]; newAddrs[idx] = e.target.value; setAdditionalAddresses(newAddrs); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder={`Additional Address ${idx + 1}`} />
@@ -4048,8 +3976,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 14. Met Person During Visit Time */}
-            <div className="space-y-3 pt-4 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700">14. Met Person During Visit</label>
+            <Field label="14. Met Person During Visit" labelClassName="block text-xs font-bold text-slate-700" className="space-y-3 pt-4 border-t border-slate-100">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {['Applicant', 'Co-applicant', 'Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Other'].map(person => (
                   <label key={person} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4081,11 +4008,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   return p;
                 }).join(' & ') || 'No one selected'}
               </div>
-            </div>
+            </Field>
 
             {/* 15. Met Person Identity Proof */}
-            <div className="pt-4 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700 mb-2">15. Met Person Identity Proof</label>
+            <Field label="15. Met Person Identity Proof" labelClassName="block text-xs font-bold text-slate-700 mb-2" className="pt-4 border-t border-slate-100">
               <div className="flex flex-wrap gap-3">
                 {['Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving Licence', 'Passport', 'Other'].map(proof => (
                   <label key={proof} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4097,11 +4023,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {identityProof === 'Other' && (
                 <input type="text" value={otherIdentityProof} onChange={(e) => setOtherIdentityProof(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Identity Proof" />
               )}
-            </div>
+            </Field>
 
             {/* 15.1 Documents Seen */}
-            <div className="pt-6 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700 mb-2">15.1 Documents Seen</label>
+            <Field label="15.1 Documents Seen" labelClassName="block text-xs font-bold text-slate-700 mb-2" className="pt-6 border-t border-slate-100">
               <div className="flex flex-wrap gap-3">
                 {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Buisness Invoices', 'Other'].map(doc => (
                   <label key={doc} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4121,7 +4046,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {documentsSeen.includes('Other') && (
                 <input type="text" value={otherDocumentsSeen} onChange={(e) => setOtherDocumentsSeen(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Other Documents Seen" />
               )}
-            </div>
+            </Field>
 
             {/* 16. Spouse and Dependencies Details */}
             <div className="mt-8 pt-6 border-t border-slate-200">
@@ -4260,8 +4185,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 17. Executive Name */}
-            <div className="pt-6 border-t border-slate-200">
-              <label className="block text-xs font-bold text-slate-700 mb-1">17. Executive Name</label>
+            <Field label="17. Executive Name" className="pt-6 border-t border-slate-200">
               <input
                 type="text"
                 value={executiveName}
@@ -4269,12 +4193,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 placeholder="Enter Executive Name..."
                 className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
               />
-            </div>
+            </Field>
 
             {/* 18. Tata Capital Distance (Conditional) */}
             {selectedClient?.name === 'Tata Capital Limited' && (
-              <div className="pt-6 border-t border-slate-200">
-                <label className="block text-xs font-bold text-slate-700 mb-1">18. Distance from Tata Capital Office (In Km's)</label>
+              <Field label="18. Distance from Tata Capital Office (In Km's)" className="pt-6 border-t border-slate-200">
                 <input
                   type="text"
                   value={tataCapitalDistance}
@@ -4282,7 +4205,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 5-10 Km (Approx)"
                   className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
                 />
-              </div>
+              </Field>
             )}
 
           </div>
@@ -4301,24 +4224,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             {/* 1. Vintage of Business */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">1. Vintage of the Business</label>
+            <Field label="1. Vintage of the Business" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Business Age (Years)</label>
+                <Field label="Business Age (Years)" labelClassName={SUB_LABEL}>
                   <div className="flex gap-2 items-center">
                     <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
                     <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                   </div>
-                </div>
+                </Field>
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
+                  <Field label="Previous Occupation / Activity" labelClassName={SUB_LABEL}>
                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                       <option value="">Select...</option>
                       {['Agriculture', 'Salaried Employment', 'Business', 'Self-employed', 'Labour', 'Student', 'Homemaker', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
@@ -4335,8 +4255,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
+                  <Field label="Reason to leave the last occupation" labelClassName={SUB_LABEL}>
                     <select
                       value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')}
                       onChange={(e) => setReasonToLeave(e.target.value === 'Not informed' ? 'Not informed' : (e.target.value === 'Informed' ? ' ' : ''))}
@@ -4349,7 +4268,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {(reasonToLeave !== '' && reasonToLeave !== 'Not informed') && (
                       <input type="text" value={reasonToLeave.trim()} onChange={(e) => setReasonToLeave(e.target.value || ' ')} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
                     )}
-                  </div>
+                  </Field>
                 )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
@@ -4359,21 +4278,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 2. Number of Staffs */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">2. Number of Staffs</label>
+            <Field label="2. Number of Staffs" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of External Staff / Labour</label>
+                <Field label="Number of External Staff / Labour" labelClassName={SUB_LABEL}>
                   <div className="flex gap-2">
                     <input type="number" value={externalStaffCount} onChange={(e) => setExternalStaffCount(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
                     <button type="button" onClick={() => setExternalStaffCount(0)} className="px-3 py-1.5 text-[10px] bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 whitespace-nowrap">No External Staff</button>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Who manages the business?</label>
+                </Field>
+                <Field label="Who manages the business?" labelClassName={SUB_LABEL}>
                   <div className="flex flex-wrap gap-2">
                     {['Applicant', 'Family Members', 'Co-applicant', 'Other'].map(opt => (
                       <label key={opt} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4388,7 +4304,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   {businessManagedBy.includes('Other') && (
                     <input type="text" value={businessManagedByOther} onChange={(e) => setBusinessManagedByOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                   )}
-                </div>
+                </Field>
                 <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
@@ -4397,11 +4313,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 3. Is Office Premise Rented / Owned */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">3. Is Office Premise Rented / Owned</label>
+            <Field label="3. Is Office Premise Rented / Owned" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
                 {['Self-Owned', 'Rented', 'Leased', 'Residence cum business', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4420,7 +4335,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
               </div>
-            </div>
+            </Field>
 
             {/* 4. Details of Office / Factory Infrastructure */}
             <div className="mt-6">
@@ -4468,8 +4383,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">5. Stock Details with Estimated Value</h4>
-                <div className="flex items-center gap-3">
-                  <label className="text-[10px] font-bold text-slate-500">Stock Available?</label>
+                <Field label="Stock Available?" labelClassName="text-[10px] font-bold text-slate-500" className="flex items-center gap-3">
                   <div className="flex gap-1">
                     <button type="button" onClick={() => setHasStock(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
                     <button type="button" onClick={() => setHasStock(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
@@ -4479,7 +4393,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <Plus className="w-3 h-3" /> Add Stock
                     </button>
                   )}
-                </div>
+                </Field>
               </div>
 
               {!hasStock ? (
@@ -4521,20 +4435,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 6. Details and confirmation of business by neighbor */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">6. Details and confirmation of business by neighbor</label>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
+            <Field label="6. Details and confirmation of business by neighbor" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <Field label="Neighbor Name" labelClassName={SUB_LABEL}>
                 <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
-              </div>
+              </Field>
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
+                <Field label="Feedback Remark" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-1">
                   <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
-                </div>
+                </Field>
                 <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
               </div>
-            </div>
+            </Field>
 
             {/* 7. Fixed & Current Asset Analysis */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -4576,8 +4487,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 8. Asset Creation Through Business */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">8. Asset Creation Through Business</label>
+            <Field label="8. Asset Creation Through Business" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Has business income been used for asset creation?</span>
                 <button type="button" onClick={() => setBusinessIncomeAssetCreation(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${businessIncomeAssetCreation ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -4586,8 +4496,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {businessIncomeAssetCreation && (
                 <div className="space-y-4 mt-2">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">What assets were created?</label>
+                  <Field label="What assets were created?" labelClassName={SUB_LABEL}>
                     <div className="flex flex-wrap gap-2">
                       {['Residential House', 'Land', 'Vehicle', 'Business Expansion', 'Machinery', 'Other'].map(asset => (
                         <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4602,7 +4511,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {createdAssets.includes('Other') && (
                       <input type="text" value={createdAssetsOther} onChange={(e) => setCreatedAssetsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Created Assets" />
                     )}
-                  </div>
+                  </Field>
 
                   <div className="flex items-center gap-4 pt-2 border-t border-slate-200">
                     <span className="text-xs font-semibold text-slate-600">Other Household / Personal Expenses?</span>
@@ -4622,19 +4531,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 9. Business Investment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Business Investment (Initial)</label>
+              <Field label="9. Business Investment (Initial)">
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                   <input type="number" value={initialInvestment} onChange={(e) => setInitialInvestment(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Investment Source</label>
+              </Field>
+              <Field label="Investment Source">
                 <select value={investmentSource} onChange={(e) => setInvestmentSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                   <option value="">Select...</option>
                   {['Own Funds', 'Loan', 'Family Funds', 'Combination', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -4642,7 +4549,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 {investmentSource === 'Other' && (
                   <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
                 )}
-              </div>
+              </Field>
             </div>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
               <div className="flex justify-between items-center">
@@ -4653,8 +4560,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 10. Agricultural Income Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">10. Agricultural Income Details</label>
+            <Field label="10. Agricultural Income Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Agricultural Land?</span>
                 <button type="button" onClick={() => setHasAgricultureLand(true)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${hasAgricultureLand ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -4673,23 +4579,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         </select>
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership</label>
+                    <Field label="Ownership" labelClassName={SUB_LABEL}>
                       <select value={agriLandOwnership} onChange={(e) => setAgriLandOwnership(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                         {['Self-owned', 'Family-owned', 'Leased', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Document Available?</label>
+                    </Field>
+                    <Field label="Document Available?" labelClassName={SUB_LABEL}>
                       <select value={agriOwnershipDoc} onChange={(e) => setAgriOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                         <option value="Not Provided">Not Provided</option>
                       </select>
-                    </div>
+                    </Field>
                   </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Crops</label>
+                  <Field label="Crops" labelClassName="block text-[10px] uppercase font-bold text-slate-500 mb-2">
                     <div className="flex flex-wrap gap-2">
                       {['Wheat', 'Sugarcane', 'Rice', 'Mustard', 'Vegetables', 'Other'].map(crop => (
                         <label key={crop} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4704,9 +4607,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {agriCrops.includes('Other') && (
                       <input type="text" value={agriCropsOther} onChange={(e) => setAgriCropsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Crops" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Annual Agricultural Income</label>
+                  </Field>
+                  <Field label="Approximate Annual Agricultural Income" labelClassName={SUB_LABEL}>
                     <div className="flex items-center gap-2 max-w-md">
                       <div className="relative flex-1">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
@@ -4718,7 +4620,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <input type="number" value={agriIncomeMax} onChange={(e) => setAgriIncomeMax(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Max" />
                       </div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasAgricultureLand && (
@@ -4730,17 +4632,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={agriculturalIncomeText || `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`} onChange={(e) => setAgriculturalIncomeText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 10. Other Source Income */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">10. Other source income</label>
+              <Field label="10. Other source income" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => setHasOtherIncome(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
                   <button type="button" onClick={() => setHasOtherIncome(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
                 </div>
-              </div>
+              </Field>
 
               {!hasOtherIncome ? (
                 <div className="text-xs font-semibold text-slate-500 italic">No other source of income reported.</div>
@@ -4773,23 +4674,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 11. Solar Saving Analysis */}
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-orange-900">11. Solar Saving Analysis</label>
+            <Field label="11. Solar Saving Analysis" labelClassName="block text-xs font-bold text-orange-900" className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Reduction in Operational Cost</label>
+                <Field label="Expected Reduction in Operational Cost" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                   <div className="relative">
                     <input type="number" value={expectedSolarCostReductionPct} onChange={(e) => setExpectedSolarCostReductionPct(Number(e.target.value))} className="w-full pr-7 pl-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Percentage" />
                     <span className="absolute right-3 top-2 text-slate-500 font-bold">%</span>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Monthly Saving</label>
+                </Field>
+                <Field label="Expected Monthly Saving" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
                     <input type="number" value={expectedSolarMonthlySaving} onChange={(e) => setExpectedSolarMonthlySaving(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                   </div>
-                </div>
+                </Field>
                 <div className="md:col-span-2 p-3 bg-white border border-orange-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] uppercase font-bold text-orange-800">Generated Narrative (Editable)</span>
@@ -4798,21 +4696,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`} onChange={(e) => setSolarSavingText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-orange-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
-              </div>
+              <Field label="12. Address of additional business with or without income assessment" labelClassName="block text-xs font-bold text-slate-700">
+              </Field>
 
               <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
+                <Field label="Address" labelClassName={SUB_LABEL}>
                   <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Income Assessment Details</label>
+                </Field>
+                <Field label="Income Assessment Details" labelClassName="block text-[10px] uppercase font-bold text-slate-500 mb-2">
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
                       <input type="radio" name="incomeAssessment" value="With Income Assessment" checked={additionalBusinessIncomeAssessment === 'With Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
@@ -4823,7 +4718,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       Without Income Assessment
                     </label>
                   </div>
-                </div>
+                </Field>
               </div>
             </div>
 
@@ -4836,8 +4731,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 12. Met Person During Visit Time */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">12. Met Person During Visit Time</label>
+            <Field label="12. Met Person During Visit Time">
               <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex justify-between items-center">
                 <div className="text-xs font-semibold text-slate-700">
                   {personsMet.map(p => {
@@ -4853,12 +4747,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Participants</button>
               </div>
-            </div>
+            </Field>
 
             {/* 13. Address of the Meeting */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">13. Address of the Meeting</label>
+              <Field label="13. Address of the Meeting" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex gap-2">
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('RESIDENCE');
@@ -4873,15 +4766,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     setMeetingAddress('');
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'OTHER' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Different Address</button>
                 </div>
-              </div>
+              </Field>
               <div className="grid grid-cols-1 gap-3 opacity-90">
                 <textarea value={meetingAddress} onChange={(e) => setMeetingAddress(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="Enter complete meeting address" rows={2} />
               </div>
             </div>
 
             {/* 14. Locating Premises Type */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">14. Locating Premises Type</label>
+            <Field label="14. Locating Premises Type" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
                 {['Village Area', 'Urban Area', 'Semi-Urban Area', 'Industrial Area', 'Commercial Area', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
@@ -4898,11 +4790,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   Generated: The residence premises are located in {locatingPremisesType === 'Other' ? `a ${locatingPremisesTypeOther}` : `a ${locatingPremisesType.toLowerCase()}`}.
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 15. Ownership */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">15. Ownership</label>
+            <Field label="15. Ownership" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex flex-wrap gap-3">
                 {['Self-Owned', 'Rented', 'Leased', 'Family-Owned', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4914,8 +4805,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
                 {propertyOwnership === 'Rented' && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Rent</label>
+                  <Field label="Monthly Rent" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={propertyRentAmount} onChange={(e) => {
@@ -4932,83 +4822,72 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         }
                       }} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 )}
                 {propertyOwnership === 'Self-Owned' && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Property Owner Name</label>
+                  <Field label="Property Owner Name" labelClassName={SUB_LABEL}>
                     <div className="flex gap-2">
                       <input type="text" value={propertyOwnerName} onChange={(e) => setPropertyOwnerName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Name" />
                       <button type="button" onClick={() => setPropertyOwnerName(applicantName)} className="text-[10px] whitespace-nowrap bg-slate-200 px-2 py-1 rounded font-bold text-slate-700">Set Applicant</button>
                     </div>
-                  </div>
+                  </Field>
                 )}
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Area (Sq. Ft.)</label>
+                <Field label="Approximate Property Area (Sq. Ft.)" labelClassName={SUB_LABEL}>
                   <input type="number" value={propertyArea} onChange={(e) => setPropertyArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Sq. Ft." />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Value</label>
+                </Field>
+                <Field label="Approximate Property Value" labelClassName={SUB_LABEL}>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                     <input type="number" value={propertyValue} onChange={(e) => setPropertyValue(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Value" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership Document Available?</label>
+                </Field>
+                <Field label="Ownership Document Available?" labelClassName={SUB_LABEL}>
                   <select value={propertyOwnershipDoc} onChange={(e) => setPropertyOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                     <option value="Not Provided">Not Provided</option>
                   </select>
-                </div>
+                </Field>
               </div>
-            </div>
+            </Field>
 
             {/* 16. House Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">16. House Details</label>
+            <Field label="16. House Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Floors</label>
+                <Field label="Number of Floors" labelClassName={SUB_LABEL}>
                   <input type="number" value={houseFloors} onChange={(e) => setHouseFloors(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Floors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Rooms</label>
+                </Field>
+                <Field label="Number of Rooms" labelClassName={SUB_LABEL}>
                   <input type="number" value={houseRooms} onChange={(e) => setHouseRooms(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Rooms" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Structure Type</label>
+                </Field>
+                <Field label="Structure Type" labelClassName={SUB_LABEL}>
                   <select value={houseStructureType} onChange={(e) => setHouseStructureType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
                     {['Single Story', 'Double Story', 'Multi Story', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Floor</label>
+                </Field>
+                <Field label="Floor" labelClassName={SUB_LABEL}>
                   <select value={houseFloorPosition} onChange={(e) => setHouseFloorPosition(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
                     {['Ground Floor', 'Ground + 1', 'Ground + 2', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
-                </div>
+                </Field>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {houseStructureType === 'Other' && <input type="text" value={houseStructureTypeOther} onChange={(e) => setHouseStructureTypeOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Structure Type" />}
                 {houseFloorPosition === 'Other' && <input type="text" value={houseFloorPositionOther} onChange={(e) => setHouseFloorPositionOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Floor Position" />}
               </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Additional Details</label>
+              <Field label="Additional Details" labelClassName={SUB_LABEL}>
                 <input type="text" value={houseAdditionalDetails} onChange={(e) => setHouseAdditionalDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional details..." />
-              </div>
+              </Field>
               <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
                 <span className="font-bold">Generated Summary:</span> {getHouseDetailsSummary()}
               </div>
-            </div>
+            </Field>
 
             {/* 17. Family Background of the Applicant */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">17. Family Background of the Applicant</label>
+            <Field label="17. Family Background of the Applicant">
               <div className="p-4 bg-slate-50 border border-slate-300 rounded-lg">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-semibold text-slate-600 italic">This table is automatically generated from the Household data.</span>
@@ -5043,11 +4922,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </table>
                 )}
               </div>
-            </div>
+            </Field>
 
             {/* 18. Monthly Household Expenses */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">18. Monthly Household Expenses</label>
+            <Field label="18. Monthly Household Expenses">
               <div className="relative md:w-1/3">
                 <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                 <input
@@ -5061,11 +4939,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Amount / month"
                 />
               </div>
-            </div>
+            </Field>
 
             {/* 19A. Residence Electricity Connection Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">19A. Residence Electricity Connection Details</label>
+            <Field label="19A. Residence Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
                   <button key={opt} type="button" onClick={() => setHasResElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasResElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
@@ -5074,8 +4951,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasResElectricityConnection === 'Yes' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                  <Field label="Connection Type" labelClassName={SUB_LABEL}>
                     <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
                       {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -5083,30 +4959,26 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {resElectricityConnectionType === 'Other' && (
                       <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                  </Field>
+                  <Field label="Supplier Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={resElectricitySupplierName} onChange={(e) => setResElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                  </Field>
+                  <Field label="Consumer Number" labelClassName={SUB_LABEL}>
                     <input type="text" value={resElectricityConsumerNumber} onChange={(e) => setResElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                  </Field>
+                  <Field label="Monthly Expense" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={resElectricityMonthlyExpense} onChange={(e) => setResElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
-            </div>
+            </Field>
 
             {/* 19B. Business Electricity Connection Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">19B. Business Electricity Connection Details</label>
+            <Field label="19B. Business Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
                   <button key={opt} type="button" onClick={() => setHasElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
@@ -5115,8 +4987,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasElectricityConnection === 'Yes' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                  <Field label="Connection Type" labelClassName={SUB_LABEL}>
                     <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
                       {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
@@ -5124,33 +4995,29 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {electricityConnectionType === 'Other' && (
                       <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                  </Field>
+                  <Field label="Supplier Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={electricitySupplierName} onChange={(e) => setElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                  </Field>
+                  <Field label="Consumer Number" labelClassName={SUB_LABEL}>
                     <input type="text" value={electricityConsumerNumber} onChange={(e) => setElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                  </Field>
+                  <Field label="Monthly Expense" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={electricityMonthlyExpense} onChange={(e) => setElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
-            </div>
+            </Field>
 
             {/* 20. Neighbor Name */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">20. Neighbor Name</label>
+              <Field label="20. Neighbor Name" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <button type="button" onClick={() => setNeighbors([{ id: Date.now(), name: 'Adjoining neighbors', remark: '' }])} className="text-[10px] bg-slate-100 px-2 py-1 rounded border border-slate-300 font-bold hover:bg-slate-200">No Specific Neighbor Provided</button>
-              </div>
+              </Field>
 
               <div className="space-y-2">
                 <button type="button" onClick={() => setNeighbors([...neighbors, { id: Date.now(), name: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
@@ -5167,8 +5034,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 21. Neighbor Feedback */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">21. Neighbor Feedback</label>
+            <Field label="21. Neighbor Feedback" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Neighbor Verification Conducted?</span>
                 <button type="button" onClick={() => setNeighborVerificationConducted(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${neighborVerificationConducted ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -5177,22 +5043,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {neighborVerificationConducted && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Residence Confirmation</label>
+                  <Field label="Residence Confirmation" labelClassName={SUB_LABEL}>
                     <select value={neighborResidenceConfirmed} onChange={(e) => setNeighborResidenceConfirmed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
                       <option value="Confirmed">Confirmed</option>
                       <option value="Not Confirmed">Not Confirmed</option>
                       <option value="Partially Confirmed">Partially Confirmed</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Behaviour Feedback</label>
+                  </Field>
+                  <Field label="Behaviour Feedback" labelClassName={SUB_LABEL}>
                     <select value={neighborBehaviourFeedback} onChange={(e) => setNeighborBehaviourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
                       {['Positive', 'Neutral', 'Negative', 'Not Provided'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                   <div className="md:col-span-2 flex items-center gap-4">
                     <span className="text-[10px] uppercase font-bold text-slate-500">Any Negative Information?</span>
                     <button type="button" onClick={() => setNeighborNegativeFeedback(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${neighborNegativeFeedback ? 'bg-red-500 text-white border-red-500' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -5208,7 +5072,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 22. Latitude & Longitude */}
             <div>
@@ -5234,8 +5098,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 23. Residence Status */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-              <label className="block text-xs font-bold text-slate-700">23. Residence Status</label>
+            <Field label="23. Residence Status" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
               <div className="flex flex-wrap gap-2">
                 {['Recommended', 'Not Recommended', 'Recommended subjects to demerits'].map(opt => (
                   <button key={opt} type="button" onClick={() => setResidenceStatus(opt)} className={`px-4 py-2 text-xs font-bold rounded-lg border ${residenceStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600' : opt === 'Not Recommended' ? 'bg-red-600 text-white border-red-600' : 'bg-[#eb8a23] text-white border-[#eb8a23]') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
@@ -5246,7 +5109,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {(residenceStatus === 'Not Recommended' || residenceStatus === 'Recommended subjects to demerits') && (
                 <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
               )}
-            </div>
+            </Field>
 
           </div>
           {renderTabNavigationFooter()}
@@ -5334,42 +5197,35 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {/* Collateral Property Details (Ambit / Abhiyan / MoneyBoxx LAP Specific) */}
               {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan') || (selectedClient?.name || '').toLowerCase().includes('lap')) && (
                 <div className="pt-6 mt-6 border-t border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="text-sm font-bold text-slate-700">Include Collateral Property Details?</label>
+                  <Field label="Include Collateral Property Details?" labelClassName="text-sm font-bold text-slate-700" className="flex items-center justify-between mb-4">
                     <div className="flex gap-4 text-xs font-semibold">
                       <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={hasCollateral} onChange={() => setHasCollateral(true)} className="text-[#eb8a23]" /> Yes</label>
                       <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={!hasCollateral} onChange={() => setHasCollateral(false)} className="text-[#eb8a23]" /> No</label>
                     </div>
-                  </div>
+                  </Field>
 
                   {hasCollateral && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-700">Collateral Address</label>
+                      <Field label="Collateral Address" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
                         <input type="text" value={collateralAddress} onChange={(e) => setCollateralAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Tajganj Fatehabd Road Agra" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Property Type</label>
+                      </Field>
+                      <Field label="Property Type" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <select value={collateralPropertyType} onChange={(e) => setCollateralPropertyType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
                           {['Residential', 'Commercial', 'Industrial', 'Agricultural'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Approx. Property Area (sq. feet)</label>
+                      </Field>
+                      <Field label="Approx. Property Area (sq. feet)" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralPropertyArea} onChange={(e) => setCollateralPropertyArea(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 800-900" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Property Usage</label>
+                      </Field>
+                      <Field label="Property Usage" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralPropertyUsage} onChange={(e) => setCollateralPropertyUsage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. This property is used for residential purposes." />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Approx Property Valuation</label>
+                      </Field>
+                      <Field label="Approx Property Valuation" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralValuation} onChange={(e) => setCollateralValuation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 8-10 Lakh" />
-                      </div>
-                      <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-700">Remarks</label>
+                      </Field>
+                      <Field label="Remarks" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
                         <textarea value={collateralRemarks} onChange={(e) => setCollateralRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Ownership details, etc." rows={2} />
-                      </div>
+                      </Field>
                     </div>
                   )}
                 </div>
@@ -5461,17 +5317,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     ))}
                   </tbody>
                 </table>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Current Obligation</label>
+                <Field label="Current Obligation" labelClassName="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap" className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
                   <input type="text" value={currentObligation} onChange={(e) => setCurrentObligation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. No any existing obligation" />
-                </div>
+                </Field>
               </div>
             </div>
 
             {/* D. Co-Applicant Business Details */}
             {coApplicants.length > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-                <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
+              <Field label="Business Details of Co-applicants" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
                 {coApplicants.map((coApp, idx) => (
                   <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
                     <div className="flex justify-between items-center mb-2">
@@ -5483,14 +5337,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       </div>
                     </div>
                     {coApp.profession === 'Business' && (
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
+                      <Field label="Details / Role in Business" labelClassName={SUB_LABEL}>
                         <textarea value={coApp.businessRole || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'businessRole', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
-                      </div>
+                      </Field>
                     )}
                   </div>
                 ))}
-              </div>
+              </Field>
             )}
 
             {/* E. Latitude & Longitude Remarks */}
@@ -5515,21 +5368,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
               </div>
               <div className="border-t border-slate-200 pt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-[10px] uppercase font-bold text-slate-500">Location Verified by GPS?</label>
+                <Field label="Location Verified by GPS?" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-2">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setBusinessLongitudeVerified(true); setBusinessLongitudeRemarks("The location was successfully verified using the provided coordinates."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${businessLongitudeVerified ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Yes, Verified</button>
                     <button type="button" onClick={() => { setBusinessLongitudeVerified(false); setBusinessLongitudeRemarks("The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!businessLongitudeVerified ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>No, Navigation Failed</button>
                   </div>
-                </div>
+                </Field>
                 <textarea value={businessLongitudeRemarks} onChange={(e) => setBusinessLongitudeRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} />
               </div>
             </div>
 
 
             {/* G. Business Status */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
-              <label className="block text-xs font-bold text-slate-700">Business Status (Recommendation)</label>
+            <Field label="Business Status (Recommendation)" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
               <div className="flex flex-wrap gap-2">
                 {['Recommended', 'Not Recommended', 'Recommended subject to demerits'].map(opt => (
                   <button
@@ -5550,7 +5401,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                 ))}
               </div>
-            </div>
+            </Field>
 
           </div>
           {renderTabNavigationFooter()}
@@ -5571,8 +5422,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Latitude</label>
+              <Field label="Extracted GPS Latitude">
                 <input
                   type="text"
                   value={exifGpsLat}
@@ -5580,9 +5430,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 26.9124"
                   className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Longitude</label>
+              </Field>
+              <Field label="Extracted GPS Longitude">
                 <input
                   type="text"
                   value={exifGpsLng}
@@ -5590,7 +5439,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 75.7873"
                   className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
                 />
-              </div>
+              </Field>
             </div>
 
             {['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map((categoryName) => (
@@ -5722,18 +5571,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Firm / Trade Name</label>
+              <Field label="Firm / Trade Name">
                 <input
                   type="text"
                   value={coApplicantBusinessName}
                   onChange={(e) => setCoApplicantBusinessName(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
+              <Field label="Premises Ownership">
                 <select
                   value={coApplicantBusinessPremiseOwnership}
                   onChange={(e) => setCoApplicantBusinessPremiseOwnership(e.target.value)}
@@ -5745,10 +5592,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="FAMILY">Family / Ancestral Owned</option>
                   <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
                 </select>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Vintage of Business</label>
+              <Field label="Vintage of Business">
                 <input
                   type="text"
                   value={coApplicantBusinessVintage}
@@ -5756,7 +5602,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="e.g. 5 Years"
                 />
-              </div>
+              </Field>
 
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary</label>
@@ -5769,35 +5615,32 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
               
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Number of Staffs</label>
+              <Field label="Number of Staffs">
                 <input
                   type="text"
                   value={coApplicantStaffCount}
                   onChange={(e) => setCoApplicantStaffCount(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Factory / Office Infrastructure</label>
+              <Field label="Factory / Office Infrastructure">
                 <input
                   type="text"
                   value={coApplicantFactoryInfrastructure}
                   onChange={(e) => setCoApplicantFactoryInfrastructure(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Stock Details with Estimated Value</label>
+              <Field label="Stock Details with Estimated Value">
                 <input
                   type="text"
                   value={coApplicantStockDetailsValue}
                   onChange={(e) => setCoApplicantStockDetailsValue(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Fixed & Current Asset Analysis</label>
@@ -5809,55 +5652,50 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Asset Creation Through Business</label>
+              <Field label="Asset Creation Through Business">
                 <input
                   type="text"
                   value={coApplicantAssetCreationThroughBusiness}
                   onChange={(e) => setCoApplicantAssetCreationThroughBusiness(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Investment</label>
+              <Field label="Business Investment">
                 <input
                   type="text"
                   value={coApplicantInitialBusinessInvestment}
                   onChange={(e) => setCoApplicantInitialBusinessInvestment(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Agricultural Income Details</label>
+              <Field label="Agricultural Income Details">
                 <input
                   type="text"
                   value={coApplicantAgriculturalIncomeDetails}
                   onChange={(e) => setCoApplicantAgriculturalIncomeDetails(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Other Source Income Details</label>
+              <Field label="Other Source Income Details">
                 <input
                   type="text"
                   value={coApplicantOtherSourceIncomeDetails}
                   onChange={(e) => setCoApplicantOtherSourceIncomeDetails(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Solar Saving Analysis</label>
+              <Field label="Solar Saving Analysis">
                 <input
                   type="text"
                   value={coApplicantOperationalSavingAnalysis}
                   onChange={(e) => setCoApplicantOperationalSavingAnalysis(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
             </div>
           </div>
           {renderTabNavigationFooter()}
@@ -5882,26 +5720,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {selectedClient?.name?.toLowerCase().includes('godrej') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                <Field label="Tenor Requested">
                   <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                </Field>
+                <Field label="Margins Assessed">
                   <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                </Field>
+                <Field label="Customer GST No.">
                   <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                </div>
+                </Field>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-2 mb-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Profit Margin (%)</label>
+              <Field label="Profit Margin (%)">
                 <input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20" />
-              </div>
+              </Field>
             </div>
 
             {/* Live Financial Waterfall Summary Cards */}
@@ -6172,8 +6006,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
                 {/* Direct Quick Inputs for Co-applicant */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Stated Monthly Turnover (₹)</label>
+                  <Field label="Co-App Stated Monthly Turnover (₹)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6181,9 +6014,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppStatedMonthlySales(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-indigo-900"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Staff Salaries (₹/mo)</label>
+                  </Field>
+                  <Field label="Co-App Staff Salaries (₹/mo)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6191,9 +6023,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppSalariesExpense(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Premises Rent (₹/mo)</label>
+                  </Field>
+                  <Field label="Co-App Premises Rent (₹/mo)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6201,7 +6032,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppRentExpense(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
                     />
-                  </div>
+                  </Field>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Utilities & Misc (₹/mo)</label>
                     <input
@@ -6218,8 +6049,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* Waterfall Input Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Stated Monthly Sales Turnover (₹)</label>
+              <Field label="Stated Monthly Sales Turnover (₹)">
                 <input
                   type="number"
                   min="0"
@@ -6227,7 +6057,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setStatedMonthlySales(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">COGS / Stock Purchase % ({cogsMarginPct}%)</label>
@@ -6254,8 +6084,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Staff Salaries (₹/mo)</label>
+              <Field label="Staff Salaries (₹/mo)">
                 <input
                   type="number"
                   min="0"
@@ -6263,7 +6092,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setSalariesExpense(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Power & Utilities (₹/mo)</label>
@@ -6276,8 +6105,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Household Expenses (₹/mo)</label>
+              <Field label="Household Expenses (₹/mo)">
                 <div className="space-y-2">
                   <input
                     type="number"
@@ -6294,10 +6122,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                   />
                 </div>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Existing EMI Notes (Report Override)</label>
+              <Field label="Existing EMI Notes (Report Override)">
                 <div className="text-[10px] text-blue-600 font-semibold mb-1">Auto-calculated: {generatedExistingEmiNotes}</div>
                 <input
                   type="text"
@@ -6306,10 +6133,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Leave blank to use auto-calculated notes above"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Comfortable EMI Notes (Report Override)</label>
+              <Field label="Comfortable EMI Notes (Report Override)">
                 <input
                   type="text"
                   value={comfortableEmiNotes}
@@ -6317,7 +6143,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. Post all expenses As per Moneyboxx"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
-              </div>
+              </Field>
             </div>
 
             {/* LIVE FINANCIAL RATIOS CARD */}
@@ -6571,24 +6397,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="p-6 overflow-y-auto">
                 <h4 className="text-sm font-bold text-slate-800 mb-4">Add Custom Category & Map Products</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Category Name *</label>
+                  <Field label="Category Name *">
                     <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Mobile Repair Shop" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Industry Group</label>
+                  </Field>
+                  <Field label="Industry Group">
                     <select value={newCatIndustry} onChange={(e) => setNewCatIndustry(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
                       {['Retail', 'Services', 'Manufacturing', 'Wholesale', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Typical Margin Min (%)</label>
+                  </Field>
+                  <Field label="Typical Margin Min (%)">
                     <input type="number" value={newCatMarginMin} onChange={(e) => setNewCatMarginMin(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Typical Margin Max (%)</label>
+                  </Field>
+                  <Field label="Typical Margin Max (%)">
                     <input type="number" value={newCatMarginMax} onChange={(e) => setNewCatMarginMax(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" />
-                  </div>
+                  </Field>
                 </div>
 
                 <div className="border border-slate-200 rounded-xl overflow-hidden mb-4">
