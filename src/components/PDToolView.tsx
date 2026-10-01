@@ -3834,15 +3834,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         setCoApplicants(newCoApps);
                       }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                         <option value="">Select Relationship ▼</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Son">Son</option>
-                        <option value="Daughter">Daughter</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Business Partner">Business Partner</option>
-                        <option value="Other">Other</option>
+                        {['Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Sister', 'Business Partner', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
                     {coApp.relation === 'Other' && (
@@ -3886,11 +3878,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship with Applicant</label>
                     <select value={femaleCandidateRelation} onChange={(e) => setFemaleCandidateRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                       <option value="">Select ▼</option>
-                      <option value="Spouse">Spouse</option>
-                      <option value="Mother">Mother</option>
-                      <option value="Daughter">Daughter</option>
-                      <option value="Sister">Sister</option>
-                      <option value="Other">Other</option>
+                      {['Spouse', 'Mother', 'Daughter', 'Sister', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   {femaleCandidateRelation === 'Other' && (
@@ -3940,16 +3928,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">10. Type of Loan</label>
                 <select value={loanType} onChange={(e) => setLoanType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  <option value="Commercial Solar Loan">Commercial Solar Loan</option>
-                  <option value="Residential Solar Loan">Residential Solar Loan</option>
-                  <option value="Personal Loan">Personal Loan</option>
-                  <option value="Home Loan">Home Loan</option>
-                  <option value="Business Loan">Business Loan</option>
-                  <option value="Vehicle Loan">Vehicle Loan</option>
-                  <option value="LAP">LAP</option>
-                  <option value="Micro Buisness Loan">Micro Buisness Loan</option>
-                  <option value="Education Loan">Education Loan</option>
-                  <option value="Other">Other</option>
+                  {['Commercial Solar Loan', 'Residential Solar Loan', 'Personal Loan', 'Home Loan', 'Business Loan', 'Vehicle Loan', 'LAP', 'Micro Buisness Loan', 'Education Loan', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 {loanType === 'Other' && (
                   <input type="text" value={otherLoanType} onChange={(e) => setOtherLoanType(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Loan Type" />
@@ -3978,12 +3957,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Current Power / Energy Source</label>
                     <select value={powerSource} onChange={(e) => setPowerSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                      <option value="Electricity">Electricity</option>
-                      <option value="Electricity Engine">Electricity Engine</option>
-                      <option value="Diesel Generator">Diesel Generator</option>
-                      <option value="Solar">Solar</option>
-                      <option value="Grid Electricity">Grid Electricity</option>
-                      <option value="Other">Other</option>
+                      {['Electricity', 'Electricity Engine', 'Diesel Generator', 'Solar', 'Grid Electricity', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {powerSource === 'Other' && (
                       <input type="text" value={otherPowerSource} onChange={(e) => setOtherPowerSource(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Power Source" />
@@ -4202,23 +4176,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="Self">Self</option>
-                                <option value="Father">Father</option>
-                                <option value="Mother">Mother</option>
-                                <option value="Spouse">Spouse</option>
-                                <option value="Son">Son</option>
-                                <option value="Daughter">Daughter</option>
-                                <option value="Brother">Brother</option>
-                                <option value="Sister">Sister</option>
-                                <option value="Mother in law">Mother in law</option>
-                                <option value="Father in law">Father in law</option>
-                                <option value="Sister in law">Sister in law</option>
-                                <option value="Brother in law">Brother in law</option>
-                                <option value="Neice">Neice</option>
-                                <option value="Nephew">Nephew</option>
-                                <option value="Grand Mother">Grand Mother</option>
-                                <option value="Grand Father">Grand Father</option>
-                                <option value="Other">Other</option>
+                                {['Self', 'Father', 'Mother', 'Spouse', 'Son', 'Daughter', 'Brother', 'Sister', 'Mother in law', 'Father in law', 'Sister in law', 'Brother in law', 'Neice', 'Nephew', 'Grand Mother', 'Grand Father', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
@@ -4247,13 +4205,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="Student">Student</option>
-                                <option value="Working professional">Working professional</option>
-                                <option value="Housewife">Housewife</option>
-                                <option value="Business">Business</option>
-                                <option value="Salaried">Salaried</option>
-                                <option value="Retired">Retired</option>
-                                <option value="Other">Other</option>
+                                {['Student', 'Working professional', 'Housewife', 'Business', 'Salaried', 'Retired', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
@@ -4279,12 +4231,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="10th Pass">10th Pass</option>
-                                <option value="12th Pass">12th Pass</option>
-                                <option value="Graduate">Graduate</option>
-                                <option value="Post Graduate">Post Graduate</option>
-                                <option value="Illiterate">Illiterate</option>
-                                <option value="Other">Other</option>
+                                {['10th Pass', '12th Pass', 'Graduate', 'Post Graduate', 'Illiterate', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
@@ -4369,14 +4316,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                       <option value="">Select...</option>
-                      <option value="Agriculture">Agriculture</option>
-                      <option value="Salaried Employment">Salaried Employment</option>
-                      <option value="Business">Business</option>
-                      <option value="Self-employed">Self-employed</option>
-                      <option value="Labour">Labour</option>
-                      <option value="Student">Student</option>
-                      <option value="Homemaker">Homemaker</option>
-                      <option value="Other">Other</option>
+                      {['Agriculture', 'Salaried Employment', 'Business', 'Self-employed', 'Labour', 'Student', 'Homemaker', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                 )}
@@ -4697,11 +4637,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <label className="block text-xs font-bold text-slate-700 mb-1">Investment Source</label>
                 <select value={investmentSource} onChange={(e) => setInvestmentSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                   <option value="">Select...</option>
-                  <option value="Own Funds">Own Funds</option>
-                  <option value="Loan">Loan</option>
-                  <option value="Family Funds">Family Funds</option>
-                  <option value="Combination">Combination</option>
-                  <option value="Other">Other</option>
+                  {['Own Funds', 'Loan', 'Family Funds', 'Combination', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 {investmentSource === 'Other' && (
                   <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
@@ -4733,20 +4669,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <div className="flex gap-2">
                         <input type="number" value={agriLandArea} onChange={(e) => setAgriLandArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Area" />
                         <select value={agriLandUnit} onChange={(e) => setAgriLandUnit(e.target.value)} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                          <option value="Bigha">Bigha</option>
-                          <option value="Acre">Acre</option>
-                          <option value="Hectare">Hectare</option>
-                          <option value="Other">Other</option>
+                          {['Bigha', 'Acre', 'Hectare', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </div>
                     </div>
                     <div>
                       <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership</label>
                       <select value={agriLandOwnership} onChange={(e) => setAgriLandOwnership(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                        <option value="Self-owned">Self-owned</option>
-                        <option value="Family-owned">Family-owned</option>
-                        <option value="Leased">Leased</option>
-                        <option value="Other">Other</option>
+                        {['Self-owned', 'Family-owned', 'Leased', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                     </div>
                     <div>
@@ -4822,13 +4752,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   {otherIncomeSources.map((inc, idx) => (
                     <div key={inc.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 border border-slate-200 rounded-lg bg-white items-center">
                       <select value={inc.source} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'source', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
-                        <option value="Salary">Salary</option>
-                        <option value="Rent">Rent</option>
-                        <option value="Agriculture">Agriculture</option>
-                        <option value="Pension">Pension</option>
-                        <option value="Business">Business</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                        {['Salary', 'Rent', 'Agriculture', 'Pension', 'Business', 'Investment', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
                       <select value={inc.frequency} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'frequency', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                         <option value="Monthly">Monthly</option>
@@ -5058,20 +4982,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Structure Type</label>
                   <select value={houseStructureType} onChange={(e) => setHouseStructureType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
-                    <option value="Single Story">Single Story</option>
-                    <option value="Double Story">Double Story</option>
-                    <option value="Multi Story">Multi Story</option>
-                    <option value="Other">Other</option>
+                    {['Single Story', 'Double Story', 'Multi Story', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Floor</label>
                   <select value={houseFloorPosition} onChange={(e) => setHouseFloorPosition(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
-                    <option value="Ground Floor">Ground Floor</option>
-                    <option value="Ground + 1">Ground + 1</option>
-                    <option value="Ground + 2">Ground + 2</option>
-                    <option value="Other">Other</option>
+                    {['Ground Floor', 'Ground + 1', 'Ground + 2', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 </div>
               </div>
@@ -5160,10 +5078,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
                     <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Domestic">Domestic</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Agricultural">Agricultural</option>
-                      <option value="Other">Other</option>
+                      {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {resElectricityConnectionType === 'Other' && (
                       <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
@@ -5204,10 +5119,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
                     <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Domestic">Domestic</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Agricultural">Agricultural</option>
-                      <option value="Other">Other</option>
+                      {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {electricityConnectionType === 'Other' && (
                       <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
@@ -5278,10 +5190,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Behaviour Feedback</label>
                     <select value={neighborBehaviourFeedback} onChange={(e) => setNeighborBehaviourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Positive">Positive</option>
-                      <option value="Neutral">Neutral</option>
-                      <option value="Negative">Negative</option>
-                      <option value="Not Provided">Not Provided</option>
+                      {['Positive', 'Neutral', 'Negative', 'Not Provided'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   <div className="md:col-span-2 flex items-center gap-4">
@@ -5442,10 +5351,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <div className="space-y-2">
                         <label className="text-xs font-semibold text-slate-700">Property Type</label>
                         <select value={collateralPropertyType} onChange={(e) => setCollateralPropertyType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
-                          <option value="Residential">Residential</option>
-                          <option value="Commercial">Commercial</option>
-                          <option value="Industrial">Industrial</option>
-                          <option value="Agricultural">Agricultural</option>
+                          {['Residential', 'Commercial', 'Industrial', 'Agricultural'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </div>
                       <div className="space-y-2">
@@ -5498,11 +5404,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'branchName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
                         <td className="py-2 pr-2">
                           <select value={bank.accountType} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountType', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
-                            <option value="Saving Account">Saving Account</option>
-                            <option value="Current Account">Current Account</option>
-                            <option value="OD">OD</option>
-                            <option value="CC">CC</option>
-                            <option value="Other">Other</option>
+                            {['Saving Account', 'Current Account', 'OD', 'CC', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
                         </td>
                         <td className="py-2 pr-2">
@@ -6676,11 +6578,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">Industry Group</label>
                     <select value={newCatIndustry} onChange={(e) => setNewCatIndustry(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
-                      <option value="Retail">Retail</option>
-                      <option value="Services">Services</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Wholesale">Wholesale</option>
-                      <option value="Other">Other</option>
+                      {['Retail', 'Services', 'Manufacturing', 'Wholesale', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   <div>
