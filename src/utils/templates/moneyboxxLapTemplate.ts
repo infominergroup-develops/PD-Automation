@@ -180,7 +180,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
         },
         {
           particulars: 'Salary of Employees',
-          businessNotes: 'He is self-employed and operates the business by himself.',
+          businessNotes: staffCountText,
           monthly: 0,
           yearly: 0
         },
