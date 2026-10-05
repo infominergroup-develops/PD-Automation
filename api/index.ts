@@ -31,12 +31,21 @@ try {
   
   // 1. Try Environment Variable (For Production / Deployment)
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    let credentials;
+    try {
+      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.trim());
+    } catch {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is not valid JSON; paste the whole service-account file as one value");
+    }
+    if (!credentials.project_id || !credentials.client_email || !credentials.private_key) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is missing project_id, client_email or private_key");
+    }
     db = new Firestore({
       projectId: credentials.project_id,
       credentials: {
         client_email: credentials.client_email,
-        private_key: credentials.private_key
+        // Dashboards often store the key's line breaks as literal "\n"
+        private_key: credentials.private_key.replace(/\\n/g, "\n")
       },
       ignoreUndefinedProperties: true,
       preferRest: true
