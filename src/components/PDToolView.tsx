@@ -28,6 +28,8 @@ import { toCoApplicantBusinessReport, useCoApplicantBusiness } from './pd/coAppl
 import { FieldInvestigationSection } from './pd/fieldInvestigation/FieldInvestigationSection';
 import { photoLocation } from './pd/fieldInvestigation/photoEvidence';
 import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
+import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
+import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
 import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
@@ -457,54 +459,27 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // Godrej Specific State
-  const [alternateMobileNumber, setAlternateMobileNumber] = useState('');
-  const [officeAccessibility, setOfficeAccessibility] = useState('');
-  const [tenorRequested, setTenorRequested] = useState('');
-  const [marginsAssessed, setMarginsAssessed] = useState('');
-  const [customerGstNo, setCustomerGstNo] = useState('');
-  const [industryType, setIndustryType] = useState('');
-  const [productType, setProductType] = useState('');
-  const [onLoanStructure, setOnLoanStructure] = useState('');
-  const [machineryDetailsText, setMachineryDetailsText] = useState('');
-  const [keyEmployeeDetailsText, setKeyEmployeeDetailsText] = useState('✓ .');
-  const [groupCompanyDetailsText, setGroupCompanyDetailsText] = useState('');
-  const [financialDetailsText, setFinancialDetailsText] = useState('');
-  const [otherBusinessPremisesText, setOtherBusinessPremisesText] = useState('');
-  const [otherStateGstText, setOtherStateGstText] = useState('');
-  const [familyInvolvedText, setFamilyInvolvedText] = useState('');
-  const [applicantQualification, setApplicantQualification] = useState('');
+  // Godrej-specific Business Profile fields
+  const godrej = useGodrejDetails();
+  const {
+    alternateMobileNumber, applicantQualification, officeAccessibility, tenorRequested, marginsAssessed, customerGstNo,
+    industryType, productType, onLoanStructure, machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText,
+    financialDetailsText, otherBusinessPremisesText, otherStateGstText, familyInvolvedText, godrejStockLevel,
+    godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize, godrejEmployeesSeen,
+    godrejThirdPartyConfirmation, godrejCourtCasePending, godrejThirdPartyComment, godrejSeparateDemarcation,
+    godrejGstDisplayed, godrejPanCard, godrejGstinLegalName, godrejBusinessRegProof, godrejGstinRegDate,
+    godrejElectricityBill, godrejEmployeeRegister, godrejSaleBills, godrejOtherRecords, godrejStrengths,
+    godrejWeaknesses, finalStatus,
+  } = godrej.values;
+  const { setGodrejStrengths, setGodrejWeaknesses } = godrej;
   const [partnersDirectorsDetails, setPartnersDirectorsDetails] = useState('Not applicable');
   const [profitMargin, setProfitMargin] = useState<number | ''>('');
 
   // Observation Fields
-  const [godrejStockLevel, setGodrejStockLevel] = useState('');
-  const [godrejRoughStockValue, setGodrejRoughStockValue] = useState('');
-  const [godrejLocality, setGodrejLocality] = useState('');
-  const [godrejOfficeSetup, setGodrejOfficeSetup] = useState('');
-  const [godrejActivityLevel, setGodrejActivityLevel] = useState('');
-  const [godrejOfficeSize, setGodrejOfficeSize] = useState('');
-  const [godrejEmployeesSeen, setGodrejEmployeesSeen] = useState('No external staff/labour is engaged. Business operations are managed by Applicant.');
-  const [godrejThirdPartyConfirmation, setGodrejThirdPartyConfirmation] = useState('');
-  const [godrejCourtCasePending, setGodrejCourtCasePending] = useState('');
-  const [godrejThirdPartyComment, setGodrejThirdPartyComment] = useState('');
-  const [godrejSeparateDemarcation, setGodrejSeparateDemarcation] = useState('');
-  const [godrejGstDisplayed, setGodrejGstDisplayed] = useState('');
 
   // Documents Verified Fields
-  const [godrejPanCard, setGodrejPanCard] = useState('');
-  const [godrejGstinLegalName, setGodrejGstinLegalName] = useState('');
-  const [godrejBusinessRegProof, setGodrejBusinessRegProof] = useState('');
-  const [godrejGstinRegDate, setGodrejGstinRegDate] = useState('');
-  const [godrejElectricityBill, setGodrejElectricityBill] = useState('');
-  const [godrejEmployeeRegister, setGodrejEmployeeRegister] = useState('');
-  const [godrejSaleBills, setGodrejSaleBills] = useState('');
-  const [godrejOtherRecords, setGodrejOtherRecords] = useState('');
 
   // Strengths and Weaknesses
-  const [godrejStrengths, setGodrejStrengths] = useState<Array<{ id: string; text: string }>>([]);
-  const [godrejWeaknesses, setGodrejWeaknesses] = useState<Array<{ id: string; text: string }>>([]);
-  const [finalStatus, setFinalStatus] = useState('POSITIVE');
-  const [isGodrejSectionOpen, setIsGodrejSectionOpen] = useState(false);
 
   const [applicantsList, setApplicantsList] = useState<GalleryApplicant[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
@@ -1461,7 +1436,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     // Support legacy and top-level field names from saves
     setApplicantName(app.applicantName || app.applicantEntity || '');
     setMobileNumber(app.mobileNumber || app.contactNo || '');
-    setAlternateMobileNumber(app.alternateMobileNumber || '');
     setPanNumber(app.panNumber || '');
     setResidenceAddress(app.residenceAddress || '');
     setResidenceOwnership(app.residenceOwnership || 'OWN');
@@ -1487,45 +1461,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setWorkingDays(app.workingDays !== undefined ? app.workingDays : 0);
 
     // Godrej Specific State
-    setOfficeAccessibility(app.officeAccessibility || '');
-    setTenorRequested(app.tenorRequested || '');
-    setMarginsAssessed(app.marginsAssessed || '');
-    setCustomerGstNo(app.customerGstNo || '');
-    setIndustryType(app.industryType || '');
-    setProductType(app.productType || '');
-    setOnLoanStructure(app.onLoanStructure || '');
-    setMachineryDetailsText(app.machineryDetailsText || '');
-    setKeyEmployeeDetailsText(app.keyEmployeeDetailsText || '✓ .');
-    setGroupCompanyDetailsText(app.groupCompanyDetailsText || '');
-    setFinancialDetailsText(app.financialDetailsText || '');
-    setOtherBusinessPremisesText(app.otherBusinessPremisesText || '');
-    setOtherStateGstText(app.otherStateGstText || '');
-    setFamilyInvolvedText(app.familyInvolvedText || '');
-    setApplicantQualification(app.applicantQualification || '');
 
-    setGodrejStockLevel(app.godrejStockLevel || '');
-    setGodrejRoughStockValue(app.godrejRoughStockValue || '');
-    setGodrejLocality(app.godrejLocality || '');
-    setGodrejOfficeSetup(app.godrejOfficeSetup || '');
-    setGodrejActivityLevel(app.godrejActivityLevel || '');
-    setGodrejOfficeSize(app.godrejOfficeSize || '');
-    setGodrejEmployeesSeen(app.godrejEmployeesSeen || 'No external staff/labour is engaged. Business operations are managed by Applicant.');
-    setGodrejThirdPartyConfirmation(app.godrejThirdPartyConfirmation || '');
-    setGodrejCourtCasePending(app.godrejCourtCasePending || '');
-    setGodrejThirdPartyComment(app.godrejThirdPartyComment || '');
-    setGodrejSeparateDemarcation(app.godrejSeparateDemarcation || '');
-    setGodrejGstDisplayed(app.godrejGstDisplayed || '');
-    setGodrejPanCard(app.godrejPanCard || '');
-    setGodrejGstinLegalName(app.godrejGstinLegalName || '');
-    setGodrejBusinessRegProof(app.godrejBusinessRegProof || '');
-    setGodrejGstinRegDate(app.godrejGstinRegDate || '');
-    setGodrejElectricityBill(app.godrejElectricityBill || '');
-    setGodrejEmployeeRegister(app.godrejEmployeeRegister || '');
-    setGodrejSaleBills(app.godrejSaleBills || '');
-    setGodrejOtherRecords(app.godrejOtherRecords || '');
-    setGodrejStrengths(app.godrejStrengths || []);
-    setGodrejWeaknesses(app.godrejWeaknesses || []);
-    setFinalStatus(app.finalStatus || 'POSITIVE');
 
     // Investigation & Feedback
     setNeighborName(app.neighborName || '');
@@ -1683,6 +1619,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setResidenceStatusReason(app.residenceStatusReason || '');
 
     customerSupplier.load(app);
+    godrej.load(app);
     photoEvidence.load(app);
     coApplicantBusiness.load(app);
     setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
@@ -1740,7 +1677,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Keep the ref updated with the latest state without triggering re-renders
   updateDataRef.current = {
-    applicantName, mobileNumber, alternateMobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
+    applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
     dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
     landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
@@ -1777,13 +1714,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     ...coApplicantBusiness.values,
     coAppIncomeLines, coAppExpenseLines, coAppStatedMonthlySales, coAppSalariesExpense, coAppRentExpense,
     coAppUtilitiesExpense, coAppMiscExpense,
-    officeAccessibility, tenorRequested, marginsAssessed, customerGstNo, industryType, productType, onLoanStructure,
-    machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText, financialDetailsText, otherBusinessPremisesText,
-    otherStateGstText, familyInvolvedText, applicantQualification,
-    godrejStockLevel, godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize,
-    godrejEmployeesSeen, godrejThirdPartyConfirmation, godrejCourtCasePending, godrejThirdPartyComment, godrejSeparateDemarcation,
-    godrejGstDisplayed, godrejPanCard, godrejGstinLegalName, godrejBusinessRegProof, godrejGstinRegDate, godrejElectricityBill,
-    godrejEmployeeRegister, godrejSaleBills, godrejOtherRecords, godrejStrengths, godrejWeaknesses, finalStatus,
+    ...godrej.values,
     categoryId: selectedCategoryId,
     // Always persist these top-level indexing fields so gallery/search works correctly
     applicationNumber: activeAppNumber,
@@ -3205,13 +3136,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {/* Additional fields requested in Business Profile */}
               <Field label="GSTIN – Legal Trade Name">
-                <input type="text" value={godrejGstinLegalName} onChange={(e) => setGodrejGstinLegalName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejGstinLegalName} onChange={(e) => godrej.setField('godrejGstinLegalName', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
               <Field label="GSTIN – Date of Registration">
-                <input type="text" value={godrejGstinRegDate} onChange={(e) => setGodrejGstinRegDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejGstinRegDate} onChange={(e) => godrej.setField('godrejGstinRegDate', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
               <Field label="Employee Register">
-                <input type="text" value={godrejEmployeeRegister} onChange={(e) => setGodrejEmployeeRegister(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejEmployeeRegister} onChange={(e) => godrej.setField('godrejEmployeeRegister', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
 
               <Field label="Carpet Area (Sq. Ft.)">
@@ -3296,7 +3227,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <Field label="Final Status" className="mt-4 w-1/3">
                   <select
                     value={finalStatus}
-                    onChange={(e) => setFinalStatus(e.target.value)}
+                    onChange={(e) => godrej.setField('finalStatus', e.target.value)}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   >
                     <option value="POSITIVE">POSITIVE</option>
@@ -3462,110 +3393,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           )}
 
           {/* GODREJ SPECIFIC DETAILS */}
-          {selectedClient?.name?.toLowerCase().includes('godrej') && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 shadow-sm mt-6 mb-6">
-              <button
-                type="button"
-                className="w-full flex justify-between items-center"
-                onClick={() => setIsGodrejSectionOpen(!isGodrejSectionOpen)}
-              >
-                <h3 className="text-sm font-extrabold text-green-900 uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-green-600" />
-                  Godrej Specific Details
-                </h3>
-                {isGodrejSectionOpen ? <ChevronLeft className="w-4 h-4 rotate-90" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
-
-              {isGodrejSectionOpen && (
-                <div className="mt-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Alternate Mobile Number">
-                      <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </Field>
-                    <Field label="Person Met Qualification (Overrides Auto)">
-                      <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
-                    </Field>
-                    <Field label="Office Accessibility">
-                      <input type="text" value={officeAccessibility} onChange={(e) => setOfficeAccessibility(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Easy, Difficult" />
-                    </Field>
-                    <Field label="Tenor Requested">
-                      <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                    </Field>
-                    <Field label="Margins Assessed">
-                      <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                    </Field>
-                    <Field label="Customer GST No.">
-                      <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                    </Field>
-                    <Field label="Industry Type">
-                      <input type="text" value={industryType} onChange={(e) => setIndustryType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Manufacturing, Retail" />
-                    </Field>
-                    <Field label="Product Type">
-                      <input type="text" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Garments, Hardware" />
-                    </Field>
-                    <Field label="On Loan Structure">
-                      <input type="text" value={onLoanStructure} onChange={(e) => setOnLoanStructure(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </Field>
-                  </div>
-
-                  <Field label="Machinery Details">
-                    <textarea value={machineryDetailsText} onChange={(e) => setMachineryDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List machinery details..." />
-                  </Field>
-                  <Field label="Key Employee Details">
-                    <textarea value={keyEmployeeDetailsText} onChange={(e) => setKeyEmployeeDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List key employees..." />
-                  </Field>
-                  <Field label="Group Company Details">
-                    <textarea value={groupCompanyDetailsText} onChange={(e) => setGroupCompanyDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="Name, Relation, Brief business details..." />
-                  </Field>
-                  <Field label="Financial Details Summary">
-                    <textarea value={financialDetailsText} onChange={(e) => setFinancialDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-                  <Field label="Other Business Premises">
-                    <textarea value={otherBusinessPremisesText} onChange={(e) => setOtherBusinessPremisesText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-                  <Field label="Other State GST Registration">
-                    <input type="text" value={otherStateGstText} onChange={(e) => setOtherStateGstText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </Field>
-                  <Field label="Family Members Involved">
-                    <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-
-                  {/* Godrej Specific Observation Fields */}
-                  <div className="pt-6 border-t border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Observation</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Stock Level</label><input type="text" value={godrejStockLevel} onChange={(e) => setGodrejStockLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Rough Value of Stock</label><input type="text" value={godrejRoughStockValue} onChange={(e) => setGodrejRoughStockValue(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Locality</label><input type="text" value={godrejLocality} onChange={(e) => setGodrejLocality(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Office Setup</label><input type="text" value={godrejOfficeSetup} onChange={(e) => setGodrejOfficeSetup(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Activity Level</label><input type="text" value={godrejActivityLevel} onChange={(e) => setGodrejActivityLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Size of the office</label><input type="text" value={godrejOfficeSize} onChange={(e) => setGodrejOfficeSize(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">No. of employees seen</label><input type="text" value={godrejEmployeesSeen} onChange={(e) => setGodrejEmployeesSeen(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Confirmation</label><input type="text" value={godrejThirdPartyConfirmation} onChange={(e) => setGodrejThirdPartyConfirmation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Any court case pending</label><input type="text" value={godrejCourtCasePending} onChange={(e) => setGodrejCourtCasePending(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Comment</label><input type="text" value={godrejThirdPartyComment} onChange={(e) => setGodrejThirdPartyComment(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether separate demarcation of office in Resi-cum-Office setup</label><input type="text" value={godrejSeparateDemarcation} onChange={(e) => setGodrejSeparateDemarcation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether GST Number displayed at the premises visited</label><input type="text" value={godrejGstDisplayed} onChange={(e) => setGodrejGstDisplayed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                    </div>
-                  </div>
-
-                  {/* Godrej Specific Documents Verified */}
-                  <div className="pt-6 border-t border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Documents verified during PD</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">PAN Card</label><input type="text" value={godrejPanCard} onChange={(e) => setGodrejPanCard(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Registration Proof Seen or Not Seen</label><input type="text" value={godrejBusinessRegProof} onChange={(e) => setGodrejBusinessRegProof(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Electricity Bill (latest 2 months) Seen/Not Seen</label><input type="text" value={godrejElectricityBill} onChange={(e) => setGodrejElectricityBill(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Sale Bills Seen</label><input type="text" value={godrejSaleBills} onChange={(e) => setGodrejSaleBills(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Other (Kacha Records)</label><input type="text" value={godrejOtherRecords} onChange={(e) => setGodrejOtherRecords(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                    </div>
-                  </div>
-
-                </div>
-
-              )}
-            </div>
-          )}
+          {selectedClient?.name?.toLowerCase().includes('godrej') && <GodrejDetailsPanel form={godrej} />}
 
           {tabFooter}
         </div>
@@ -5042,13 +4870,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {selectedClient?.name?.toLowerCase().includes('godrej') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
                 <Field label="Tenor Requested">
-                  <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
+                  <input type="text" value={tenorRequested} onChange={(e) => godrej.setField('tenorRequested', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
                 </Field>
                 <Field label="Margins Assessed">
-                  <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
+                  <input type="text" value={marginsAssessed} onChange={(e) => godrej.setField('marginsAssessed', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
                 </Field>
                 <Field label="Customer GST No.">
-                  <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
+                  <input type="text" value={customerGstNo} onChange={(e) => godrej.setField('customerGstNo', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
                 </Field>
               </div>
             )}
