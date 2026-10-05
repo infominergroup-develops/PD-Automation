@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
+import { describeStaffCount, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from '../src/utils/templates/abhiyanTemplate';
 import { generateGodrejPDReportHTML } from '../src/utils/templates/godrejTemplate';
 import { generateMoneyboxxLapPDReportHTML } from '../src/utils/templates/moneyboxxLapTemplate';
@@ -123,5 +123,50 @@ describe('isProvided', () => {
     [null, false],
   ])('%j → %s', (value, expected) => {
     expect(isProvided(value)).toBe(expected);
+  });
+});
+
+describe('describeStaffCount', () => {
+  it.each([
+    ['2 external staff/labour engaged.', '2 external staff/labour engaged.'],
+    ['4', 'The business employs 4 staff members.'],
+    [3, 'The business employs 3 staff members.'],
+    ['0', 'He is self-employed and operates the business by himself.'],
+    ['Not provided', 'He is self-employed and operates the business by himself.'],
+    [undefined, 'He is self-employed and operates the business by himself.'],
+  ])('%j → %s', (input, expected) => {
+    expect(describeStaffCount(input)).toBe(expected);
+  });
+});
+
+describe('form fields reach the report rows that display them', () => {
+  const businessDetails = {
+    ...fullReport,
+    businessPremiseOwnership: 'Business is being operated from rented premises.',
+    factoryInfrastructure: 'The business setup comprises 02 flour mills (10 HP).',
+    stockDetailsValue: 'The estimated value of observed stock (wheat) is approximately ₹40000.',
+    machineryDetailsText: '02 flour mills and 01 weighing scale.',
+    otherSourceIncomeDetails: 'Applicant has other income sources: Rent (₹5,000 Monthly)',
+    businessLocationRemarks: 'Coordinates matched the shop front.',
+  } as PDReportPrintData;
+
+  it.each([
+    ['moneyboxxLap', generateMoneyboxxLapPDReportHTML],
+    ['abhiyan', generateAbhiyanPDReportHTML],
+  ])('%s prints premises, assets, stock, machinery, other income and GPS remarks', (_name, generate) => {
+    const text = visibleText(generate(businessDetails));
+    expect(text).toContain('Business is being operated from rented premises.');
+    expect(text).toContain('The business setup comprises 02 flour mills (10 HP).');
+    expect(text).toContain('The estimated value of observed stock (wheat) is approximately ₹40000.');
+    expect(text).toContain('02 flour mills and 01 weighing scale.');
+    expect(text).toContain('Applicant has other income sources: Rent (₹5,000 Monthly)');
+    expect(text).toContain('Coordinates matched the shop front.');
+  });
+
+  it('standard report shows the uploaded bureau score, never an invented one', () => {
+    expect(visibleText(generateStandardPDReportHTML(fullReport))).not.toContain('748');
+    expect(visibleText(generateStandardPDReportHTML({ ...fullReport, cibilScore: 712 }))).toContain(
+      'CIBIL Bureau Score 712',
+    );
   });
 });

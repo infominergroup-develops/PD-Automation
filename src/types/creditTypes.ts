@@ -28,6 +28,19 @@ export interface CreditSummary {
   totalAmountOverdue: number;
 }
 
+/** Combined result of the bureau reports uploaded on the PD form, as shown on screen and in reports. */
+export interface ParsedCreditReport {
+  reportProvider: string;
+  reportDate: string | null | undefined;
+  creditScore: number | null | undefined;
+  totalAccounts: number;
+  activeAccounts: number;
+  totalCurrentBalance: number;
+  totalOverdueAmount: number;
+  flags: string[];
+  accounts: CreditAccount[];
+}
+
 export interface CreditAccount {
   id?: string;
   applicantName: string | null;

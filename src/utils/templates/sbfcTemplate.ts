@@ -18,7 +18,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
   
   let photosHtml = '';
-  const photos = (data as any).photos || [];
+  const photos = data.photos || [];
   if (photos && photos.length > 0) {
     photosHtml = `
       <div class="page-break"></div>
@@ -80,7 +80,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
   const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -123,7 +123,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
+  const hhExpM = Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 0;
   const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = (netProfY - existEmiY - (hhExpM * 12));
   
@@ -212,14 +212,14 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     `).join('') : ''}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
     <tr><td colspan="2">Documents Seen</td><td colspan="2">${data.documentsSeen && data.documentsSeen.length > 0 ? data.documentsSeen.join(', ') : 'Not provided'}</td></tr>
-    <tr><td colspan="2">Quotation Amount (as per applicant)</td><td colspan="2">${(data.appliedAmount || data.loanAmount || (data as any).quotationAmount) ? (String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || (data as any).quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).toLocaleString('en-IN')}/-`) : 'Not provided'}</td></tr>
+    <tr><td colspan="2">Quotation Amount (as per applicant)</td><td colspan="2">${(data.appliedAmount || data.loanAmount || data.quotationAmount) ? (String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || data.quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || data.quotationAmount).toLocaleString('en-IN')}/-`) : 'Not provided'}</td></tr>
     <tr><td colspan="2">Type of Loan</td><td colspan="2">${data.loanType || 'Business Loan'}</td></tr>
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>
     <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">${data.partnersDirectorsDetails || 'Not applicable'}</td></tr>
     <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
     <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
-    <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || 'Trading / Retail / Service'}</td></tr>
+    <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || '-'}</td></tr>
     
     <tr><td colspan="4" class="sec-head">Brief Profile of Business</td></tr>
     <tr><td colspan="4" style="height: 120px; vertical-align: top;">${(data.briefBusinessProfile || 'The applicant deals with approximately 25-30 customers daily in the business.\\n(All the above details are confirm verbally by met person)').replace(/\\\\n|\\n/g, '<br/>')}</td></tr>
@@ -480,8 +480,8 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     <tr><td>Area & Market Value</td><td colspan="3">${data.residenceMarketValue || '-'}</td></tr>
     <tr><td>Family Background</td><td colspan="3">
       Total family member- ${data.familyMembers?.length || 0}<br/>
-      Total earning member- ${data.familyMembers?.filter(f => (f as any).dependent === false || (f as any).isDependent === false).length || 0}<br/>
-      No. of dependents- ${data.familyMembers?.filter(f => (f as any).dependent !== false && (f as any).isDependent !== false).length || 0}
+      Total earning member- ${data.familyMembers?.filter(f => f.isDependent === false).length || 0}<br/>
+      No. of dependents- ${data.familyMembers?.filter(f => f.isDependent !== false).length || 0}
     </td></tr>
   </table>
 
@@ -502,7 +502,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
         <td>${f.relationship || f.relation || ''}</td>
         <td>${f.age || ''}</td>
         <td>${f.profession || f.occupation || ''}</td>
-        <td>${(f as any).dependent === false || (f as any).isDependent === false ? 'No' : 'Yes'}</td>
+        <td>${f.isDependent === false ? 'No' : 'Yes'}</td>
       </tr>
     `).join('')}
   </table>

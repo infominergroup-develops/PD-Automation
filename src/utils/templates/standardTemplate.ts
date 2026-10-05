@@ -57,7 +57,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
   const netProfY = data.netProfitYearly ?? (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment);
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
   const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -537,7 +537,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bold">Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || (data as any).endUseOfLoan || 'Not Provided'}</td>
+      <td colspan="3">${data.loanPurpose || data.endUseOfLoan || 'Not Provided'}</td>
     </tr>
     <tr>
       <td class="bold">Address of the residence</td>
@@ -1287,7 +1287,7 @@ export function generateStandardPDReportHTML(data: PDReportPrintData): string {
       </tr>
       <tr>
         <td class="bold">CIBIL Bureau Score</td>
-        <td class="bold">${data.cibilScore || 748}</td>
+        <td class="bold">${data.cibilScore || '-'}</td>
         <td class="bold">Post-Loan Monthly Surplus</td>
         <td class="bold" style="color: #065f46;">₹${Number(data.postLoanSurplus || (netDisposalM - (data.proposedEmi || 18200))).toLocaleString('en-IN')}</td>
       </tr>

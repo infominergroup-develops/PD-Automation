@@ -7,6 +7,8 @@ import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
+import type { ParsedCreditReport } from '../types/creditTypes';
+import type { ApplicantRecord, GalleryApplicant } from '../types/applicant';
 import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
@@ -400,7 +402,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Credit Report Extraction State
   const [creditReportType, setCreditReportType] = useState('NONE');
   const [creditReportFiles, setCreditReportFiles] = useState<File[]>([]);
-  const [parsedCreditReport, setParsedCreditReport] = useState<any>(null);
+  const [parsedCreditReport, setParsedCreditReport] = useState<ParsedCreditReport | null>(null);
   const [isEditingCreditReport, setIsEditingCreditReport] = useState(false);
   const [isParsingCreditReport, setIsParsingCreditReport] = useState(false);
 
@@ -521,19 +523,24 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [finalStatus, setFinalStatus] = useState('POSITIVE');
   const [isGodrejSectionOpen, setIsGodrejSectionOpen] = useState(false);
 
-  const [applicantsList, setApplicantsList] = useState<any[]>([]);
+  const [applicantsList, setApplicantsList] = useState<GalleryApplicant[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
 
   // Helper: normalise a raw Firestore applicant document so the UI always
   // sees a consistent `applicantName` field, regardless of which version of the
   // save code wrote the record (old code used `applicantEntity` / nested `formData`).
-  const normaliseApplicant = (raw: any) => {
-    const formData = raw.formData || {};
+  const normaliseApplicant = (record: ApplicantRecord): GalleryApplicant => {
+    // Legacy documents carry arbitrary extra fields; only the gallery fields below are relied on
+    const raw = record as Record<string, any>;
+    const formData: Record<string, any> = raw.formData || {};
+    const categoryId = raw.categoryId || formData.categoryId;
     const isClosedVal = raw.isClosed !== undefined ? Boolean(raw.isClosed) : (formData.isClosed !== undefined ? Boolean(formData.isClosed) : (raw.status === 'CLOSED' || formData.status === 'CLOSED'));
     return {
       ...raw,
       // Spread legacy nested formData fields so they surface at the top level
       ...formData,
+      _id: record._id,
+      clientId: record.clientId,
       // Ensure applicantName is always present, falling back to legacy field names
       applicantName:
         raw.applicantName ||
@@ -550,6 +557,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       closedAt: raw.closedAt || formData.closedAt || null,
       closedBy: raw.closedBy || formData.closedBy || null,
       preparedBy: raw.preparedBy || formData.preparedBy || '',
+      bankName: raw.bankName || raw.financialInstitute || formData.financialInstitute || selectedClient?.name || '',
+      categoryName: raw.categoryName || categoriesList.find(c => c.id === categoryId)?.name || '',
+      riskScore: typeof raw.riskScore === 'number' ? raw.riskScore : undefined,
       updatedAt: raw.updatedAt || formData.updatedAt || raw.createdAt || null,
       createdAt: raw.createdAt || formData.createdAt || null,
     };
@@ -2299,6 +2309,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     return { score, flags, strengths, decision };
   }, [dscrRatio, foirPct, yearsInBusiness, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
 
+  // Saved with the form (declared after it) so the case gallery can show the risk badge
+  updateDataRef.current = { ...updateDataRef.current, riskScore: riskAssessment.score };
+
   const handleSaveToDB = async () => {
     if (!selectedClient) {
       alert("Please select a client first.");
@@ -2645,6 +2658,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       marginsAssessed,
       customerGstNo,
       industryType: industryType || currentCategory?.industryGroup || '',
+      businessNature: currentCategory?.name || '',
+      cibilScore: parsedCreditReport?.creditScore ?? null,
+      residenceMarketValue: [
+        propertyArea ? `${propertyArea} sq. ft.` : '',
+        propertyValue ? `approx. ₹${Number(propertyValue).toLocaleString('en-IN')}` : '',
+      ].filter(Boolean).join(', '),
       productType: productType || currentCategory?.name || '',
       onLoanStructure,
       machineryDetailsText: machineryDetailsText || factoryInfrastructureText || fbFactoryInfra,
@@ -6707,7 +6726,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                           <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-600 text-white border border-emerald-700 uppercase tracking-wider flex items-center gap-1 shadow-xs">
                             <CheckCheck className="w-3 h-3" /> CLOSED (DELIVERED)
                           </span>
-                        ) : (
+                        ) : app.riskScore !== undefined && (
+                          // Records saved before the risk score was stored have no badge
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                             app.riskScore >= 80
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'

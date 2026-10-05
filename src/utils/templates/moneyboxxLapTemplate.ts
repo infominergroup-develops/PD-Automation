@@ -1,24 +1,24 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
-  const appNo = (data as any).applicationNumber || 'Not Provided';
-  const initiationDate = (data as any).caseInitiationDate || (data as any).visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-  const reportDate = (data as any).reportDate || (data as any).visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
-  const visitDate = (data as any).visitDate || reportDate;
-  const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended/Not- Recommended';
+  const appNo = data.applicationNumber || 'Not Provided';
+  const initiationDate = data.caseInitiationDate || data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const reportDate = data.reportDate || data.visitDate || new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/ /g, '-');
+  const visitDate = data.visitDate || reportDate;
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended/Not- Recommended';
   
-  const applicantName = (data as any).applicantName || 'Applicant';
-  const applicantPhone = (data as any).applicantPhone || '0';
-  const firmName = (data as any).firmName || 'M/s';
+  const applicantName = data.applicantName || 'Applicant';
+  const applicantPhone = data.applicantPhone || '0';
+  const firmName = data.firmName || 'M/s';
   
   // Co-applicants handling
-  const coApplicants = (data as any).coApplicants || [];
-  const primaryCoAppName = (data as any).coApplicantName || '';
-  const primaryCoAppRelation = (data as any).coApplicantRelation || '';
-  const primaryCoAppPhone = (data as any).coApplicantPhone || '0';
+  const coApplicants = data.coApplicants || [];
+  const primaryCoAppName = data.coApplicantName || '';
+  const primaryCoAppRelation = data.coApplicantRelation || '';
+  const primaryCoAppPhone = data.coApplicantPhone || '0';
 
   let coApplicantsHtml = '';
   if (coApplicants.length > 0) {
@@ -71,104 +71,98 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     }
   }
 
-  const loanPurposeText = (data as any).loanPurpose || (data as any).endUseOfLoan || (data as any).purpose || 'Business Expenses';
-  const residenceAddress = (data as any).residenceAddress || '-';
-  const businessAddress = (data as any).businessAddress || '-';
-  const collateralAddress = (data as any).collateralAddress || (data as any).propertyAddress || residenceAddress || '-';
+  const loanPurposeText = data.loanPurpose || data.endUseOfLoan || data.purpose || 'Business Expenses';
+  const residenceAddress = data.residenceAddress || '-';
+  const businessAddress = data.businessAddress || '-';
+  const collateralAddress = data.collateralAddress || data.propertyAddress || residenceAddress || '-';
 
-  const metPerson = (data as any).metPersonName || (primaryCoAppName ? `${applicantName} & ${primaryCoAppName}${primaryCoAppRelation ? ` ( ${primaryCoAppRelation} )` : ''}` : `${applicantName} ( Self )`);
-  const metPersonIdProof = (data as any).metPersonIdProof || (data as any).kycType || 'PAN Card';
-  const executiveName = (data as any).executiveName || '';
+  const metPerson = data.metPersonName || (primaryCoAppName ? `${applicantName} & ${primaryCoAppName}${primaryCoAppRelation ? ` ( ${primaryCoAppRelation} )` : ''}` : `${applicantName} ( Self )`);
+  const metPersonIdProof = data.metPersonIdProof || 'PAN Card';
+  const executiveName = data.executiveName || '';
 
   // Residence details
-  const meetingAddress = (data as any).meetingAddress || residenceAddress;
-  const residenceLocationType = (data as any).residenceLocationType || 'The residence premises are located in a village area';
-  const residenceOwnership = (data as any).residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 20-25 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)';
-  const residenceHouseDetails = (data as any).residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.';
+  const meetingAddress = data.meetingAddress || residenceAddress;
+  const residenceLocationType = data.locatingPremisesType || 'The residence premises are located in a village area';
+  const residenceOwnership = data.residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 20-25 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)';
+  const residenceHouseDetails = data.residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.';
 
   // Family details
-  const familyList = (data as any).familyMembers && (data as any).familyMembers.length > 0
-    ? (data as any).familyMembers
+  const familyList = data.familyMembers && data.familyMembers.length > 0
+    ? data.familyMembers
     : [{ name: applicantName, age: '45 Years', relationship: 'Self', qualification: '8th', occupation: 'Self-employed', dependent: false }];
 
-  const existEmiM = Number((data as any).existingEmiMonthly) || 0;
-  const existEmiY = Number((data as any).existingEmiYearly) || (existEmiM * 12);
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 10000;
-  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || hhExpM;
+  const existEmiM = Number(data.existingEmiMonthly) || 0;
+  const existEmiY = Number(data.existingEmiYearly) || (existEmiM * 12);
+  const hhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 10000;
+  const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || hhExpM;
 
-  const residenceElectricityDetails = (data as any).residenceElectricityDetails || `During verification, the electricity bill/meter was checked and found to be in the name of ${primaryCoAppName || applicantName}, with account number under electricity board.`;
-  const residenceNeighborName = (data as any).residenceNeighborName || 'Mr. Vishu and Mr. Sanju';
-  const residenceNeighborFeedback = (data as any).residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address for approximately 40–45 years. The feedback received was positive.';
-  const residenceGpsCoords = (data as any).residenceGpsCoords || (data as any).businessGpsCoords || '';
+  const residenceElectricityDetails = data.residenceElectricityDetails || `During verification, the electricity bill/meter was checked and found to be in the name of ${primaryCoAppName || applicantName}, with account number under electricity board.`;
+  const residenceNeighborName = data.residenceNeighborName || 'Mr. Vishu and Mr. Sanju';
+  const residenceNeighborFeedback = data.residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address for approximately 40–45 years. The feedback received was positive.';
+  const residenceGpsCoords = data.residenceGpsCoords || data.businessGpsCoords || '';
 
   // Collateral property details
-  const collateralPropertyType = (data as any).collateralPropertyType || 'The property type is residential';
-  const collateralArea = (data as any).collateralArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)';
-  const collateralUsage = (data as any).collateralUsage || 'This property is used for residential purposes.';
-  const collateralValuation = (data as any).collateralValuation || (data as any).collateralMarketValue || 'The property valuation is approximately in Rs. 20-25 Lakh. (as per verbal confirmation)';
+  const collateralPropertyType = data.collateralPropertyType || 'The property type is residential';
+  const collateralArea = data.collateralPropertyArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)';
+  const collateralUsage = data.collateralPropertyUsage || 'This property is used for residential purposes.';
+  const collateralValuation = data.collateralValuation || 'The property valuation is approximately in Rs. 20-25 Lakh. (as per verbal confirmation)';
 
   // Business visit details & Narrative
-  const businessNarrative = (data as any).briefBusinessProfile || (() => {
-    return `${applicantName} has been engaged in business operations for the past approximately ${(data as any).businessVintage || '05 years'}, indicating continuity in the same line of activity. The business is being managed under a family setup where family members are involved in day-to-day operations.<br/><br/>The business activity is being managed from ${businessAddress} with regular local operations.<br/>(All the above details are confirm verbal by applicant)`;
+  const businessNarrative = data.briefBusinessProfile || (() => {
+    return `${applicantName} has been engaged in business operations for the past approximately ${data.businessVintage || '05 years'}, indicating continuity in the same line of activity. The business is being managed under a family setup where family members are involved in day-to-day operations.<br/><br/>The business activity is being managed from ${businessAddress} with regular local operations.<br/>(All the above details are confirm verbal by applicant)`;
   })();
 
-  const businessVintageText = (data as any).businessVintage
-    ? `The applicant has been operating the business at the current address for the past ${(data as any).businessVintage}.`
+  const businessVintageText = data.businessVintage
+    ? `The applicant has been operating the business at the current address for the past ${data.businessVintage}.`
     : 'The applicant has been operating the business at the current address for the past 05 years.';
-  // staffCount arrives as the form's "2. Number of Staffs" summary sentence, not a bare number
-  const rawStaffCount = String((data as any).staffCount || '').trim();
-  const staffCountText = !rawStaffCount || rawStaffCount === 'Not provided'
-    ? 'He is self-employed and operates the business by himself.'
-    : /^\d+$/.test(rawStaffCount)
-      ? `The business employs ${rawStaffCount} staff members.`
-      : rawStaffCount;
-  const businessPremisesOwnershipText = (data as any).businessOwnership || 'The applicant is managing and operating the business from his residence.';
-  const assetDetailsText = (data as any).assetDetails || (data as any).officeInfrastructure || 'The applicant owns livestock assets and business equipment, which are being used for business operations and production.';
-  const stockDetailsText = (data as any).stockDetails || 'stock is maintained with an approximate value of 2,000-3,000';
-  const equipmentsText = (data as any).equipmentDetails || (data as any).machineryDetails || 'Business include basic tools, containers, and routine equipment required for handling and maintaining operations.';
-  const otherIncomeSourceText = (data as any).otherIncomeSource || 'No other regular source of income was confirmed during verification.';
+  const staffCountText = describeStaffCount(data.staffCount);
+  const businessPremisesOwnershipText = data.businessPremiseOwnership || 'The applicant is managing and operating the business from his residence.';
+  const assetDetailsText = data.factoryInfrastructure || 'The applicant owns livestock assets and business equipment, which are being used for business operations and production.';
+  const stockDetailsText = data.stockDetailsValue || 'stock is maintained with an approximate value of 2,000-3,000';
+  const equipmentsText = data.machineryDetailsText || 'Business include basic tools, containers, and routine equipment required for handling and maintaining operations.';
+  const otherIncomeSourceText = isProvided(data.otherSourceIncomeDetails) ? data.otherSourceIncomeDetails : 'No other regular source of income was confirmed during verification.';
 
   // Customer & Supplier details
-  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0
-    ? (data as any).prominentCustomers
+  const customerList = data.prominentCustomers && data.prominentCustomers.length > 0
+    ? data.prominentCustomers
     : [{ name: 'Not provided', phone: '0000000000', remark: 'Regular customer, positive feedback received.' }];
-  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0
-    ? (data as any).prominentSuppliers
+  const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0
+    ? data.prominentSuppliers
     : [{ name: 'Not applicable', phone: '', remark: '' }];
 
   // Banking Details
-  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0
-    ? (data as any).bankingDetails
+  const bankingList = data.bankingDetails && data.bankingDetails.length > 0
+    ? data.bankingDetails
     : [{ bankName: 'HDFC Bank', branchName: 'Jeoni Mandi', accountTypes: 'Saving', limit: 'NA', accountNo: '********** 2937', remark: 'The account belongs to applicant' }];
 
-  const businessGpsCoords = (data as any).businessGpsCoords || residenceGpsCoords || '';
-  const gpsRemarks = (data as any).gpsRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.';
-  const businessElectricityDetails = (data as any).businessElectricityDetails || 'A separate electricity meter is not required, as the applicant is operating the business from the residence.';
-  const businessNeighborName = (data as any).businessNeighborName || residenceNeighborName;
-  const businessNeighborFeedback = (data as any).businessNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.';
+  const businessGpsCoords = data.businessGpsCoords || residenceGpsCoords || '';
+  const gpsRemarks = isProvided(data.businessLocationRemarks) ? data.businessLocationRemarks : 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.';
+  const businessElectricityDetails = data.businessElectricityDetails || 'A separate electricity meter is not required, as the applicant is operating the business from the residence.';
+  const businessNeighborName = data.businessNeighborName || residenceNeighborName;
+  const businessNeighborFeedback = data.businessNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.';
 
   // Assessed Financials
-  const hasItemizedSales = Boolean((data as any).itemizedSales && (data as any).itemizedSales.length > 0 && (data as any).itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
+  const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some(i => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
-    ? (data as any).itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? data.itemizedSales!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Income from Business',
-          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification & assessment',
-          monthly: Number((data as any).totalSalesMonthly) || 0,
-          yearly: Number((data as any).totalSalesYearly) || (Number((data as any).totalSalesMonthly) || 0) * 12
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.totalSalesMonthly) || 0,
+          yearly: Number(data.totalSalesYearly) || (Number(data.totalSalesMonthly) || 0) * 12
         }
       ];
   const totalSalesM = hasItemizedSales
     ? salesItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
+    : (Number(data.totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
   const totalSalesY = hasItemizedSales
     ? salesItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).totalSalesYearly) || totalSalesM * 12);
+    : (Number(data.totalSalesYearly) || totalSalesM * 12);
 
-  const hasItemizedExpenses = Boolean((data as any).itemizedExpenses && (data as any).itemizedExpenses.length > 0 && (data as any).itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
+  const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some(i => (Number(i.monthly) || 0) > 0));
   const expenseItems = hasItemizedExpenses
-    ? (data as any).itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? data.itemizedExpenses!.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Purchase',
@@ -204,10 +198,10 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
 
   const totalExpM = hasItemizedExpenses
     ? expenseItems.reduce((acc, i) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).totalExpensesMonthly) || 0);
+    : (Number(data.totalExpensesMonthly) || 0);
   const totalExpY = hasItemizedExpenses
     ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).totalExpensesYearly) || totalExpM * 12);
+    : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM - totalExpM;
   const netProfY = totalSalesY - totalExpY;
@@ -215,10 +209,10 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const netDisposalM = netProfM - existEmiM - hhExpM;
   const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
 
-  const crifAccounts = (data as any).parsedCreditReport?.accounts || [];
+  const crifAccounts = data.parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
     ? crifAccounts 
-    : ((data as any).existingLoans && (data as any).existingLoans.length > 0 ? (data as any).existingLoans : []);
+    : (data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : []);
 
   const emiNotes = loansList.length > 0
     ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )`
@@ -237,7 +231,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const comfortableEmiRightText = `As per ${bankName}`;
 
   // Photos Categorization
-  const photos = (data as any).photos || [];
+  const photos = data.photos || [];
   const photoCategories = [
     { key: 'KYC', title: 'KYC', filter: ['KYC', 'ID', 'AADHAAR', 'PAN', 'PASSPORT', 'VOTER'] },
     { key: 'RESIDENCE', title: 'Residence visit photos', filter: ['RESIDENCE', 'HOUSE', 'HOME', 'LIVING'] },
@@ -325,7 +319,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
   <div class="page-break"></div>
 
   <!-- ==================== PAGE 1 ==================== -->

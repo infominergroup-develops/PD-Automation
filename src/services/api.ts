@@ -1,5 +1,6 @@
 import { BusinessCategory, CategoryProduct, User, UserRole } from '../types';
 import { ClientBank, CLIENT_BANKS } from '../data/clientBanksData';
+import type { ApplicantPayload, ApplicantRecord } from '../types/applicant';
 
 export interface EmployeeRecord extends User {
   designation: string;
@@ -109,15 +110,15 @@ export const api = {
     return data.client;
   },
 
-  getApplicants: async (clientId: string): Promise<any[]> => {
-    const data = await handleResponse<{ applicants: any[] }>(
+  getApplicants: async (clientId: string): Promise<ApplicantRecord[]> => {
+    const data = await handleResponse<{ applicants: ApplicantRecord[] }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`)
     );
     return data.applicants;
   },
 
-  createApplicant: async (clientId: string, newApplicantData: any): Promise<any> => {
-    const data = await handleResponse<{ applicant: any }>(
+  createApplicant: async (clientId: string, newApplicantData: ApplicantPayload): Promise<ApplicantRecord> => {
+    const data = await handleResponse<{ applicant: ApplicantRecord }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,8 +128,8 @@ export const api = {
     return data.applicant;
   },
 
-  updateApplicant: async (clientId: string, appId: string, updateData: any): Promise<any> => {
-    const data = await handleResponse<{ applicant: any }>(
+  updateApplicant: async (clientId: string, appId: string, updateData: ApplicantPayload): Promise<ApplicantRecord> => {
+    const data = await handleResponse<{ applicant: ApplicantRecord }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },

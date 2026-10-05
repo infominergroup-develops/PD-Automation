@@ -56,7 +56,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = totalSalesY - totalExpY;
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment || data.hasCoApplicantBusiness);
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
   const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -403,7 +403,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || (data as any).endUseOfLoan || 'Not Provided'}</td>
+      <td colspan="3">${data.loanPurpose || data.endUseOfLoan || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>

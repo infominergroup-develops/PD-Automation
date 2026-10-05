@@ -1,3 +1,4 @@
+import type { ParsedCreditReport } from '../types/creditTypes';
 // Dedicated Company Standard PD Report Printer Module
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
@@ -13,6 +14,16 @@ export const toReportContacts = (rows: Array<{ name?: string; phone?: string; fe
   rows
     .filter(row => row.name?.trim())
     .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
+
+/**
+ * "Number of staffs" row. The form sends its summary sentence (e.g. "2 external staff/labour engaged. ...");
+ * older records may hold a bare number.
+ */
+export function describeStaffCount(staffCount: string | number | undefined): string {
+  const raw = String(staffCount ?? '').trim();
+  if (!isProvided(raw) || raw === '0') return 'He is self-employed and operates the business by himself.';
+  return /^\d+$/.test(raw) ? `The business employs ${raw} staff members.` : raw;
+}
 
 export function getUniversalCoverPageCSS(): string {
   return `
@@ -195,7 +206,6 @@ export interface PDReportPrintData {
   collateralValuation?: string;
   collateralRemarks?: string;
   shopOwnership?: string;
-  solarPurposeUsage?: string;
   purpose?: string;
   appliedAmount?: number | string;
   quotationAmount?: number | string;
@@ -300,7 +310,6 @@ export interface PDReportPrintData {
   totalExpensesYearly?: number;
 
   // Co-applicant Financial Assessment
-  hasCoApplicantIncomeAssessment?: boolean;
   coApplicantItemizedSales?: Array<{
     particulars: string;
     businessNotes: string;
@@ -330,17 +339,16 @@ export interface PDReportPrintData {
   householdExpensesNotes?: string;
   netDisposalIncomeMonthly?: number;
   netDisposalIncomeYearly?: number;
-  comfortableMonthlyEmi?: string;
   comfortableEmiNotes?: string;
   applicantQualification?: string;
-  businessNature?: string;
+  businessNature?: string; // business category, e.g. "Kirana Store"
   residenceMarketValue?: string;
-  businessCity?: string;
+  businessCity?: string; // not captured on the form yet
 
   // Financial Ratios
   dscrRatio?: number;
   foirPct?: number;
-  cibilScore?: number;
+  cibilScore?: number | null;
   riskScore?: number;
   riskLevel?: string;
   strengths?: string[];
@@ -370,7 +378,7 @@ export interface PDReportPrintData {
   }>;
 
   // Parsed Credit Report Data
-  parsedCreditReport?: any;
+  parsedCreditReport?: ParsedCreditReport | null;
 
   // Godrej Specific Fields
   alternateMobileNumber?: string;
@@ -436,7 +444,7 @@ export {
 
 export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
   const bankLower = (data.clientBankName || '').toLowerCase();
-  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap') || (bankLower.includes('moneyboxx') && (String((data as any).loanType || '').toUpperCase().includes('LAP') || String((data as any).productType || '').toUpperCase().includes('LAP')))) {
+  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap') || (bankLower.includes('moneyboxx') && (String(data.loanType || '').toUpperCase().includes('LAP') || String(data.productType || '').toUpperCase().includes('LAP')))) {
     openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
     return;
   }
