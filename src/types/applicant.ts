@@ -57,5 +57,15 @@ export interface GalleryApplicant extends ApplicantRecordMeta, ApplicantIndexFie
   [formField: string]: unknown;
 }
 
+export interface CoApplicant {
+  name: string;
+  relation: string;
+  otherRelation?: string;
+  mobileNumber?: string;
+  profession?: 'Salaried' | 'Business' | 'Other';
+  inBusiness?: boolean;
+  businessRole?: string;
+}
+
 /** Body sent when creating or updating an applicant: the PD form's fields. */
 export type ApplicantPayload = Partial<ApplicantIndexFields> & Record<string, unknown>;
