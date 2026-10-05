@@ -31,11 +31,14 @@ try {
   
   // 1. Try Environment Variable (For Production / Deployment)
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    // Accepts the service-account JSON itself, or the same JSON base64-encoded (safer to paste into dashboards)
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    const json = raw.startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
     let credentials;
     try {
-      credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT.trim());
+      credentials = JSON.parse(json);
     } catch {
-      throw new Error("FIREBASE_SERVICE_ACCOUNT is not valid JSON; paste the whole service-account file as one value");
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is not valid JSON or base64-encoded JSON");
     }
     if (!credentials.project_id || !credentials.client_email || !credentials.private_key) {
       throw new Error("FIREBASE_SERVICE_ACCOUNT is missing project_id, client_email or private_key");
