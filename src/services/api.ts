@@ -1,11 +1,21 @@
 import { BusinessCategory, CategoryProduct, User, UserRole } from '../types';
 import { ClientBank, CLIENT_BANKS } from '../data/clientBanksData';
+import type { ApplicantPayload, ApplicantRecord } from '../types/applicant';
 
 export interface EmployeeRecord extends User {
   designation: string;
   password?: string; // write-only: sent when creating an employee or resetting a password
   createdAt?: string;
   status?: 'ACTIVE' | 'INACTIVE';
+}
+
+/** Photo as stored by the API; coordinates are present only when the client supplied them. */
+export interface UploadedPhoto {
+  id: string;
+  url: string;
+  caption: string;
+  timestamp: string;
+  gpsCoordinates: { latitude: number; longitude: number } | null;
 }
 
 const BASE_URL = '';
@@ -109,15 +119,15 @@ export const api = {
     return data.client;
   },
 
-  getApplicants: async (clientId: string): Promise<any[]> => {
-    const data = await handleResponse<{ applicants: any[] }>(
+  getApplicants: async (clientId: string): Promise<ApplicantRecord[]> => {
+    const data = await handleResponse<{ applicants: ApplicantRecord[] }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`)
     );
     return data.applicants;
   },
 
-  createApplicant: async (clientId: string, newApplicantData: any): Promise<any> => {
-    const data = await handleResponse<{ applicant: any }>(
+  createApplicant: async (clientId: string, newApplicantData: ApplicantPayload): Promise<ApplicantRecord> => {
+    const data = await handleResponse<{ applicant: ApplicantRecord }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -127,8 +137,8 @@ export const api = {
     return data.applicant;
   },
 
-  updateApplicant: async (clientId: string, appId: string, updateData: any): Promise<any> => {
-    const data = await handleResponse<{ applicant: any }>(
+  updateApplicant: async (clientId: string, appId: string, updateData: ApplicantPayload): Promise<ApplicantRecord> => {
+    const data = await handleResponse<{ applicant: ApplicantRecord }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -191,8 +201,8 @@ export const api = {
   },
 
   // Photo Upload with Server EXIF processing
-  uploadPhoto: async (fileName: string, base64Data: string, lat?: number, lng?: number): Promise<any> => {
-    const data = await handleResponse<{ photo: any }>(
+  uploadPhoto: async (fileName: string, base64Data: string, lat?: number, lng?: number): Promise<UploadedPhoto> => {
+    const data = await handleResponse<{ photo: UploadedPhoto }>(
       await authFetch(`${BASE_URL}/api/upload/photo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

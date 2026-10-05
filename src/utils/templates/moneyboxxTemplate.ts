@@ -1,6 +1,5 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
@@ -56,7 +55,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const netProfY = totalSalesY - totalExpY;
 
   // Co-Applicant Income Assessment Calculations
-  const hasCoAppAssessment = Boolean(data.hasCoApplicantIncomeAssessment || data.hasCoApplicantBusiness);
+  const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
   const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? data.coApplicantItemizedSales.filter(i => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
@@ -270,15 +269,13 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   <div  style="outline: none;">
   
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
 
   <!-- PAGE 2: EXECUTIVE SUMMARY CONTINUED -->
   <div class="exec-page">
     <div class="shape-2"></div>
     <div class="exec-header">
-      <div class="exec-logo-container">
-        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
-      </div>
+${execHeaderLogoHTML(data)}
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
     
@@ -314,7 +311,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </div>
     
     <div class="exec-footer">
-      <div>Infominer</div>
+      <div>${reportBranding(data).footerLabel}</div>
       <div>Page 2 of 2</div>
     </div>
   </div>
@@ -403,7 +400,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td>Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${data.loanPurpose || (data as any).endUseOfLoan || 'Not Provided'}</td>
+      <td colspan="3">${data.loanPurpose || data.endUseOfLoan || 'Not Provided'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>

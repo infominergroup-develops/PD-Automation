@@ -31,12 +31,24 @@ try {
   
   // 1. Try Environment Variable (For Production / Deployment)
   if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    const credentials = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+    // Accepts the service-account JSON itself, or the same JSON base64-encoded (safer to paste into dashboards)
+    const raw = process.env.FIREBASE_SERVICE_ACCOUNT.trim();
+    const json = raw.startsWith("{") ? raw : Buffer.from(raw, "base64").toString("utf8");
+    let credentials;
+    try {
+      credentials = JSON.parse(json);
+    } catch {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is not valid JSON or base64-encoded JSON");
+    }
+    if (!credentials.project_id || !credentials.client_email || !credentials.private_key) {
+      throw new Error("FIREBASE_SERVICE_ACCOUNT is missing project_id, client_email or private_key");
+    }
     db = new Firestore({
       projectId: credentials.project_id,
       credentials: {
         client_email: credentials.client_email,
-        private_key: credentials.private_key
+        // Dashboards often store the key's line breaks as literal "\n"
+        private_key: credentials.private_key.replace(/\\n/g, "\n")
       },
       ignoreUndefinedProperties: true,
       preferRest: true
@@ -64,6 +76,11 @@ try {
 
 } catch (err) {
   console.error("[PD System Server] Firestore connection error:", err);
+}
+
+// Surface a missing session secret at startup rather than as a generic "Login failed"
+if (process.env.NODE_ENV === "production" && (process.env.JWT_SECRET || "").length < 32) {
+  console.error("[Auth] JWT_SECRET is missing or shorter than 32 characters; every login will fail until it is set.");
 }
 
 app.use(express.json({ limit: "50mb" }));
@@ -287,6 +304,7 @@ app.post("/api/auth/login", async (req, res) => {
     addAuditLog(authUser, "USER_LOGIN", "Authentication", authUser.id, `Logged in successfully`);
     res.json({ success: true, user: toPublicUser(existingUser), token: signToken(authUser) });
   } catch (err) {
+    console.error("[Auth] Login error:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
@@ -563,24 +581,23 @@ app.delete("/api/reports/:id", requireRole(...MANAGEMENT_ROLES), async (req, res
   }
 });
 
+// Photos are stored with the applicant; this endpoint only assigns an id and records the upload.
+// Coordinates are echoed back only when the client read or was given them; none are made up here.
 app.post("/api/upload/photo", (req, res) => {
-  const { fileName, fileType, base64Data, latitude, longitude } = req.body;
-  const photoId = "IMG-" + Math.floor(10000 + Math.random() * 90000);
-  const simulatedExif = {
-    id: photoId,
-    url: base64Data || "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80",
+  const { fileName, base64Data, latitude, longitude } = req.body;
+  if (typeof base64Data !== "string" || !base64Data.startsWith("data:image/")) {
+    return res.status(400).json({ error: "An image is required" });
+  }
+  const hasGps = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const photo = {
+    id: "IMG-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    url: base64Data,
     caption: fileName || "Site Visit Photo",
     timestamp: new Date().toISOString(),
-    gpsCoordinates: {
-      latitude: latitude || 28.6139 + (Math.random() - 0.5) * 0.05,
-      longitude: longitude || 77.2090 + (Math.random() - 0.5) * 0.05,
-      accuracyMeters: 4.2
-    },
-    categoryTag: "Signboard/Premises",
-    isAiVerified: true
+    gpsCoordinates: hasGps ? { latitude, longitude } : null,
   };
-  addAuditLog(req.user!, "PHOTO_UPLOADED", "PhotoAsset", photoId, `Uploaded photo ${fileName || photoId} with EXIF GPS tagging`);
-  res.json({ success: true, photo: simulatedExif });
+  addAuditLog(req.user!, "PHOTO_UPLOADED", "PhotoAsset", photo.id, `Uploaded photo ${photo.caption}${hasGps ? " with GPS" : " without GPS"}`);
+  res.json({ success: true, photo });
 });
 
 app.post("/api/validate", async (req, res) => {

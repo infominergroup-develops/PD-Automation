@@ -1,6 +1,5 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   return generateCapitalPDReportHTML(data, 'Abhiyan');
@@ -12,14 +11,14 @@ export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
 
 // Shared layout for Abhiyan and Ambit; only the lender name differs.
 function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string): string {
-  const appNo = (data as any).applicationNumber || 'Not Provided';
-  const reportDate = (data as any).reportDate || (data as any).visitDate || '-';
-  const visitDate = (data as any).visitDate || reportDate || '-';
-  const initiationDate = (data as any).caseInitiationDate || visitDate || '-';
-  const caseStatus = (data as any).statusOfCase || (data as any).businessStatus || 'Recommended';
+  const appNo = data.applicationNumber || 'Not Provided';
+  const reportDate = data.reportDate || data.visitDate || '-';
+  const visitDate = data.visitDate || reportDate || '-';
+  const initiationDate = data.caseInitiationDate || visitDate || '-';
+  const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended';
   
   let photosHtml = '';
-  const photos = (data as any).photos || [];
+  const photos = data.photos || [];
   if (photos && photos.length > 0) {
     photosHtml = `
       <div class="page-break"></div>
@@ -39,120 +38,119 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     `;
   }
 
-  const existEmiM = Number((data as any).existingEmiMonthly) || Number((data as any).existingEmis) || Number((data as any).existingEMI) || 0;
-  const existEmiY = Number((data as any).existingEmiYearly) || (existEmiM * 12);
-  const hasItemizedSales = Boolean((data as any).itemizedSales && (data as any).itemizedSales.length > 0 && (data as any).itemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0));
+  const existEmiM = Number(data.existingEmiMonthly) || 0;
+  const existEmiY = Number(data.existingEmiYearly) || (existEmiM * 12);
+  const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
-    ? (data as any).itemizedSales!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? data.itemizedSales!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
-          particulars: `${(data as any).firmName || 'Business'} Assessed Monthly Turnover`,
-          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification',
-          monthly: Number((data as any).totalSalesMonthly) || 0,
-          yearly: Number((data as any).totalSalesYearly) || (Number((data as any).totalSalesMonthly) || 0) * 12
+          particulars: `${data.firmName || 'Business'} Assessed Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification',
+          monthly: Number(data.totalSalesMonthly) || 0,
+          yearly: Number(data.totalSalesYearly) || (Number(data.totalSalesMonthly) || 0) * 12
         }
       ];
   const totalSalesM = hasItemizedSales
     ? salesItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
+    : (Number(data.totalSalesMonthly) || (salesItems[0] ? Number(salesItems[0].monthly) || 0 : 0));
   const totalSalesY = hasItemizedSales
     ? salesItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).totalSalesYearly) || totalSalesM * 12);
+    : (Number(data.totalSalesYearly) || totalSalesM * 12);
 
-  const hasItemizedExpenses = Boolean((data as any).itemizedExpenses && (data as any).itemizedExpenses.length > 0 && (data as any).itemizedExpenses.some((i: any) => (Number(i.monthly) || 0) > 0));
+  const hasItemizedExpenses = Boolean(data.itemizedExpenses && data.itemizedExpenses.length > 0 && data.itemizedExpenses.some((i: any) => (Number(i.monthly) || 0) > 0));
   const expenseItems = hasItemizedExpenses
-    ? (data as any).itemizedExpenses!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+    ? data.itemizedExpenses!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Operating Expenses & Direct Costs',
-          businessNotes: (Number((data as any).totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly expenditure' : 'Nil / No direct operating expenses recorded',
-          monthly: Number((data as any).totalExpensesMonthly) || 0,
-          yearly: Number((data as any).totalExpensesYearly) || (Number((data as any).totalExpensesMonthly) || 0) * 12
+          businessNotes: (Number(data.totalExpensesMonthly) || 0) > 0 ? 'Assessed monthly expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.totalExpensesMonthly) || 0,
+          yearly: Number(data.totalExpensesYearly) || (Number(data.totalExpensesMonthly) || 0) * 12
         }
       ];
   const totalExpM = hasItemizedExpenses
     ? expenseItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
+    : (Number(data.totalExpensesMonthly) || (expenseItems[0] ? Number(expenseItems[0].monthly) || 0 : 0));
   const totalExpY = hasItemizedExpenses
     ? expenseItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).totalExpensesYearly) || totalExpM * 12);
+    : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = (data as any).netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
+  const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(
-    (data as any).hasCoApplicantIncomeAssessment ||
-    (data as any).hasCoApplicantBusiness ||
-    ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0 && (data as any).coApplicantItemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0)) ||
-    (Number((data as any).coApplicantTotalSalesMonthly) || 0) > 0 ||
-    ((data as any).coApplicantBriefBusinessProfile && (data as any).coApplicantBriefBusinessProfile !== 'Not provided')
+    data.hasCoApplicantBusiness ||
+    (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0 && data.coApplicantItemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0)) ||
+    (Number(data.coApplicantTotalSalesMonthly) || 0) > 0 ||
+    (data.coApplicantBriefBusinessProfile && data.coApplicantBriefBusinessProfile !== 'Not provided')
   );
-  const coAppSalesItems = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
-    ? (data as any).coApplicantItemizedSales.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+  const coAppSalesItems = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
+    ? data.coApplicantItemizedSales.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
-          particulars: `${(data as any).coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
-          businessNotes: (data as any).workingDays ? `Assessed for ${(data as any).workingDays} working days` : 'Based on field verification & assessment',
-          monthly: Number((data as any).coApplicantTotalSalesMonthly) || 0,
-          yearly: Number((data as any).coApplicantTotalSalesYearly) || (Number((data as any).coApplicantTotalSalesMonthly) || 0) * 12
+          particulars: `${data.coApplicantName || 'Co-applicant'} Business Monthly Turnover`,
+          businessNotes: data.workingDays ? `Assessed for ${data.workingDays} working days` : 'Based on field verification & assessment',
+          monthly: Number(data.coApplicantTotalSalesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalSalesYearly) || (Number(data.coApplicantTotalSalesMonthly) || 0) * 12
         }
       ];
 
-  const coAppTotalSalesM = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
+  const coAppTotalSalesM = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? coAppSalesItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
-  const coAppTotalSalesY = ((data as any).coApplicantItemizedSales && (data as any).coApplicantItemizedSales.length > 0)
+    : (Number(data.coApplicantTotalSalesMonthly) || (coAppSalesItems[0] ? Number(coAppSalesItems[0].monthly) || 0 : 0));
+  const coAppTotalSalesY = (data.coApplicantItemizedSales && data.coApplicantItemizedSales.length > 0)
     ? coAppSalesItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
+    : (Number(data.coApplicantTotalSalesYearly) || coAppTotalSalesM * 12);
 
-  const coAppExpenseItems = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
-    ? (data as any).coApplicantItemizedExpenses.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
+  const coAppExpenseItems = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
+    ? data.coApplicantItemizedExpenses.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
     : [
         {
           particulars: 'Co-applicant Operating Expenses',
-          businessNotes: (Number((data as any).coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
-          monthly: Number((data as any).coApplicantTotalExpensesMonthly) || 0,
-          yearly: Number((data as any).coApplicantTotalExpensesYearly) || (Number((data as any).coApplicantTotalExpensesMonthly) || 0) * 12
+          businessNotes: (Number(data.coApplicantTotalExpensesMonthly) || 0) > 0 ? 'Assessed monthly business expenditure' : 'Nil / No direct operating expenses recorded',
+          monthly: Number(data.coApplicantTotalExpensesMonthly) || 0,
+          yearly: Number(data.coApplicantTotalExpensesYearly) || (Number(data.coApplicantTotalExpensesMonthly) || 0) * 12
         }
       ];
 
-  const coAppTotalExpM = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
+  const coAppTotalExpM = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
     ? coAppExpenseItems.reduce((acc: number, i: any) => acc + (Number(i.monthly) || 0), 0)
-    : (Number((data as any).coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
-  const coAppTotalExpY = ((data as any).coApplicantItemizedExpenses && (data as any).coApplicantItemizedExpenses.length > 0)
+    : (Number(data.coApplicantTotalExpensesMonthly) || (coAppExpenseItems[0] ? Number(coAppExpenseItems[0].monthly) || 0 : 0));
+  const coAppTotalExpY = (data.coApplicantItemizedExpenses && data.coApplicantItemizedExpenses.length > 0)
     ? coAppExpenseItems.reduce((acc: number, i: any) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
-    : (Number((data as any).coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
+    : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = (data as any).coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
+  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
 
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
 
-  const hhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || Number((data as any).householdExpensesMonthly) || Number((data as any).householdExpenses) || 0;
-  const resHhExpM = Number((data as any).monthlyHouseholdExpensesAmount) || Number((data as any).monthlyHouseholdExpenses) || hhExpM;
+  const hhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 0;
+  const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || hhExpM;
   const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
   const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
   
-  const customerList = (data as any).prominentCustomers && (data as any).prominentCustomers.length > 0
-    ? (data as any).prominentCustomers.map((c: any) => ({
+  const customerList = data.prominentCustomers && data.prominentCustomers.length > 0
+    ? data.prominentCustomers.map((c: any) => ({
         name: c.name || '-',
         phone: c.phone || c.contactNo || c.mobile || '-',
         remark: c.remark || c.feedback || 'Regular customer, positive feedback received.'
       }))
     : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
 
-  const supplierList = (data as any).prominentSuppliers && (data as any).prominentSuppliers.length > 0
-    ? (data as any).prominentSuppliers.map((s: any) => ({
+  const supplierList = data.prominentSuppliers && data.prominentSuppliers.length > 0
+    ? data.prominentSuppliers.map((s: any) => ({
         name: s.name || '-',
         phone: s.phone || s.contactNo || s.mobile || '-',
         remark: s.remark || s.feedback || '-'
       }))
     : [{ name: 'Not provided', phone: '0000000000', remark: 'Not provided' }];
 
-  const bankingList = (data as any).bankingDetails && (data as any).bankingDetails.length > 0
-    ? (data as any).bankingDetails.map((b: any) => ({
+  const bankingList = data.bankingDetails && data.bankingDetails.length > 0
+    ? data.bankingDetails.map((b: any) => ({
         bankName: b.bankName || '-',
         branchName: b.branchName || '-',
         accountType: b.accountType || b.accountTypes || 'Saving',
@@ -162,10 +160,10 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
       }))
     : [{ bankName: 'Not shared', branchName: 'NA', accountType: 'Saving', limit: 'NA', accountNo: 'NA', remark: 'NA' }];
 
-  const crifAccounts = (data as any).parsedCreditReport?.accounts || [];
+  const crifAccounts = data.parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
     ? crifAccounts.map((acc: any) => ({
-        applicantName: acc.applicantName || (data as any).applicantName || 'Applicant',
+        applicantName: acc.applicantName || data.applicantName || 'Applicant',
         typeOfLoan: acc.accountType || 'NA',
         financerName: acc.creditGrantor || 'NA',
         lenderType: 'NA',
@@ -176,8 +174,8 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
         tenure: acc.tenureMonths || 'NA',
         remark: acc.status || 'NA'
       }))
-    : ((data as any).existingLoans && (data as any).existingLoans.length > 0 ? (data as any).existingLoans : []);
-  const familyList = (data as any).familyMembers && (data as any).familyMembers.length > 0 ? (data as any).familyMembers : [{ name: (data as any).applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
+    : (data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : []);
+  const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
 
   return `
 <!DOCTYPE html>
@@ -202,10 +200,10 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
   <table>
     <tr>
-      <td colspan="2" style="width: 60%;" class="bold">To,<br/>${lenderName} Capital Private Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${(data as any).applicantName || 'Applicant'}</td>
+      <td colspan="2" style="width: 60%;" class="bold">To,<br/>${lenderName} Capital Private Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${data.applicantName || 'Applicant'}</td>
       <td colspan="2" style="width: 40%; vertical-align: top;">
         <table style="margin-bottom: 0; border: none; height: 100%;">
           <tr>
@@ -238,15 +236,15 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td>Name of applicant</td>
-      <td colspan="3">${(data as any).applicantName || '-'}</td>
+      <td colspan="3">${data.applicantName || '-'}</td>
     </tr>
     <tr>
       <td>Contact Number</td>
-      <td colspan="3">${(data as any).applicantPhone || '0'}</td>
+      <td colspan="3">${data.applicantPhone || '0'}</td>
     </tr>
     <tr>
       <td>Business firm name</td>
-      <td colspan="3">${(data as any).firmName || 'M/s'}</td>
+      <td colspan="3">${data.firmName || 'M/s'}</td>
     </tr>
     ${(data.coApplicants && data.coApplicants.length > 0) ? data.coApplicants.map((c: any, idx: number) => `
     <tr>
@@ -260,11 +258,11 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     `).join('') : `
     <tr>
       <td>Co-applicant Name with relation</td>
-      <td colspan="3">${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td colspan="3">${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
     </tr>
     <tr>
       <td>Contact Number</td>
-      <td colspan="3">${(data as any).coApplicantPhone || '0'}</td>
+      <td colspan="3">${data.coApplicantPhone || '0'}</td>
     </tr>
     `}
     <tr>
@@ -273,35 +271,35 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td>Type of Loan (as mention in application form)</td>
-      <td colspan="3">${(data as any).loanType || 'Business Expansion/ Working Capital Requirement'}</td>
+      <td colspan="3">${data.loanType || 'Business Expansion/ Working Capital Requirement'}</td>
     </tr>
     <tr>
       <td>Purpose of Loan (as per applicant)</td>
-      <td colspan="3">${(data as any).loanPurpose || (data as any).endUseOfLoan || (data as any).purpose || '-'}</td>
+      <td colspan="3">${data.loanPurpose || data.endUseOfLoan || data.purpose || '-'}</td>
     </tr>
     <tr>
       <td>Address of the residence</td>
-      <td colspan="3">${(data as any).residenceAddress || '-'}</td>
+      <td colspan="3">${data.residenceAddress || '-'}</td>
     </tr>
     <tr>
       <td>Address of the business</td>
-      <td colspan="3">${(data as any).businessAddress || '-'}</td>
+      <td colspan="3">${data.businessAddress || '-'}</td>
     </tr>
     <tr>
       <td>Address of the collateral property</td>
-      <td colspan="3">${(data as any).collateralAddress || (data as any).propertyAddress || '-'}</td>
+      <td colspan="3">${data.collateralAddress || data.propertyAddress || '-'}</td>
     </tr>
     <tr>
       <td>Met person during visit time.</td>
-      <td colspan="3">${(data as any).applicantName || '-'} & ${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td colspan="3">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
     </tr>
     <tr>
       <td>Met person identity proof</td>
-      <td colspan="3">${(data as any).kycType || 'PAN Card'}</td>
+      <td colspan="3">${data.metPersonIdProof || 'PAN Card'}</td>
     </tr>
     <tr>
       <td>Executive Name</td>
-      <td colspan="3">${(data as any).executiveName || '-'}</td>
+      <td colspan="3">${data.executiveName || '-'}</td>
     </tr>
   </table>
 
@@ -311,26 +309,26 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td style="width: 25%;">Met person during visit time.</td>
-      <td style="width: 75%;">${(data as any).applicantName || '-'} & ${(data as any).coApplicantName || '-'} ( ${(data as any).coApplicantRelation || '-'} )</td>
+      <td style="width: 75%;">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
     </tr>
     <tr>
       <td>Address of the meeting</td>
-      <td>${(data as any).residenceAddress || '-'}</td>
+      <td>${data.residenceAddress || '-'}</td>
     </tr>
     <tr>
       <td>Locating Premises Type</td>
-      <td>${(data as any).residenceLocationType || 'The residence premises are located in a village area'}</td>
+      <td>${data.locatingPremisesType || 'The residence premises are located in a village area'}</td>
     </tr>
     <tr>
       <td colspan="2" class="sec-head">Residential Details</td>
     </tr>
     <tr>
       <td class="bold">Ownership (If rented then rent amount)</td>
-      <td>${(data as any).residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 8-10 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)'}</td>
+      <td>${data.residenceOwnership || 'Owned Premises - Area 800-900 sq. feet Approx - Value Rs. 8-10 Lakh Approx - Stay Since birth. (As verbally confirmed no ownership record provided)'}</td>
     </tr>
     <tr>
       <td class="bold">House Details</td>
-      <td>${(data as any).residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.'}</td>
+      <td>${data.residenceHouseDetails || 'This house has three rooms and is a single-story structure, comprising a ground floor.'}</td>
     </tr>
   </table>
 
@@ -367,7 +365,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${(data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : ((data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
+      <td colspan="5">${isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : (isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
     </tr>
     
     <tr>
@@ -376,20 +374,20 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     <tr>
       <td colspan="7" style="vertical-align: top;">
         ${(() => {
-          const ownership = String((data as any).residenceOwnership || '').toLowerCase();
+          const ownership = String(data.residenceOwnership || '').toLowerCase();
           const isRented = ownership.includes('rent');
           const ownershipText = isRented ? 'rented' : 'self-owned';
-          const houseDetails = (data as any).residenceHouseDetails ? (data as any).residenceHouseDetails : 'This house has three rooms and is a single-story structure, comprising a ground floor.';
+          const houseDetails = data.residenceHouseDetails ? data.residenceHouseDetails : 'This house has three rooms and is a single-story structure, comprising a ground floor.';
           
-          let p1 = `The applicant, ${(data as any).applicantName || 'the applicant'}, resides with their family in their ${ownershipText} residential premises. `;
+          let p1 = `The applicant, ${data.applicantName || 'the applicant'}, resides with their family in their ${ownershipText} residential premises. `;
           p1 += `As verbally confirmed, ${houseDetails} `;
           
           let p2 = '';
-          const self = familyList.find((f: any) => String(f.relationship || f.relation).toLowerCase() === 'self' || f.name === (data as any).applicantName);
+          const self = familyList.find((f: any) => String(f.relationship || f.relation).toLowerCase() === 'self' || f.name === data.applicantName);
           if (self) {
-            p2 += `The applicant, ${self.name || (data as any).applicantName}, aged ${self.age || '-'} years, has completed ${self.qualification || '-'} and is ${self.occupation || 'self-employed'}. `;
+            p2 += `The applicant, ${self.name || data.applicantName}, aged ${self.age || '-'} years, has completed ${('qualification' in self && self.qualification) || '-'} and is ${self.occupation || 'self-employed'}. `;
           } else {
-            p2 += `The applicant, ${(data as any).applicantName || 'the applicant'}, is self-employed. `;
+            p2 += `The applicant, ${data.applicantName || 'the applicant'}, is self-employed. `;
           }
 
           const otherAdults = familyList.filter((f: any) => f !== self && (!f.age || Number(f.age) >= 18));
@@ -405,10 +403,10 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
           }
 
           p2 += `Monthly household expenses are approximately Rs. ${Number(resHhExpM).toLocaleString('en-IN')}/-.`;
-          const resElec = String((data as any).residenceElectricityDetails || '');
-          const busElec = String((data as any).businessElectricityDetails || '');
+          const resElec = String(data.residenceElectricityDetails || '');
+          const busElec = String(data.businessElectricityDetails || '');
           const isNotProvided = resElec.toLowerCase().includes('not provided') && busElec.toLowerCase().includes('not provided');
-          let p3 = `During the visit, the electricity bill was ${isNotProvided ? 'not provided' : 'checked'}.`;
+          const p3 = `During the visit, the electricity bill was ${isNotProvided ? 'not provided' : 'checked'}.`;
 
           return '<div style="text-align: justify; padding: 5px;">' + p1 + '<br/><br/>' + p2 + '<br/><br/>' + p3 + '<br/><br/><span style="color: gray;">(All the above details are confirm verbally)</span></div>';
         })()}
@@ -416,19 +414,19 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Name</td>
-      <td colspan="5">${(data as any).residenceNeighborName || '-'}</td>
+      <td colspan="5">${data.residenceNeighborName || '-'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="5">${(data as any).residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive.'}</td>
+      <td colspan="5">${data.residenceNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that both the applicant and co-applicant have been residing at the given address. The feedback received was positive.'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="5">${(data as any).residenceGpsCoords || '-'}</td>
+      <td colspan="5">${data.residenceGpsCoords || '-'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Residence Status</td>
-      <td colspan="5">${(data as any).residenceStatus || caseStatus || 'Recommended'}</td>
+      <td colspan="5">${data.residenceStatus || caseStatus || 'Recommended'}</td>
     </tr>
   </table>
 
@@ -439,66 +437,66 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td style="width: 25%;">Collateral Address</td>
-      <td style="width: 75%;">${(data as any).collateralAddress || (data as any).propertyAddress || '-'}</td>
+      <td style="width: 75%;">${data.collateralAddress || data.propertyAddress || '-'}</td>
     </tr>
     <tr>
       <td>Property Type</td>
-      <td>${(data as any).collateralPropertyType || (data as any).propertyType || 'The property type is residential'}</td>
+      <td>${data.collateralPropertyType || 'The property type is residential'}</td>
     </tr>
     <tr>
       <td>Approx. Property Area</td>
-      <td>${(data as any).collateralPropertyArea || (data as any).propertyArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)'}</td>
+      <td>${data.collateralPropertyArea || 'The property area is approximately 800-900 sq. feet (as per verbal confirmation)'}</td>
     </tr>
     <tr>
       <td>Property Usage</td>
-      <td>${(data as any).collateralPropertyUsage || (data as any).propertyUsage || 'This property is used for residential purposes.'}</td>
+      <td>${data.collateralPropertyUsage || 'This property is used for residential purposes.'}</td>
     </tr>
     <tr>
       <td>Approx Property Valuation</td>
-      <td>${(data as any).collateralValuation || (data as any).collateralMarketValue || (data as any).propertyValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
+      <td>${data.collateralValuation || 'The property valuation is approximately in Rs. 8-10 Lakh. (as per verbal confirmation)'}</td>
     </tr>
   </table>
 
   <table>
     <tr>
-      <td colspan="2" class="sec-head">Business visit of ${(data as any).applicantName || 'Applicant'}</td>
+      <td colspan="2" class="sec-head">Business visit of ${data.applicantName || 'Applicant'}</td>
     </tr>
     <tr>
       <td colspan="2" class="sec-head">Brief Profile of Business</td>
     </tr>
     <tr>
       <td colspan="2" style="height: 200px; vertical-align: top;">
-        ${(data as any).briefBusinessProfile && (data as any).briefBusinessProfile !== 'Not provided' ? (data as any).briefBusinessProfile.replace(/\\n/g, '<br/>') + '<br/><br/>' : ''}
+        ${data.briefBusinessProfile && data.briefBusinessProfile !== 'Not provided' ? data.briefBusinessProfile.replace(/\\n/g, '<br/>') + '<br/><br/>' : ''}
         (All the above details are confirm verbal by applicant)
       </td>
     </tr>
     <tr>
       <td style="width: 25%;">Vintage of the business</td>
-      <td style="width: 75%;">${(data as any).businessVintage ? ((data as any).businessVintage.toLowerCase().includes('operating') || (data as any).businessVintage.toLowerCase().includes('year') ? (data as any).businessVintage : 'The applicant has been operating the business at the current address for the past ' + (data as any).businessVintage) : 'The applicant has been operating the business at the current address for the past 04 years.'}</td>
+      <td style="width: 75%;">${data.businessVintage ? (data.businessVintage.toLowerCase().includes('operating') || data.businessVintage.toLowerCase().includes('year') ? data.businessVintage : 'The applicant has been operating the business at the current address for the past ' + data.businessVintage) : 'The applicant has been operating the business at the current address for the past 04 years.'}</td>
     </tr>
     <tr>
       <td>Number of staffs</td>
-      <td>${(data as any).numberOfStaff || ((data as any).staffCount ? ((data as any).staffCount === '0' || (data as any).staffCount === 0 ? 'He is self-employed and operates the business by himself.' : `${(data as any).staffCount} staff`) : 'He is self-employed and operates the business by himself.')}</td>
+      <td>${describeStaffCount(data.staffCount)}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
-      <td>${(data as any).businessOwnership || 'The applicant is managing and operating the business from his residence.'}</td>
+      <td>${data.businessPremiseOwnership || 'The applicant is managing and operating the business from his residence.'}</td>
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${(data as any).businessInfra || (data as any).assetDetails || (data as any).officeInfrastructure || '-'}</td>
+      <td>${data.factoryInfrastructure || '-'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${(data as any).stockDetails || (data as any).stockDetailsValue || '-'}</td>
+      <td>${data.stockDetailsValue || '-'}</td>
     </tr>
     <tr>
       <td>Equipments/ Small Tools/ Machinery Used for Business</td>
-      <td>${(data as any).equipmentDetails || (data as any).machineryDetails || (data as any).fixedAndCurrentAssetAnalysis || '-'}</td>
+      <td>${data.machineryDetailsText || data.fixedAndCurrentAssetAnalysis || '-'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${(data as any).otherIncome || (data as any).otherIncomeSource || (data as any).otherIncomeSourceDetails || 'No other regular source of income was confirmed during verification.'}</td>
+      <td>${isProvided(data.otherSourceIncomeDetails) ? data.otherSourceIncomeDetails : 'No other regular source of income was confirmed during verification.'}</td>
     </tr>
   </table>
 
@@ -506,44 +504,44 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
   <div class="page-break"></div>
   <table>
     <tr>
-      <td colspan="2" class="sec-head">Business visit of ${(data as any).coApplicantBusinessName ? (data as any).coApplicantBusinessName : ((data as any).coApplicantName ? (data as any).coApplicantName : 'Co-Applicant')}</td>
+      <td colspan="2" class="sec-head">Business visit of ${data.coApplicantBusinessName ? data.coApplicantBusinessName : (data.coApplicantName ? data.coApplicantName : 'Co-Applicant')}</td>
     </tr>
     <tr>
       <td colspan="2" class="sec-head">Brief Profile of Business</td>
     </tr>
     <tr>
       <td colspan="2" style="height: 200px; vertical-align: top;">
-        ${(data as any).coApplicantBriefBusinessProfile && (data as any).coApplicantBriefBusinessProfile !== 'Not provided' ? (data as any).coApplicantBriefBusinessProfile.replace(/\\n/g, '<br/>') + '<br/><br/>' : ''}
+        ${data.coApplicantBriefBusinessProfile && data.coApplicantBriefBusinessProfile !== 'Not provided' ? data.coApplicantBriefBusinessProfile.replace(/\\n/g, '<br/>') + '<br/><br/>' : ''}
         (All the above details are confirm verbal by co-applicant)
       </td>
     </tr>
     <tr>
       <td style="width: 25%;">Vintage of the business</td>
-      <td style="width: 75%;">${(data as any).coApplicantBusinessVintage || '-'}</td>
+      <td style="width: 75%;">${data.coApplicantBusinessVintage || '-'}</td>
     </tr>
     <tr>
       <td>Number of staffs</td>
-      <td>${(data as any).coApplicantStaffCount || (data as any).coApplicantNumberOfStaff || '-'}</td>
+      <td>${data.coApplicantStaffCount || '-'}</td>
     </tr>
     <tr>
       <td>Is office premise on rented /owned</td>
-      <td>${(data as any).coApplicantBusinessPremiseOwnership || (data as any).coApplicantBusinessOwnership || '-'}</td>
+      <td>${data.coApplicantBusinessPremiseOwnership || '-'}</td>
     </tr>
     <tr>
       <td>Details of Office / Factory infrastructure ( Assets )</td>
-      <td>${(data as any).coApplicantFactoryInfrastructure || (data as any).coApplicantBusinessInfra || '-'}</td>
+      <td>${data.coApplicantFactoryInfrastructure || '-'}</td>
     </tr>
     <tr>
       <td>Stock details with estimated value</td>
-      <td>${(data as any).coApplicantStockDetailsValue || (data as any).coApplicantStockDetails || '-'}</td>
+      <td>${data.coApplicantStockDetailsValue || '-'}</td>
     </tr>
     <tr>
       <td>Equipments/ Small Tools/ Machinery Used for Business</td>
-      <td>${(data as any).coApplicantFixedAndCurrentAssetAnalysis || (data as any).coApplicantEquipmentDetails || '-'}</td>
+      <td>${data.coApplicantFixedAndCurrentAssetAnalysis || '-'}</td>
     </tr>
     <tr>
       <td>Other source income</td>
-      <td>${(data as any).coApplicantOtherSourceIncomeDetails || (data as any).coApplicantOtherIncome || 'No other regular source of income was confirmed during verification.'}</td>
+      <td>${data.coApplicantOtherSourceIncomeDetails || 'No other regular source of income was confirmed during verification.'}</td>
     </tr>
   </table>
   ` : ''}
@@ -611,27 +609,27 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td colspan="2" class="bold">Latitude & Longitude of the business premises</td>
-      <td colspan="2">${(data as any).businessGpsCoords || '-'}</td>
+      <td colspan="2">${data.businessGpsCoords || '-'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Remarks</td>
-      <td colspan="2">${(data as any).businessLocationRemarks || (data as any).businessLongitudeRemarks || (data as any).gpsRemarks || 'The location was checked using the provided coordinates.'}</td>
+      <td colspan="2">${data.businessLocationRemarks || 'The location was checked using the provided coordinates.'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="2">${(data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : ((data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
+      <td colspan="2">${isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : (isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
-      <td colspan="2">${(data as any).businessNeighborName || (data as any).businessNeighbourName || (data as any).residenceNeighborName || '-'}</td>
+      <td colspan="2">${data.businessNeighborName || data.residenceNeighborName || '-'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbor Feedback</td>
-      <td colspan="2">${(data as any).businessNeighborFeedback || (data as any).businessNeighbourFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.'}</td>
+      <td colspan="2">${data.businessNeighborFeedback || 'Neighbour verification was conducted, wherein the neighbours confirmed that the applicant has been engaged in the stated business for the past approximately 18–20 years. The overall feedback received regarding the applicant and his work was positive.'}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Business Status</td>
-      <td colspan="2">${(data as any).businessStatus || caseStatus || 'Recommended'}</td>
+      <td colspan="2">${data.businessStatus || caseStatus || 'Recommended'}</td>
     </tr>
   </table>
 
@@ -657,7 +655,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     ${loansList.map((l: any, idx: number) => `
       <tr class="text-center" style="font-size: 8pt;">
         <td>${idx + 1}</td>
-        <td>${l.applicantName || (data as any).applicantName || '-'}</td>
+        <td>${l.applicantName || data.applicantName || '-'}</td>
         <td>${l.typeOfLoan || '-'}</td>
         <td>${l.financerName || '-'}</td>
         <td>${l.lenderType || '-'}</td>
@@ -757,11 +755,11 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
   <div style="margin-top: 15px;"></div>
   <table>
     <tr>
-      <td colspan="4" class="sec-head" style="text-decoration: underline;">Assessment of the monthly income of the co-applicant (${(data as any).coApplicantName || 'Co-Applicant'})</td>
+      <td colspan="4" class="sec-head" style="text-decoration: underline;">Assessment of the monthly income of the co-applicant (${data.coApplicantName || 'Co-Applicant'})</td>
     </tr>
     <tr class="bold text-center">
       <td style="width: 30%;">Particulars</td>
-      <td style="width: 40%;">Business Notes<br/><span style="font-weight: normal; font-size: 8pt;">Income assessment considered for ${(data as any).workingDays || 28} working days</span></td>
+      <td style="width: 40%;">Business Notes<br/><span style="font-weight: normal; font-size: 8pt;">Income assessment considered for ${data.workingDays || 28} working days</span></td>
       <td colspan="2" style="width: 30%;">(Period)</td>
     </tr>
     <tr class="bold text-center bg-gray-100">

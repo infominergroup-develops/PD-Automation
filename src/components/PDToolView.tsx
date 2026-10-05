@@ -1,20 +1,41 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
 
 import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
-import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
-import { openStandardPDReportPrintWindow, PDReportPrintData } from '../utils/pdReportPrinter';
+import { BusinessCategory, CategoryProduct, FamilyMember } from '../types';
+import type { ParsedCreditReport } from '../types/creditTypes';
+import type { ApplicantRecord, CoApplicant, GalleryApplicant } from '../types/applicant';
+import { Field, SUB_LABEL, updateListItem } from './pd/formControls';
+import { CaseGalleryModal } from './pd/CaseGalleryModal';
+import { sortLatestFirst } from './pd/caseList';
+import { PdTabBar, PdTabFooter, isPdTabId, type PdTabId } from './pd/PdTabs';
+import {
+  EXECUTIVE_SUMMARY_TITLES,
+  buildExecutiveSummary,
+  describeBusinessVintage,
+  describeStaffing,
+  type ExecutiveSummary,
+  type ExecutiveSummaryInput,
+} from '../utils/pdSummaries';
+import { DecisionSection } from './pd/DecisionSection';
+import { CustomerSupplierSection } from './pd/customerSupplier/CustomerSupplierSection';
+import { useCustomerSupplierDetails } from './pd/customerSupplier/useCustomerSupplierDetails';
+import { CoApplicantBusinessSection } from './pd/coApplicantBusiness/CoApplicantBusinessSection';
+import { toCoApplicantBusinessReport, useCoApplicantBusiness } from './pd/coApplicantBusiness/useCoApplicantBusiness';
+import { FieldInvestigationSection } from './pd/fieldInvestigation/FieldInvestigationSection';
+import { photoLocation } from './pd/fieldInvestigation/photoEvidence';
+import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
+import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
+import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
+import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
-  Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2,
-  AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
-  Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
-  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock, Users, UserCheck
+  Store, User, DollarSign, Sparkles, CheckCircle2, MapPin, Plus, Trash2, ArrowRight, Building,
+  Search, X, Calculator, FileText, Upload, Briefcase, Building2, Zap, Printer, ChevronLeft,
+  ChevronRight, Settings, Cloud, CheckCheck
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -57,13 +78,6 @@ const updateItemizedLine = (lines: ItemizedCalculationLine[], id: string, field:
     return newLine;
   });
 
-// Copies the list, sets one field on the item at `index` (mutating that item in place, matching the original per-field handlers) and stores the copy.
-const updateListItem = <T,>(list: T[], setList: (next: T[]) => void, index: number, field: keyof T, value: any) => {
-  const next = [...list];
-  (next[index] as any)[field] = value;
-  setList(next);
-};
-
 const newItemizedLine = (id: string, unit: string, workingDays: number): ItemizedCalculationLine => ({
   id,
   particulars: '',
@@ -80,27 +94,6 @@ const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended 
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
 const getCaseStatusOptions = (clientId?: string) =>
   POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
-
-// Form rows store the remark as `feedback`; report templates read `remark`
-const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
-  rows
-    .filter(row => row.name?.trim())
-    .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
-
-// Gallery label for legacy applicants saved before the preparing employee was recorded
-const UNRECORDED_PREPARER = 'Not recorded';
-
-const SUB_LABEL = 'block text-[10px] uppercase font-bold text-slate-500 mb-1';
-
-// Standard form field: a wrapper div with the label stacked above its control(s).
-const Field: React.FC<{ label: string; labelClassName?: string; className?: string; children: React.ReactNode }> = ({
-  label, labelClassName = 'block text-xs font-bold text-slate-700 mb-1', className, children
-}) => (
-  <div className={className}>
-    <label className={labelClassName}>{label}</label>
-    {children}
-  </div>
-);
 
 const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
 
@@ -263,16 +256,6 @@ const ItemizedLinesTable: React.FC<ItemizedLinesTableProps> = ({
   );
 };
 
-export interface CoApplicant {
-  name: string;
-  relation: string;
-  otherRelation?: string;
-  mobileNumber?: string;
-  profession?: 'Salaried' | 'Business' | 'Other';
-  inBusiness?: boolean;
-  businessRole?: string;
-}
-
 const getCategoryDefaultItemizedLines = (catId: string, footfall: number = 40, avgTicket: number = 250, days: number = 26, catsList: BusinessCategory[] = INITIAL_CATEGORIES) => {
   if (catId === 'chakki' || catId === 'flour_mill' || catId === 'atta_chakki') {
     return {
@@ -382,8 +365,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [isAppSearchOpen, setIsAppSearchOpen] = useState(false);
   const [isAppGalleryOpen, setIsAppGalleryOpen] = useState(false);
-  const [galleryFilter, setGalleryFilter] = useState<'ALL' | 'OPEN' | 'CLOSED'>('ALL');
-  const [gallerySearchQuery, setGallerySearchQuery] = useState('');
   const [isWhatsAppModalOpen, setIsWhatsAppModalOpen] = useState(false);
   const [rawWhatsappText, setRawWhatsappText] = useState('');
   const [isExtractingWhatsapp, setIsExtractingWhatsapp] = useState(false);
@@ -394,19 +375,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const activeAppIdRef = useRef(activeAppId);
   useEffect(() => { activeAppIdRef.current = activeAppId; }, [activeAppId]);
-  const [galleryPreparedByFilter, setGalleryPreparedByFilter] = useState<string>('ALL');
   // Mirrors the server's role checks: closing, deleting and per-employee stats are management-only
   const isManagement = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  // Tab 5: Field Investigation photo evidence
+  const photoEvidence = usePhotoEvidence();
+  const { photos, exifGpsLat, exifGpsLng } = photoEvidence;
   const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
 
   // Credit Report Extraction State
   const [creditReportType, setCreditReportType] = useState('NONE');
   const [creditReportFiles, setCreditReportFiles] = useState<File[]>([]);
-  const [parsedCreditReport, setParsedCreditReport] = useState<any>(null);
+  const [parsedCreditReport, setParsedCreditReport] = useState<ParsedCreditReport | null>(null);
   const [isEditingCreditReport, setIsEditingCreditReport] = useState(false);
   const [isParsingCreditReport, setIsParsingCreditReport] = useState(false);
 
@@ -422,7 +403,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
       let primaryApplicantInfo = null;
       let provider = 'CRIF';
-      let flags: string[] = [];
+      const flags: string[] = [];
 
       for (const file of creditReportFiles) {
         const text = await extractTextFromPdfFile(file);
@@ -478,68 +459,46 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // Godrej Specific State
-  const [alternateMobileNumber, setAlternateMobileNumber] = useState('');
-  const [officeAccessibility, setOfficeAccessibility] = useState('');
-  const [tenorRequested, setTenorRequested] = useState('');
-  const [marginsAssessed, setMarginsAssessed] = useState('');
-  const [customerGstNo, setCustomerGstNo] = useState('');
-  const [industryType, setIndustryType] = useState('');
-  const [productType, setProductType] = useState('');
-  const [onLoanStructure, setOnLoanStructure] = useState('');
-  const [machineryDetailsText, setMachineryDetailsText] = useState('');
-  const [keyEmployeeDetailsText, setKeyEmployeeDetailsText] = useState('✓ .');
-  const [groupCompanyDetailsText, setGroupCompanyDetailsText] = useState('');
-  const [financialDetailsText, setFinancialDetailsText] = useState('');
-  const [otherBusinessPremisesText, setOtherBusinessPremisesText] = useState('');
-  const [otherStateGstText, setOtherStateGstText] = useState('');
-  const [familyInvolvedText, setFamilyInvolvedText] = useState('');
-  const [applicantQualification, setApplicantQualification] = useState('');
+  // Godrej-specific Business Profile fields
+  const godrej = useGodrejDetails();
+  const {
+    alternateMobileNumber, applicantQualification, officeAccessibility, tenorRequested, marginsAssessed, customerGstNo,
+    industryType, productType, onLoanStructure, machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText,
+    financialDetailsText, otherBusinessPremisesText, otherStateGstText, familyInvolvedText, godrejStockLevel,
+    godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize, godrejEmployeesSeen,
+    godrejThirdPartyConfirmation, godrejCourtCasePending, godrejThirdPartyComment, godrejSeparateDemarcation,
+    godrejGstDisplayed, godrejPanCard, godrejGstinLegalName, godrejBusinessRegProof, godrejGstinRegDate,
+    godrejElectricityBill, godrejEmployeeRegister, godrejSaleBills, godrejOtherRecords, godrejStrengths,
+    godrejWeaknesses, finalStatus,
+  } = godrej.values;
+  const { setGodrejStrengths, setGodrejWeaknesses } = godrej;
   const [partnersDirectorsDetails, setPartnersDirectorsDetails] = useState('Not applicable');
   const [profitMargin, setProfitMargin] = useState<number | ''>('');
 
   // Observation Fields
-  const [godrejStockLevel, setGodrejStockLevel] = useState('');
-  const [godrejRoughStockValue, setGodrejRoughStockValue] = useState('');
-  const [godrejLocality, setGodrejLocality] = useState('');
-  const [godrejOfficeSetup, setGodrejOfficeSetup] = useState('');
-  const [godrejActivityLevel, setGodrejActivityLevel] = useState('');
-  const [godrejOfficeSize, setGodrejOfficeSize] = useState('');
-  const [godrejEmployeesSeen, setGodrejEmployeesSeen] = useState('No external staff/labour is engaged. Business operations are managed by Applicant.');
-  const [godrejThirdPartyConfirmation, setGodrejThirdPartyConfirmation] = useState('');
-  const [godrejCourtCasePending, setGodrejCourtCasePending] = useState('');
-  const [godrejThirdPartyComment, setGodrejThirdPartyComment] = useState('');
-  const [godrejSeparateDemarcation, setGodrejSeparateDemarcation] = useState('');
-  const [godrejGstDisplayed, setGodrejGstDisplayed] = useState('');
 
   // Documents Verified Fields
-  const [godrejPanCard, setGodrejPanCard] = useState('');
-  const [godrejGstinLegalName, setGodrejGstinLegalName] = useState('');
-  const [godrejBusinessRegProof, setGodrejBusinessRegProof] = useState('');
-  const [godrejGstinRegDate, setGodrejGstinRegDate] = useState('');
-  const [godrejElectricityBill, setGodrejElectricityBill] = useState('');
-  const [godrejEmployeeRegister, setGodrejEmployeeRegister] = useState('');
-  const [godrejSaleBills, setGodrejSaleBills] = useState('');
-  const [godrejOtherRecords, setGodrejOtherRecords] = useState('');
 
   // Strengths and Weaknesses
-  const [godrejStrengths, setGodrejStrengths] = useState<Array<{ id: string; text: string }>>([]);
-  const [godrejWeaknesses, setGodrejWeaknesses] = useState<Array<{ id: string; text: string }>>([]);
-  const [finalStatus, setFinalStatus] = useState('POSITIVE');
-  const [isGodrejSectionOpen, setIsGodrejSectionOpen] = useState(false);
 
-  const [applicantsList, setApplicantsList] = useState<any[]>([]);
+  const [applicantsList, setApplicantsList] = useState<GalleryApplicant[]>([]);
   const [loadingApplicants, setLoadingApplicants] = useState(true);
 
   // Helper: normalise a raw Firestore applicant document so the UI always
   // sees a consistent `applicantName` field, regardless of which version of the
   // save code wrote the record (old code used `applicantEntity` / nested `formData`).
-  const normaliseApplicant = (raw: any) => {
-    const formData = raw.formData || {};
+  const normaliseApplicant = (record: ApplicantRecord): GalleryApplicant => {
+    // Legacy documents carry arbitrary extra fields; only the gallery fields below are relied on
+    const raw = record as Record<string, any>;
+    const formData: Record<string, any> = raw.formData || {};
+    const categoryId = raw.categoryId || formData.categoryId;
     const isClosedVal = raw.isClosed !== undefined ? Boolean(raw.isClosed) : (formData.isClosed !== undefined ? Boolean(formData.isClosed) : (raw.status === 'CLOSED' || formData.status === 'CLOSED'));
     return {
       ...raw,
       // Spread legacy nested formData fields so they surface at the top level
       ...formData,
+      _id: record._id,
+      clientId: record.clientId,
       // Ensure applicantName is always present, falling back to legacy field names
       applicantName:
         raw.applicantName ||
@@ -556,6 +515,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       closedAt: raw.closedAt || formData.closedAt || null,
       closedBy: raw.closedBy || formData.closedBy || null,
       preparedBy: raw.preparedBy || formData.preparedBy || '',
+      bankName: raw.bankName || raw.financialInstitute || formData.financialInstitute || selectedClient?.name || '',
+      categoryName: raw.categoryName || categoriesList.find(c => c.id === categoryId)?.name || '',
+      riskScore: typeof raw.riskScore === 'number' ? raw.riskScore : undefined,
       updatedAt: raw.updatedAt || formData.updatedAt || raw.createdAt || null,
       createdAt: raw.createdAt || formData.createdAt || null,
     };
@@ -606,10 +568,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedClient, categoriesList]);
 
   // Form Section Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'>(
-
-    (localStorage.getItem('lastActiveTab') as any) || 'applicant'
-  );
+  const [activeTab, setActiveTab] = useState<PdTabId>(() => {
+    const saved = localStorage.getItem('lastActiveTab');
+    return isPdTabId(saved) ? saved : 'applicant';
+  });
 
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [chatbotText, setChatbotText] = useState('');
@@ -619,21 +581,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
   
   // Co-Applicant Business Details States
-  const [coApplicantBusinessName, setCoApplicantBusinessName] = useState('');
-  const [coApplicantBriefBusinessProfile, setCoApplicantBriefBusinessProfile] = useState('');
-  const [coApplicantBusinessVintage, setCoApplicantBusinessVintage] = useState('');
-  const [coApplicantPreviousOccupation, setCoApplicantPreviousOccupation] = useState('Not Applicable');
-  const [coApplicantReasonToLeave, setCoApplicantReasonToLeave] = useState('');
-  const [coApplicantStaffCount, setCoApplicantStaffCount] = useState('');
-  const [coApplicantBusinessPremiseOwnership, setCoApplicantBusinessPremiseOwnership] = useState('Self-Owned');
-  const [coApplicantFactoryInfrastructure, setCoApplicantFactoryInfrastructure] = useState('');
-  const [coApplicantStockDetailsValue, setCoApplicantStockDetailsValue] = useState('');
-  const [coApplicantFixedAndCurrentAssetAnalysis, setCoApplicantFixedAndCurrentAssetAnalysis] = useState('');
-  const [coApplicantAssetCreationThroughBusiness, setCoApplicantAssetCreationThroughBusiness] = useState('');
-  const [coApplicantInitialBusinessInvestment, setCoApplicantInitialBusinessInvestment] = useState('');
-  const [coApplicantAgriculturalIncomeDetails, setCoApplicantAgriculturalIncomeDetails] = useState('');
-  const [coApplicantOtherSourceIncomeDetails, setCoApplicantOtherSourceIncomeDetails] = useState('');
-  const [coApplicantOperationalSavingAnalysis, setCoApplicantOperationalSavingAnalysis] = useState('');
+  const coApplicantBusiness = useCoApplicantBusiness();
 
   const [businessVintageText, setBusinessVintageText] = useState('');
   const [staffCountText, setStaffCountText] = useState('');
@@ -1159,6 +1107,20 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [businessManagedByOther, setBusinessManagedByOther] = useState('');
   const [premiseOwnership, setPremiseOwnership] = useState('');
   const [premiseOwnershipOther, setPremiseOwnershipOther] = useState('');
+
+  // Default wording for "1. Vintage" and "2. Number of Staffs" until the user edits it
+  const vintageSummary = describeBusinessVintage({
+    years: businessAgeYears,
+    approximate: businessAgeApprox,
+    previousOccupation,
+    previousOccupationOther,
+    reasonToLeave,
+  });
+  const staffingSummary = describeStaffing({
+    externalStaffCount,
+    managedBy: businessManagedBy,
+    managedByOther: businessManagedByOther,
+  });
   const [businessAssets, setBusinessAssets] = useState<any[]>([]);
   const [hasStock, setHasStock] = useState(true);
   const [stockDetails, setStockDetails] = useState<any[]>([]);
@@ -1229,22 +1191,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [residenceStatusReason, setResidenceStatusReason] = useState('');
 
   // NEW STATES FOR CUSTOMER & SUPPLIER DETAILS
-  const [prominentCustomers, setProminentCustomers] = useState<any[]>([{ id: 'c1', name: '', phone: '', feedback: '' }]);
-  const [prominentSuppliers, setProminentSuppliers] = useState<any[]>([{ id: 's1', name: '', phone: '', feedback: '' }]);
+  // Tab 4: Customer & Supplier Details
+  const customerSupplier = useCustomerSupplierDetails();
+  const {
+    prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
+    hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage,
+    collateralValuation, collateralRemarks, businessLongitudeRemarks,
+  } = customerSupplier;
 
   // NEW STATES FOR COLLATERAL PROPERTY (Ambit)
-  const [hasCollateral, setHasCollateral] = useState(false);
-  const [collateralAddress, setCollateralAddress] = useState('');
-  const [collateralPropertyType, setCollateralPropertyType] = useState('Residential');
-  const [collateralPropertyArea, setCollateralPropertyArea] = useState('');
-  const [collateralPropertyUsage, setCollateralPropertyUsage] = useState('');
-  const [collateralValuation, setCollateralValuation] = useState('');
-  const [collateralRemarks, setCollateralRemarks] = useState('');
-  const [bankingDetails, setBankingDetails] = useState<any[]>([{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }]);
-  const [existingLoans, setExistingLoans] = useState<any[]>([{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]);
-  const [currentObligation, setCurrentObligation] = useState('No any existing obligation');
-  const [businessLongitudeVerified, setBusinessLongitudeVerified] = useState(false);
-  const [businessLongitudeRemarks, setBusinessLongitudeRemarks] = useState('The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.');
   const [businessNeighbourName, setBusinessNeighbourName] = useState('');
   const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState('Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
   const [businessStatus, setBusinessStatus] = useState('Recommended');
@@ -1286,8 +1241,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [neighborName, setNeighborName] = useState('');
   const [neighborFeedback, setNeighborFeedback] = useState('');
   const [landlordFeedback, setLandlordFeedback] = useState('');
-  const [exifGpsLat, setExifGpsLat] = useState('');
-  const [exifGpsLng, setExifGpsLng] = useState('');
 
   // Form Fields - Loan Scheme & Facilities
   const [appliedAmount, setAppliedAmount] = useState(0);
@@ -1363,6 +1316,22 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
       setLoadedToastMessage(`Deleted applicant ${appIdOrNumber}`);
       setTimeout(() => setLoadedToastMessage(null), 3000);
+    }
+  };
+
+  const handleDeleteAllApplicants = async () => {
+    if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
+    try {
+      const result = await api.deleteAllApplicants();
+      setApplicantsList([]);
+      setActiveAppId(null);
+      activeAppIdRef.current = null;
+      lastSavedStrRef.current = '';
+      setLoadedToastMessage(`✅ Permanently deleted ${result.deletedCount} applicants from database.`);
+      setTimeout(() => setLoadedToastMessage(null), 5000);
+    } catch (err) {
+      console.error('Failed to delete all applicants:', err);
+      alert('Failed to delete all applicants. Check console.');
     }
   };
 
@@ -1467,7 +1436,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     // Support legacy and top-level field names from saves
     setApplicantName(app.applicantName || app.applicantEntity || '');
     setMobileNumber(app.mobileNumber || app.contactNo || '');
-    setAlternateMobileNumber(app.alternateMobileNumber || '');
     setPanNumber(app.panNumber || '');
     setResidenceAddress(app.residenceAddress || '');
     setResidenceOwnership(app.residenceOwnership || 'OWN');
@@ -1493,52 +1461,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setWorkingDays(app.workingDays !== undefined ? app.workingDays : 0);
 
     // Godrej Specific State
-    setOfficeAccessibility(app.officeAccessibility || '');
-    setTenorRequested(app.tenorRequested || '');
-    setMarginsAssessed(app.marginsAssessed || '');
-    setCustomerGstNo(app.customerGstNo || '');
-    setIndustryType(app.industryType || '');
-    setProductType(app.productType || '');
-    setOnLoanStructure(app.onLoanStructure || '');
-    setMachineryDetailsText(app.machineryDetailsText || '');
-    setKeyEmployeeDetailsText(app.keyEmployeeDetailsText || '✓ .');
-    setGroupCompanyDetailsText(app.groupCompanyDetailsText || '');
-    setFinancialDetailsText(app.financialDetailsText || '');
-    setOtherBusinessPremisesText(app.otherBusinessPremisesText || '');
-    setOtherStateGstText(app.otherStateGstText || '');
-    setFamilyInvolvedText(app.familyInvolvedText || '');
-    setApplicantQualification(app.applicantQualification || '');
 
-    setGodrejStockLevel(app.godrejStockLevel || '');
-    setGodrejRoughStockValue(app.godrejRoughStockValue || '');
-    setGodrejLocality(app.godrejLocality || '');
-    setGodrejOfficeSetup(app.godrejOfficeSetup || '');
-    setGodrejActivityLevel(app.godrejActivityLevel || '');
-    setGodrejOfficeSize(app.godrejOfficeSize || '');
-    setGodrejEmployeesSeen(app.godrejEmployeesSeen || 'No external staff/labour is engaged. Business operations are managed by Applicant.');
-    setGodrejThirdPartyConfirmation(app.godrejThirdPartyConfirmation || '');
-    setGodrejCourtCasePending(app.godrejCourtCasePending || '');
-    setGodrejThirdPartyComment(app.godrejThirdPartyComment || '');
-    setGodrejSeparateDemarcation(app.godrejSeparateDemarcation || '');
-    setGodrejGstDisplayed(app.godrejGstDisplayed || '');
-    setGodrejPanCard(app.godrejPanCard || '');
-    setGodrejGstinLegalName(app.godrejGstinLegalName || '');
-    setGodrejBusinessRegProof(app.godrejBusinessRegProof || '');
-    setGodrejGstinRegDate(app.godrejGstinRegDate || '');
-    setGodrejElectricityBill(app.godrejElectricityBill || '');
-    setGodrejEmployeeRegister(app.godrejEmployeeRegister || '');
-    setGodrejSaleBills(app.godrejSaleBills || '');
-    setGodrejOtherRecords(app.godrejOtherRecords || '');
-    setGodrejStrengths(app.godrejStrengths || []);
-    setGodrejWeaknesses(app.godrejWeaknesses || []);
-    setFinalStatus(app.finalStatus || 'POSITIVE');
 
     // Investigation & Feedback
     setNeighborName(app.neighborName || '');
     setNeighborFeedback(app.neighborFeedback || '');
     setLandlordFeedback(app.landlordFeedback || '');
-    setExifGpsLat(app.exifGpsLat || '');
-    setExifGpsLng(app.exifGpsLng || '');
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
     }
@@ -1559,7 +1487,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setSolarPurposeUsage(app.solarPurposeUsage || '');
     setRiskFactor(app.riskFactor || '');
 
-    setPhotos(app.photos || []);
 
     setIncomeLines(app.incomeLines || []);
     setExpenseLines(app.expenseLines || []);
@@ -1691,22 +1618,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setResidenceStatus(app.residenceStatus || '');
     setResidenceStatusReason(app.residenceStatusReason || '');
 
-    setProminentCustomers(app.prominentCustomers && app.prominentCustomers.length > 0 ? app.prominentCustomers : [{ id: 'c1', name: '', phone: '', feedback: '' }]);
-    setProminentSuppliers(app.prominentSuppliers && app.prominentSuppliers.length > 0 ? app.prominentSuppliers : [{ id: 's1', name: '', phone: '', feedback: '' }]);
+    customerSupplier.load(app);
+    godrej.load(app);
+    photoEvidence.load(app);
+    coApplicantBusiness.load(app);
     setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
     setProfitMargin(app.profitMargin !== undefined ? app.profitMargin : '');
-    setHasCollateral(app.hasCollateral !== undefined ? !!app.hasCollateral : !!(app.collateralAddress || app.propertyAddress));
-    setCollateralAddress(app.collateralAddress || app.propertyAddress || '');
-    setCollateralPropertyType(app.collateralPropertyType || 'Residential');
-    setCollateralPropertyArea(app.collateralPropertyArea || '');
-    setCollateralPropertyUsage(app.collateralPropertyUsage || '');
-    setCollateralValuation(app.collateralValuation || '');
-    setCollateralRemarks(app.collateralRemarks || '');
-    setBankingDetails(app.bankingDetails && app.bankingDetails.length > 0 ? app.bankingDetails : [{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }]);
-    setExistingLoans(app.existingLoans && app.existingLoans.length > 0 ? app.existingLoans : [{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }]);
-    setCurrentObligation(app.currentObligation || 'No any existing obligation');
-    setBusinessLongitudeVerified(!!app.businessLongitudeVerified);
-    setBusinessLongitudeRemarks(app.businessLongitudeRemarks || 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.');
     setBusinessNeighbourName(app.businessNeighbourName || '');
     const initialStatus = app.statusOfCase || app.businessStatus || 'Recommended';
     setBusinessStatus(initialStatus);
@@ -1717,21 +1634,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
 
     setBriefBusinessProfile(app.briefBusinessProfile || '');
-    setCoApplicantBusinessName(app.coApplicantBusinessName || '');
-    setCoApplicantBriefBusinessProfile(app.coApplicantBriefBusinessProfile || '');
-    setCoApplicantBusinessVintage(app.coApplicantBusinessVintage || '');
-    setCoApplicantPreviousOccupation(app.coApplicantPreviousOccupation || 'Not Applicable');
-    setCoApplicantReasonToLeave(app.coApplicantReasonToLeave || '');
-    setCoApplicantStaffCount(app.coApplicantStaffCount || '');
-    setCoApplicantBusinessPremiseOwnership(app.coApplicantBusinessPremiseOwnership || 'Self-Owned');
-    setCoApplicantFactoryInfrastructure(app.coApplicantFactoryInfrastructure || '');
-    setCoApplicantStockDetailsValue(app.coApplicantStockDetailsValue || '');
-    setCoApplicantFixedAndCurrentAssetAnalysis(app.coApplicantFixedAndCurrentAssetAnalysis || '');
-    setCoApplicantAssetCreationThroughBusiness(app.coApplicantAssetCreationThroughBusiness || '');
-    setCoApplicantInitialBusinessInvestment(app.coApplicantInitialBusinessInvestment || '');
-    setCoApplicantAgriculturalIncomeDetails(app.coApplicantAgriculturalIncomeDetails || '');
-    setCoApplicantOtherSourceIncomeDetails(app.coApplicantOtherSourceIncomeDetails || '');
-    setCoApplicantOperationalSavingAnalysis(app.coApplicantOperationalSavingAnalysis || '');
 
     setBusinessVintageText(app.businessVintageText || '');
     setStaffCountText(app.staffCountText || '');
@@ -1775,13 +1677,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Keep the ref updated with the latest state without triggering re-renders
   updateDataRef.current = {
-    applicantName, mobileNumber, alternateMobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
+    applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
     dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
-    landlordFeedback, exifGpsLat, exifGpsLng, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
     existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
-    photos, incomeLines, expenseLines, productsList,
+    incomeLines, expenseLines, productsList,
     caseInitiationDate, visitDate, reportDate, coApplicants,
     hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
     powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText, loanPurpose,
@@ -1802,28 +1704,17 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     neighbors, neighborVerificationConducted, neighborResidenceConfirmed, neighborBehaviourFeedback, neighborNegativeFeedback,
     neighborNegativeDetails, gpsLat, gpsLng, residenceStatus, residenceStatusReason,
     aataChakkiData,
-    prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
-    hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage, collateralValuation, collateralRemarks,
-    businessLongitudeVerified, businessLongitudeRemarks, businessNeighbourName,
+    ...customerSupplier.values,
+    businessNeighbourName,
     businessNeighbourFeedback, businessStatus,
     hasAdditionalBusiness, additionalBusinessAddress, additionalBusinessIncomeAssessment,
     briefBusinessProfile, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
     stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
     solarSavingText, projectedIncomeText, statusOfCase,
-    coApplicantBusinessName, coApplicantBriefBusinessProfile, coApplicantBusinessVintage, coApplicantPreviousOccupation,
-    coApplicantReasonToLeave, coApplicantStaffCount, coApplicantBusinessPremiseOwnership, coApplicantFactoryInfrastructure,
-    coApplicantStockDetailsValue, coApplicantFixedAndCurrentAssetAnalysis, coApplicantAssetCreationThroughBusiness,
-    coApplicantInitialBusinessInvestment, coApplicantAgriculturalIncomeDetails, coApplicantOtherSourceIncomeDetails,
-    coApplicantOperationalSavingAnalysis,
+    ...coApplicantBusiness.values,
     coAppIncomeLines, coAppExpenseLines, coAppStatedMonthlySales, coAppSalariesExpense, coAppRentExpense,
     coAppUtilitiesExpense, coAppMiscExpense,
-    officeAccessibility, tenorRequested, marginsAssessed, customerGstNo, industryType, productType, onLoanStructure,
-    machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText, financialDetailsText, otherBusinessPremisesText,
-    otherStateGstText, familyInvolvedText, applicantQualification,
-    godrejStockLevel, godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize,
-    godrejEmployeesSeen, godrejThirdPartyConfirmation, godrejCourtCasePending, godrejThirdPartyComment, godrejSeparateDemarcation,
-    godrejGstDisplayed, godrejPanCard, godrejGstinLegalName, godrejBusinessRegProof, godrejGstinRegDate, godrejElectricityBill,
-    godrejEmployeeRegister, godrejSaleBills, godrejOtherRecords, godrejStrengths, godrejWeaknesses, finalStatus,
+    ...godrej.values,
     categoryId: selectedCategoryId,
     // Always persist these top-level indexing fields so gallery/search works correctly
     applicationNumber: activeAppNumber,
@@ -2020,23 +1911,6 @@ ${qaPairs.join('\n\n')}`;
 
   }, [aataChakkiData, currentCategory, workingDays, applicantName, firmName, yearsInBusiness, shopOwnership, shopAreaSqFt]);
 
-  // Helper to extract numeric timestamp for latest-first sorting
-  const getAppTimestamp = (app: any): number => {
-    const ts = app.updatedAt || app.createdAt || app.dateOfVisit || app.reportDate || app.visitDate;
-    if (!ts) return 0;
-    const time = new Date(ts).getTime();
-    return isNaN(time) ? 0 : time;
-  };
-
-  const sortLatestFirst = (list: any[]) => {
-    return [...list].sort((a, b) => {
-      const timeA = getAppTimestamp(a);
-      const timeB = getAppTimestamp(b);
-      if (timeA !== timeB) return timeB - timeA;
-      return String(b.applicationNumber || b._id || '').localeCompare(String(a.applicationNumber || a._id || ''));
-    });
-  };
-
   // Search Results for Autocomplete Dropdown - sorted latest first
   const searchedApplications = useMemo(() => {
     let list = applicantsList;
@@ -2051,48 +1925,6 @@ ${qaPairs.join('\n\n')}`;
     return sortLatestFirst(list);
   }, [appSearchQuery, applicantsList]);
 
-  // Gallery Filtered Applications — sorted latest first with ALL / OPEN / CLOSED tabs and search filter
-  const galleryApplications = useMemo(() => {
-    let list = [...applicantsList];
-    if (galleryFilter === 'OPEN') {
-      list = list.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
-    } else if (galleryFilter === 'CLOSED') {
-      list = list.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
-    }
-    if (galleryPreparedByFilter !== 'ALL') {
-      list = list.filter(app => (app.preparedBy || UNRECORDED_PREPARER) === galleryPreparedByFilter);
-    }
-    if (gallerySearchQuery.trim()) {
-      const query = gallerySearchQuery.toLowerCase();
-      list = list.filter(app =>
-        app.applicationNumber?.toLowerCase().includes(query) ||
-        app.applicantName?.toLowerCase().includes(query) ||
-        app.firmName?.toLowerCase().includes(query) ||
-        app.bankName?.toLowerCase().includes(query) ||
-        app.categoryName?.toLowerCase().includes(query) ||
-        app.preparedBy?.toLowerCase().includes(query)
-      );
-    }
-    return sortLatestFirst(list);
-  }, [applicantsList, galleryFilter, galleryPreparedByFilter, gallerySearchQuery]);
-
-  // PD report count per preparing employee (Manager / Admin view), highest first
-  const preparedByCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    applicantsList.forEach(app => {
-      const name = app.preparedBy || UNRECORDED_PREPARER;
-      counts.set(name, (counts.get(name) || 0) + 1);
-    });
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [applicantsList]);
-
-  const openCasesCount = useMemo(() => {
-    return applicantsList.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
-  }, [applicantsList]);
-
-  const closedCasesCount = useMemo(() => {
-    return applicantsList.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
-  }, [applicantsList]);
 
 
   // Computed Field Investigation Cross-Check Sales
@@ -2305,6 +2137,44 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     return { score, flags, strengths, decision };
   }, [dscrRatio, foirPct, yearsInBusiness, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
 
+  // Saved with the form (declared after it) so the case gallery can show the risk badge
+  updateDataRef.current = { ...updateDataRef.current, riskScore: riskAssessment.score };
+
+  const resolvedVintage =
+    businessVintageText || vintageSummary || `The business has an established vintage of ${yearsInBusiness} years.`;
+  const executiveSummaryInput: ExecutiveSummaryInput = {
+    applicantName,
+    firmName,
+    categoryName: currentCategory.name,
+    vintage: resolvedVintage,
+    monthlySales: adoptedMonthlySales,
+    grossMarginPct,
+    grossProfit,
+    operatingExpenses: totalOperatingExpenses,
+    existingEmis,
+    householdExpenses,
+    disposableSurplus: netFamilySurplusBeforeEmi,
+    appliedAmount,
+    interestRatePct,
+    tenureMonths: effectiveTenureMonths,
+    proposedEmi,
+    dscrRatio,
+    foirPct,
+    residenceNeighbourCheckDone: neighborVerificationConducted,
+    residenceConfirmed: neighborResidenceConfirmed,
+    residenceNeighbourFeedback: neighborBehaviourFeedback,
+    residenceNegativeFeedback: neighborNegativeFeedback,
+    residenceNegativeDetails: neighborNegativeDetails,
+    businessNeighbourFeedback: businessNeighbourFeedback || neighborFeedback,
+  };
+  const executiveSummary = buildExecutiveSummary(executiveSummaryInput);
+  const executiveSummaryHtml = (() => {
+    const html = buildExecutiveSummary(executiveSummaryInput, text => `<strong>${text}</strong>`);
+    return (Object.keys(EXECUTIVE_SUMMARY_TITLES) as Array<keyof ExecutiveSummary>)
+      .map(key => `<strong>${EXECUTIVE_SUMMARY_TITLES[key]}:</strong> ${html[key]}`)
+      .join('<br/><br/>');
+  })();
+
   const handleSaveToDB = async () => {
     if (!selectedClient) {
       alert("Please select a client first.");
@@ -2420,8 +2290,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const finalMeetingAddress = meetingAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
-    const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'Not provided';
-    const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'Not provided';
+    const fbBusinessVintage = vintageSummary || 'Not provided';
+    const fbStaffCount = staffingSummary;
     const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'Not provided');
     const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Not provided';
     const fbStockDetails = stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.';
@@ -2434,6 +2304,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
     return {
       companyHeader: {
+        id: selectedCompany.id,
         name: selectedCompany.name,
         cin: selectedCompany.id === 'infominers' ? 'U67100UP2020PTC131346' : 'U12345DL2024PTC987654',
         designation: 'Chartered Accountant & Risk Advisors',
@@ -2504,21 +2375,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
       
       hasCoApplicantBusiness: hasCoAppInBusiness,
-      coApplicantBusinessName: coApplicantBusinessName || 'Not provided',
-      coApplicantBriefBusinessProfile: coApplicantBriefBusinessProfile || 'Not provided',
-      coApplicantBusinessVintage: coApplicantBusinessVintage || 'Not provided',
-      coApplicantPreviousOccupation: coApplicantPreviousOccupation || 'Not provided',
-      coApplicantReasonToLeave: coApplicantReasonToLeave || 'Not provided',
-      coApplicantStaffCount: coApplicantStaffCount || 'Not provided',
-      coApplicantBusinessPremiseOwnership: coApplicantBusinessPremiseOwnership || 'Not provided',
-      coApplicantFactoryInfrastructure: coApplicantFactoryInfrastructure || 'Not provided',
-      coApplicantStockDetailsValue: coApplicantStockDetailsValue || 'Not provided',
-      coApplicantFixedAndCurrentAssetAnalysis: coApplicantFixedAndCurrentAssetAnalysis || 'Not provided',
-      coApplicantAssetCreationThroughBusiness: coApplicantAssetCreationThroughBusiness || 'Not provided',
-      coApplicantInitialBusinessInvestment: coApplicantInitialBusinessInvestment || 'Not provided',
-      coApplicantAgriculturalIncomeDetails: coApplicantAgriculturalIncomeDetails || 'Not provided',
-      coApplicantOtherSourceIncomeDetails: coApplicantOtherSourceIncomeDetails || 'Not provided',
-      coApplicantOperationalSavingAnalysis: coApplicantOperationalSavingAnalysis || 'Not provided',
+      ...toCoApplicantBusinessReport(coApplicantBusiness.values),
 
       businessVintage: businessVintageText || fbBusinessVintage,
       previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'Not provided') : (previousOccupation || 'Not provided'),
@@ -2639,10 +2496,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       dscrRatio: dscrRatio,
       foirPct: foirPct,
 
-      executiveSummary_BorrowerProfile: `${businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}`,
-      executiveSummary_SalesWaterfall: `The business generates an assessed monthly revenue of ₹${adoptedMonthlySales.toLocaleString('en-IN')}. Gross profit margin is assessed at ${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')}). After total business operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')}, existing obligations of ₹${existingEmis.toLocaleString('en-IN')}, and household living costs of ₹${householdExpenses.toLocaleString('en-IN')}, net monthly disposable surplus stands at ₹${(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}.`,
-      executiveSummary_DebtService: `The requested micro-lending facility of ₹${appliedAmount.toLocaleString('en-IN')} at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of ₹${proposedEmi.toLocaleString('en-IN')}. The post-loan DSCR is calculated at ${dscrRatio}x (policy threshold ≥ 1.25x) with FOIR at ${foirPct}% (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}`,
-      executiveSummary_Community: `${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
+      executiveSummary_BorrowerProfile: resolvedVintage,
+      executiveSummary_SalesWaterfall: executiveSummary.salesWaterfall,
+      executiveSummary_DebtService: executiveSummary.debtService,
+      executiveSummary_Community: executiveSummary.community,
 
       // Godrej Specific Fields
       alternateMobileNumber,
@@ -2651,6 +2508,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       marginsAssessed,
       customerGstNo,
       industryType: industryType || currentCategory?.industryGroup || '',
+      businessNature: currentCategory?.name || '',
+      cibilScore: parsedCreditReport?.creditScore ?? null,
+      residenceMarketValue: [
+        propertyArea ? `${propertyArea} sq. ft.` : '',
+        propertyValue ? `approx. ₹${Number(propertyValue).toLocaleString('en-IN')}` : '',
+      ].filter(Boolean).join(', '),
       productType: productType || currentCategory?.name || '',
       onLoanStructure,
       machineryDetailsText: machineryDetailsText || factoryInfrastructureText || fbFactoryInfra,
@@ -2692,15 +2555,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       riskFactor: riskFactor,
       proposedEmi: proposedEmi,
       postLoanSurplus: postLoanSurplus,
-      photos: photos.map(p => ({
-        id: p.id || Math.random().toString(),
-        name: p.caption || 'Field Photo',
-        dataUrl: p.url,
-        category: p.categoryTag || 'Field Proof',
-        mimeType: 'image/jpeg',
-        gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
-      })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
+      photos: photos.map(p => {
+        const location = photoLocation(p);
+        return {
+          id: p.id,
+          name: p.caption || 'Field Photo',
+          dataUrl: p.url,
+          category: p.categoryTag || 'Field Proof',
+          ...(location && { gps: { lat: location.point.latitude, lng: location.point.longitude } }),
+        };
+      }),
+      aiExecutiveSummary: executiveSummaryHtml,
       parsedCreditReport: parsedCreditReport
     };
   };
@@ -2798,65 +2663,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     alert(`WhatsApp data mapped successfully! Confidence: ${payload._confidence_score || 'N/A'}`);
   };
 
-  const renderTabNavigationFooter = () => {
-    const hasCoAppBusiness = hasCoAppInBusiness;
-    const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'; label: string }> = [
-      { id: 'applicant', label: '1. Applicant & Household' },
-      { id: 'verification', label: '2. Business & Residence Verification' },
-      { id: 'profile', label: '3. Business Profile' },
-      { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
-      { id: 'field', label: '5. Field Verification' },
-      ...(hasCoAppBusiness ? [{ id: 'coapp_business' as const, label: '5.1 Co-App Business' }] : []),
-      { id: 'financials', label: '6. Financial Analysis' },
-      { id: 'decision', label: '7. Risk Score & Summary' },
-    ];
-
-    const currentIndex = TABS_LIST.findIndex(t => t.id === activeTab);
-    const prevTab = currentIndex > 0 ? TABS_LIST[currentIndex - 1] : null;
-    const nextTab = currentIndex < TABS_LIST.length - 1 ? TABS_LIST[currentIndex + 1] : null;
-
-    const scrollToTop = () => {
-      window.scrollTo({ top: 280, behavior: 'smooth' });
-    };
-
-    return (
-      <div className="mt-8 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border">
-        <div>
-          {prevTab ? (
-            <button
-              onClick={() => {
-                setActiveTab(prevTab.id);
-                scrollToTop();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs"
-            >
-              <ChevronLeft className="w-4 h-4 text-[#eb8a23]" />
-              Previous: {prevTab.label}
-            </button>
-          ) : <div />}
-        </div>
-
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Section {currentIndex + 1} of {TABS_LIST.length}
-        </div>
-
-        <div>
-          {nextTab ? (
-            <button
-              onClick={() => {
-                setActiveTab(nextTab.id);
-                scrollToTop();
-              }}
-              className="flex items-center gap-2 px-5 py-2 bg-[#384c5e] hover:bg-[#2d3e50] text-white rounded-xl text-xs font-bold transition shadow-sm"
-            >
-              Next: {nextTab.label}
-              <ChevronRight className="w-4 h-4 text-[#eb8a23]" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  };
+  const tabFooter = (
+    <PdTabFooter activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
+  );
 
   const filteredCategoriesModal = categoriesList.filter(c =>
     c.name.toLowerCase().includes(categorySearch.toLowerCase()) ||
@@ -3248,34 +3057,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       </div>
 
       {/* Navigation Module Tabs */}
-      <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
-        {[
-          { id: 'applicant', label: '1. Applicant & Household', icon: User },
-          { id: 'verification', label: '2. Business & Residence Verification', icon: Store },
-          { id: 'profile', label: '3. Business Profile', icon: Store },
-          { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
-          { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
-          ...(hasCoAppInBusiness ? [{ id: 'coapp_business', label: '5.1 Co-App Business', icon: Briefcase }] : []),
-          { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
-          { id: 'decision', label: '7. Risk Score & Decision', icon: Shield },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${isActive
-                  ? 'bg-[#384c5e] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#eb8a23]' : 'text-slate-400'}`} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <PdTabBar activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
 
       {/* TAB 1: BUSINESS PROFILE */}
       {activeTab === 'profile' && (
@@ -3355,13 +3137,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {/* Additional fields requested in Business Profile */}
               <Field label="GSTIN – Legal Trade Name">
-                <input type="text" value={godrejGstinLegalName} onChange={(e) => setGodrejGstinLegalName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejGstinLegalName} onChange={(e) => godrej.setField('godrejGstinLegalName', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
               <Field label="GSTIN – Date of Registration">
-                <input type="text" value={godrejGstinRegDate} onChange={(e) => setGodrejGstinRegDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejGstinRegDate} onChange={(e) => godrej.setField('godrejGstinRegDate', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
               <Field label="Employee Register">
-                <input type="text" value={godrejEmployeeRegister} onChange={(e) => setGodrejEmployeeRegister(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                <input type="text" value={godrejEmployeeRegister} onChange={(e) => godrej.setField('godrejEmployeeRegister', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
 
               <Field label="Carpet Area (Sq. Ft.)">
@@ -3446,7 +3228,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <Field label="Final Status" className="mt-4 w-1/3">
                   <select
                     value={finalStatus}
-                    onChange={(e) => setFinalStatus(e.target.value)}
+                    onChange={(e) => godrej.setField('finalStatus', e.target.value)}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   >
                     <option value="POSITIVE">POSITIVE</option>
@@ -3612,112 +3394,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           )}
 
           {/* GODREJ SPECIFIC DETAILS */}
-          {selectedClient?.name?.toLowerCase().includes('godrej') && (
-            <div className="bg-green-50 border border-green-200 rounded-2xl p-6 shadow-sm mt-6 mb-6">
-              <button
-                type="button"
-                className="w-full flex justify-between items-center"
-                onClick={() => setIsGodrejSectionOpen(!isGodrejSectionOpen)}
-              >
-                <h3 className="text-sm font-extrabold text-green-900 uppercase tracking-wider flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-green-600" />
-                  Godrej Specific Details
-                </h3>
-                {isGodrejSectionOpen ? <ChevronLeft className="w-4 h-4 rotate-90" /> : <ChevronRight className="w-4 h-4" />}
-              </button>
+          {selectedClient?.name?.toLowerCase().includes('godrej') && <GodrejDetailsPanel form={godrej} />}
 
-              {isGodrejSectionOpen && (
-                <div className="mt-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="Alternate Mobile Number">
-                      <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </Field>
-                    <Field label="Person Met Qualification (Overrides Auto)">
-                      <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
-                    </Field>
-                    <Field label="Office Accessibility">
-                      <input type="text" value={officeAccessibility} onChange={(e) => setOfficeAccessibility(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Easy, Difficult" />
-                    </Field>
-                    <Field label="Tenor Requested">
-                      <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                    </Field>
-                    <Field label="Margins Assessed">
-                      <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                    </Field>
-                    <Field label="Customer GST No.">
-                      <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                    </Field>
-                    <Field label="Industry Type">
-                      <input type="text" value={industryType} onChange={(e) => setIndustryType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Manufacturing, Retail" />
-                    </Field>
-                    <Field label="Product Type">
-                      <input type="text" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Garments, Hardware" />
-                    </Field>
-                    <Field label="On Loan Structure">
-                      <input type="text" value={onLoanStructure} onChange={(e) => setOnLoanStructure(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </Field>
-                  </div>
-
-                  <Field label="Machinery Details">
-                    <textarea value={machineryDetailsText} onChange={(e) => setMachineryDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List machinery details..." />
-                  </Field>
-                  <Field label="Key Employee Details">
-                    <textarea value={keyEmployeeDetailsText} onChange={(e) => setKeyEmployeeDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List key employees..." />
-                  </Field>
-                  <Field label="Group Company Details">
-                    <textarea value={groupCompanyDetailsText} onChange={(e) => setGroupCompanyDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="Name, Relation, Brief business details..." />
-                  </Field>
-                  <Field label="Financial Details Summary">
-                    <textarea value={financialDetailsText} onChange={(e) => setFinancialDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-                  <Field label="Other Business Premises">
-                    <textarea value={otherBusinessPremisesText} onChange={(e) => setOtherBusinessPremisesText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-                  <Field label="Other State GST Registration">
-                    <input type="text" value={otherStateGstText} onChange={(e) => setOtherStateGstText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </Field>
-                  <Field label="Family Members Involved">
-                    <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </Field>
-
-                  {/* Godrej Specific Observation Fields */}
-                  <div className="pt-6 border-t border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Observation</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Stock Level</label><input type="text" value={godrejStockLevel} onChange={(e) => setGodrejStockLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Rough Value of Stock</label><input type="text" value={godrejRoughStockValue} onChange={(e) => setGodrejRoughStockValue(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Locality</label><input type="text" value={godrejLocality} onChange={(e) => setGodrejLocality(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Office Setup</label><input type="text" value={godrejOfficeSetup} onChange={(e) => setGodrejOfficeSetup(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Activity Level</label><input type="text" value={godrejActivityLevel} onChange={(e) => setGodrejActivityLevel(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Size of the office</label><input type="text" value={godrejOfficeSize} onChange={(e) => setGodrejOfficeSize(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">No. of employees seen</label><input type="text" value={godrejEmployeesSeen} onChange={(e) => setGodrejEmployeesSeen(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Confirmation</label><input type="text" value={godrejThirdPartyConfirmation} onChange={(e) => setGodrejThirdPartyConfirmation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Any court case pending</label><input type="text" value={godrejCourtCasePending} onChange={(e) => setGodrejCourtCasePending(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Third Party Comment</label><input type="text" value={godrejThirdPartyComment} onChange={(e) => setGodrejThirdPartyComment(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether separate demarcation of office in Resi-cum-Office setup</label><input type="text" value={godrejSeparateDemarcation} onChange={(e) => setGodrejSeparateDemarcation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Whether GST Number displayed at the premises visited</label><input type="text" value={godrejGstDisplayed} onChange={(e) => setGodrejGstDisplayed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                    </div>
-                  </div>
-
-                  {/* Godrej Specific Documents Verified */}
-                  <div className="pt-6 border-t border-slate-200">
-                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Documents verified during PD</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">PAN Card</label><input type="text" value={godrejPanCard} onChange={(e) => setGodrejPanCard(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Business Registration Proof Seen or Not Seen</label><input type="text" value={godrejBusinessRegProof} onChange={(e) => setGodrejBusinessRegProof(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Electricity Bill (latest 2 months) Seen/Not Seen</label><input type="text" value={godrejElectricityBill} onChange={(e) => setGodrejElectricityBill(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Sale Bills Seen</label><input type="text" value={godrejSaleBills} onChange={(e) => setGodrejSaleBills(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                      <div><label className="block text-xs font-bold text-slate-700 mb-1">Other (Kacha Records)</label><input type="text" value={godrejOtherRecords} onChange={(e) => setGodrejOtherRecords(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" /></div>
-                    </div>
-                  </div>
-
-                </div>
-
-              )}
-            </div>
-          )}
-
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -4240,7 +3919,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -4306,7 +3985,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={businessVintageText || vintageSummary} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </Field>
@@ -4341,7 +4020,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setStaffCountText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={staffCountText || staffingSummary} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </Field>
@@ -5143,594 +4822,34 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
       {activeTab === 'customer_supplier' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2 mb-6">
-              <Briefcase className="w-4 h-4 text-[#eb8a23]" />
-              Customer & Supplier Details
-            </h3>
-
-            {/* A. Applicant's customer and supplier details */}
-            <div className="space-y-6">
-              {/* Prominent Customers */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                  <h5 className="font-bold text-xs text-slate-700">Prominent Customers</h5>
-                  <button type="button" onClick={() => setProminentCustomers([...prominentCustomers, { id: 'c' + Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                    <Plus className="w-3 h-3" /> Add Customer
-                  </button>
-                </div>
-                <div className="overflow-x-auto p-3 bg-white">
-                  <table className="w-full text-xs text-left text-slate-600">
-                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                      <tr>
-                        <th className="pb-2 w-10 text-center">Sr. No.</th>
-                        <th className="pb-2">Prominent Customers (Name)</th>
-                        <th className="pb-2">Customers Ph. No.</th>
-                        <th className="pb-2">Feedback (Remark)</th>
-                        <th className="pb-2 w-10 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {prominentCustomers.map((cust, idx) => (
-                        <tr key={cust.id}>
-                          <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
-                          <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentCustomers]; arr.splice(idx, 1); setProminentCustomers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Prominent Suppliers */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                  <h5 className="font-bold text-xs text-slate-700">Prominent Suppliers</h5>
-                  <button type="button" onClick={() => setProminentSuppliers([...prominentSuppliers, { id: 's' + Date.now(), name: '', phone: '', feedback: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                    <Plus className="w-3 h-3" /> Add Supplier
-                  </button>
-                </div>
-                <div className="overflow-x-auto p-3 bg-white">
-                  <table className="w-full text-xs text-left text-slate-600">
-                    <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                      <tr>
-                        <th className="pb-2 w-10 text-center">Sr. No.</th>
-                        <th className="pb-2">Prominent Suppliers (Name)</th>
-                        <th className="pb-2">Supplier Ph. No.</th>
-                        <th className="pb-2">Feedback (Remark)</th>
-                        <th className="pb-2 w-10 text-center">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {prominentSuppliers.map((sup, idx) => (
-                        <tr key={sup.id}>
-                          <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
-                          <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentSuppliers]; arr.splice(idx, 1); setProminentSuppliers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Collateral Property Details (Ambit / Abhiyan / MoneyBoxx LAP Specific) */}
-              {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan') || (selectedClient?.name || '').toLowerCase().includes('lap')) && (
-                <div className="pt-6 mt-6 border-t border-slate-200">
-                  <Field label="Include Collateral Property Details?" labelClassName="text-sm font-bold text-slate-700" className="flex items-center justify-between mb-4">
-                    <div className="flex gap-4 text-xs font-semibold">
-                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={hasCollateral} onChange={() => setHasCollateral(true)} className="text-[#eb8a23]" /> Yes</label>
-                      <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={!hasCollateral} onChange={() => setHasCollateral(false)} className="text-[#eb8a23]" /> No</label>
-                    </div>
-                  </Field>
-
-                  {hasCollateral && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field label="Collateral Address" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
-                        <input type="text" value={collateralAddress} onChange={(e) => setCollateralAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Tajganj Fatehabd Road Agra" />
-                      </Field>
-                      <Field label="Property Type" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
-                        <select value={collateralPropertyType} onChange={(e) => setCollateralPropertyType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
-                          {['Residential', 'Commercial', 'Industrial', 'Agricultural'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
-                      </Field>
-                      <Field label="Approx. Property Area (sq. feet)" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
-                        <input type="text" value={collateralPropertyArea} onChange={(e) => setCollateralPropertyArea(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 800-900" />
-                      </Field>
-                      <Field label="Property Usage" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
-                        <input type="text" value={collateralPropertyUsage} onChange={(e) => setCollateralPropertyUsage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. This property is used for residential purposes." />
-                      </Field>
-                      <Field label="Approx Property Valuation" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
-                        <input type="text" value={collateralValuation} onChange={(e) => setCollateralValuation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 8-10 Lakh" />
-                      </Field>
-                      <Field label="Remarks" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
-                        <textarea value={collateralRemarks} onChange={(e) => setCollateralRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Ownership details, etc." rows={2} />
-                      </Field>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* B. Banking Details */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                <h5 className="font-bold text-xs text-slate-700">Banking Details and Limit OD and CC limit with bank</h5>
-                <button type="button" onClick={() => setBankingDetails([...bankingDetails, { id: 'b' + Date.now(), bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: 'The account belongs to applicant' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                  <Plus className="w-3 h-3" /> Add Bank
-                </button>
-              </div>
-              <div className="overflow-x-auto p-3 bg-white">
-                <table className="w-full text-xs text-left text-slate-600">
-                  <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="pb-2">Bank Name</th>
-                      <th className="pb-2">Branch Name</th>
-                      <th className="pb-2">Account Types</th>
-                      <th className="pb-2">CC/OD Limit</th>
-                      <th className="pb-2">Account No.</th>
-                      <th className="pb-2">Remark</th>
-                      <th className="pb-2 w-10 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {bankingDetails.map((bank, idx) => (
-                      <tr key={bank.id}>
-                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'bankName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'branchName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
-                        <td className="py-2 pr-2">
-                          <select value={bank.accountType} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountType', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
-                            {['Saving Account', 'Current Account', 'OD', 'CC', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
-                        </td>
-                        <td className="py-2 pr-2">
-                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'limit', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
-                          <datalist id="limit-options">
-                            <option value="NA" />
-                            <option value="Not Disclosed" />
-                          </datalist>
-                        </td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountNo', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
-                        <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* C. Existing Loans / Liabilities */}
-            <div className="border border-slate-200 rounded-xl overflow-hidden mt-6">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-                <h5 className="font-bold text-xs text-slate-700">Existing Loans / Liabilities</h5>
-                <button type="button" onClick={() => setExistingLoans([...existingLoans, { id: 'l' + Date.now(), typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1.5 bg-white text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-50 shadow-sm">
-                  <Plus className="w-3 h-3" /> Add Loan
-                </button>
-              </div>
-              <div className="overflow-x-auto p-3 bg-white">
-                <table className="w-full text-xs text-left text-slate-600">
-                  <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
-                    <tr>
-                      <th className="pb-2">Type of Loan</th>
-                      <th className="pb-2">Financer Name</th>
-                      <th className="pb-2">Loan Amount (In Lakhs)</th>
-                      <th className="pb-2">EMI (Rs.)</th>
-                      <th className="pb-2">Tenure (Y, M)</th>
-                      <th className="pb-2">Balance Tenure</th>
-                      <th className="pb-2">Remark</th>
-                      <th className="pb-2 w-10 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {existingLoans.map((loan, idx) => (
-                      <tr key={loan.id}>
-                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'typeOfLoan', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'financerName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'amountInLakhs', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'emi', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'tenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'balanceTenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
-                        <td className="py-2 text-center"><button onClick={() => { const arr = [...existingLoans]; arr.splice(idx, 1); setExistingLoans(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <Field label="Current Obligation" labelClassName="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap" className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-                  <input type="text" value={currentObligation} onChange={(e) => setCurrentObligation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. No any existing obligation" />
-                </Field>
-              </div>
-            </div>
-
-            {/* D. Co-Applicant Business Details */}
-            {coApplicants.length > 0 && (
-              <Field label="Business Details of Co-applicants" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-                {coApplicants.map((coApp, idx) => (
-                  <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
-                      <div className="flex gap-2">
-                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
-                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
-                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
-                      </div>
-                    </div>
-                    {coApp.profession === 'Business' && (
-                      <Field label="Details / Role in Business" labelClassName={SUB_LABEL}>
-                        <textarea value={coApp.businessRole || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'businessRole', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
-                      </Field>
-                    )}
-                  </div>
-                ))}
-              </Field>
-            )}
-
-            {/* E. Latitude & Longitude Remarks */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-              <label className="block text-xs font-bold text-slate-700">Latitude & Longitude of the Business Premises</label>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <input type="number" step="any" value={gpsLat} onChange={(e) => setGpsLat(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lat (e.g. 25.6)" />
-                  <input type="number" step="any" value={gpsLng} onChange={(e) => setGpsLng(Number(e.target.value))} className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Lng (e.g. 86.1)" />
-                </div>
-                <button type="button" onClick={() => {
-                  if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                      (pos) => { setGpsLat(pos.coords.latitude); setGpsLng(pos.coords.longitude); },
-                      (err) => { alert('Geolocation error: ' + err.message); }
-                    );
-                  } else {
-                    alert("Geolocation is not supported by this browser.");
-                  }
-                }} className="flex items-center gap-2 px-3 py-2 bg-[#2d3e50] text-white rounded-lg text-xs font-bold shadow-sm hover:bg-slate-800 transition">
-                  <MapPin className="w-3 h-3" /> Get Location
-                </button>
-              </div>
-              <div className="border-t border-slate-200 pt-3">
-                <Field label="Location Verified by GPS?" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-2">
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => { setBusinessLongitudeVerified(true); setBusinessLongitudeRemarks("The location was successfully verified using the provided coordinates."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${businessLongitudeVerified ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Yes, Verified</button>
-                    <button type="button" onClick={() => { setBusinessLongitudeVerified(false); setBusinessLongitudeRemarks("The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!businessLongitudeVerified ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>No, Navigation Failed</button>
-                  </div>
-                </Field>
-                <textarea value={businessLongitudeRemarks} onChange={(e) => setBusinessLongitudeRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} />
-              </div>
-            </div>
-
-
-            {/* G. Business Status */}
-            <Field label="Business Status (Recommendation)" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
-              <div className="flex flex-wrap gap-2">
-                {caseStatusOptions.map((opt, optIdx) => (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => handleStatusChange(opt)}
-                    className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${
-                      statusOfCase === opt
-                        ? (optIdx === 0
-                            ? 'bg-green-600 text-white border-green-600 shadow-md'
-                            : optIdx === 1
-                              ? 'bg-red-600 text-white border-red-600 shadow-md'
-                              : 'bg-amber-600 text-white border-amber-600 shadow-md')
-                        : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
+        <CustomerSupplierSection
+          details={customerSupplier}
+          showCollateral={['ambit', 'abhiyan', 'lap'].some(key => (selectedClient?.name || '').toLowerCase().includes(key))}
+          coApplicants={coApplicants}
+          setCoApplicants={setCoApplicants}
+          gpsLat={gpsLat}
+          gpsLng={gpsLng}
+          setGpsLat={setGpsLat}
+          setGpsLng={setGpsLng}
+          statusOptions={caseStatusOptions}
+          status={statusOfCase}
+          onStatusChange={handleStatusChange}
+          footer={tabFooter}
+        />
       )}
 
       {activeTab === 'field' && (
-        <div className="space-y-6">
-
-
-          {/* EXIF GPS Photos */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#eb8a23]" />
-                GPS Geotagged Field Inspection Proofs
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Extracted GPS Latitude">
-                <input
-                  type="text"
-                  value={exifGpsLat}
-                  onChange={(e) => setExifGpsLat(e.target.value)}
-                  placeholder="e.g. 26.9124"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </Field>
-              <Field label="Extracted GPS Longitude">
-                <input
-                  type="text"
-                  value={exifGpsLng}
-                  onChange={(e) => setExifGpsLng(e.target.value)}
-                  placeholder="e.g. 75.7873"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </Field>
-            </div>
-
-            {['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map((categoryName) => (
-              <div key={categoryName} className="space-y-3">
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <h4 className="text-xs font-bold text-slate-700">{categoryName}</h4>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded text-[10px] font-bold transition shadow-sm cursor-pointer">
-                    {isUploadingPhoto ? (
-                      <span className="animate-pulse">Uploading...</span>
-                    ) : (
-                      <>
-                        <Upload className="w-3 h-3 text-white" />
-                        Upload {categoryName}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={async (e) => {
-                            const fileList = e.target.files;
-                            if (!fileList || fileList.length === 0) return;
-                            const files = Array.from(fileList) as File[];
-                            setIsUploadingPhoto(true);
-
-                            for (const file of files) {
-                              let latToUse = parseFloat(exifGpsLat) || 26.9124;
-                              let lngToUse = parseFloat(exifGpsLng) || 75.7873;
-
-                              try {
-                                const gps = await exifr.gps(file);
-                                if (gps && gps.latitude && gps.longitude) {
-                                  latToUse = gps.latitude;
-                                  lngToUse = gps.longitude;
-                                  setExifGpsLat(`${latToUse.toFixed(4)}° N`);
-                                  setExifGpsLng(`${lngToUse.toFixed(4)}° E`);
-                                }
-                              } catch (exifErr) {
-                                console.error('EXIF extraction failed', exifErr);
-                              }
-
-                              const reader = new FileReader();
-                              const readerPromise = new Promise((resolve) => {
-                                reader.onloadend = async () => {
-                                  try {
-                                    const base64Data = reader.result as string;
-                                    let res;
-                                    try {
-                                      res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
-                                    } catch (apiErr) {
-                                      res = {
-                                        id: Math.random().toString(),
-                                        url: base64Data,
-                                        caption: file.name,
-                                        gpsCoordinates: { latitude: latToUse, longitude: lngToUse },
-                                        gps: { lat: latToUse, lng: lngToUse }
-                                      };
-                                    }
-                                    if (res) {
-                                      setPhotos(prev => [...prev, { ...res, categoryTag: categoryName }]);
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                  } finally {
-                                    resolve(true);
-                                  }
-                                };
-                              });
-                              reader.readAsDataURL(file);
-                              await readerPromise;
-                            }
-                            setIsUploadingPhoto(false);
-                          }}
-                        />
-                      </>
-                    )}
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {photos.filter(p => p.categoryTag === categoryName).length === 0 ? (
-                    <div className="col-span-full p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                      <p className="text-xs text-slate-500 font-bold">No {categoryName.toLowerCase()} uploaded yet</p>
-                    </div>
-                  ) : (
-                    photos.filter(p => p.categoryTag === categoryName).map((photo, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 relative group">
-                        <img
-                          src={photo.url}
-                          alt={photo.caption}
-                          className="w-full h-32 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <div className="p-2 flex flex-col gap-1 text-[10px]">
-                          <div className="font-bold text-[#2d3e50] truncate">{photo.caption}</div>
-                          <div className="text-slate-500 flex items-center justify-between">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-rose-500" />
-                              GPS: {photo.gpsCoordinates?.latitude?.toFixed(4) || photo.gps?.lat?.toFixed(4)}, {photo.gpsCoordinates?.longitude?.toFixed(4) || photo.gps?.lng?.toFixed(4)}
-                            </span>
-                            <span className="font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                              VERIFIED
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
+        <FieldInvestigationSection evidence={photoEvidence} footer={tabFooter} />
       )}
 
       {/* TAB 5.1: CO-APPLICANT BUSINESS */}
       {activeTab === 'coapp_business' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-[#eb8a23]" />
-              Co-Applicant Business Visit Details
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Firm / Trade Name">
-                <input
-                  type="text"
-                  value={coApplicantBusinessName}
-                  onChange={(e) => setCoApplicantBusinessName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Premises Ownership">
-                <select
-                  value={coApplicantBusinessPremiseOwnership}
-                  onChange={(e) => setCoApplicantBusinessPremiseOwnership(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                >
-                  <option value="">Select Ownership</option>
-                  <option value="RENTED">Rented Premises</option>
-                  <option value="OWN">Self Owned Premises</option>
-                  <option value="FAMILY">Family / Ancestral Owned</option>
-                  <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
-                </select>
-              </Field>
-
-              <Field label="Vintage of Business">
-                <input
-                  type="text"
-                  value={coApplicantBusinessVintage}
-                  onChange={(e) => setCoApplicantBusinessVintage(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                  placeholder="e.g. 5 Years"
-                />
-              </Field>
-
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary</label>
-                <textarea
-                  value={coApplicantBriefBusinessProfile}
-                  onChange={(e) => setCoApplicantBriefBusinessProfile(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                  placeholder="Enter detailed business profile and executive summary..."
-                />
-              </div>
-              
-              <Field label="Number of Staffs">
-                <input
-                  type="text"
-                  value={coApplicantStaffCount}
-                  onChange={(e) => setCoApplicantStaffCount(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Factory / Office Infrastructure">
-                <input
-                  type="text"
-                  value={coApplicantFactoryInfrastructure}
-                  onChange={(e) => setCoApplicantFactoryInfrastructure(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Stock Details with Estimated Value">
-                <input
-                  type="text"
-                  value={coApplicantStockDetailsValue}
-                  onChange={(e) => setCoApplicantStockDetailsValue(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fixed & Current Asset Analysis</label>
-                <input
-                  type="text"
-                  value={coApplicantFixedAndCurrentAssetAnalysis}
-                  onChange={(e) => setCoApplicantFixedAndCurrentAssetAnalysis(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </div>
-
-              <Field label="Asset Creation Through Business">
-                <input
-                  type="text"
-                  value={coApplicantAssetCreationThroughBusiness}
-                  onChange={(e) => setCoApplicantAssetCreationThroughBusiness(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Business Investment">
-                <input
-                  type="text"
-                  value={coApplicantInitialBusinessInvestment}
-                  onChange={(e) => setCoApplicantInitialBusinessInvestment(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Agricultural Income Details">
-                <input
-                  type="text"
-                  value={coApplicantAgriculturalIncomeDetails}
-                  onChange={(e) => setCoApplicantAgriculturalIncomeDetails(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Other Source Income Details">
-                <input
-                  type="text"
-                  value={coApplicantOtherSourceIncomeDetails}
-                  onChange={(e) => setCoApplicantOtherSourceIncomeDetails(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Solar Saving Analysis">
-                <input
-                  type="text"
-                  value={coApplicantOperationalSavingAnalysis}
-                  onChange={(e) => setCoApplicantOperationalSavingAnalysis(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-            </div>
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
+        <CoApplicantBusinessSection form={coApplicantBusiness} footer={tabFooter} />
       )}
 
       {/* TAB 4: FINANCIAL ANALYSIS & ITEMIZED PRICE x QTY x DAYS CALCULATOR */}
@@ -5752,13 +4871,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {selectedClient?.name?.toLowerCase().includes('godrej') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
                 <Field label="Tenor Requested">
-                  <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
+                  <input type="text" value={tenorRequested} onChange={(e) => godrej.setField('tenorRequested', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
                 </Field>
                 <Field label="Margins Assessed">
-                  <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
+                  <input type="text" value={marginsAssessed} onChange={(e) => godrej.setField('marginsAssessed', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
                 </Field>
                 <Field label="Customer GST No.">
-                  <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
+                  <input type="text" value={customerGstNo} onChange={(e) => godrej.setField('customerGstNo', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
                 </Field>
               </div>
             )}
@@ -6216,198 +5335,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
       {/* TAB 5: AUTOMATED RISK SCORE & AUTOMATIC EXECUTIVE SUMMARY REPORT */}
       {activeTab === 'decision' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[#eb8a23]" />
-                  Automated Credit Assessment & Risk Scoring Report
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Real-time rule engine evaluation for {firmName} ({applicantName}).
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Risk Quality Score</div>
-                  <div className="text-2xl font-black" style={{ color: riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444' }}>
-                    {riskAssessment.score} / 100
-                  </div>
-                </div>
-                <div className="relative w-20 h-10 overflow-hidden flex items-end">
-                  <svg viewBox="0 0 100 50" className="w-full h-full">
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none"
-                      stroke={riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444'}
-                      strokeWidth="12" strokeLinecap="round"
-                      strokeDasharray="125.6"
-                      strokeDashoffset={125.6 - (riskAssessment.score / 100) * 125.6}
-                      className="transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-
-
-            {/* Decision Recommendation Banner */}
-            <div className={`p-5 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${riskAssessment.decision === 'APPROVED'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                : riskAssessment.decision === 'CONDITIONAL'
-                  ? 'bg-amber-50 border-amber-300 text-amber-900'
-                  : 'bg-rose-50 border-rose-300 text-rose-900'
-              }`}>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                <div>
-                  <div className="text-sm font-black uppercase tracking-wide">
-                    AUTOMATED RECOMMENDATION: {riskAssessment.decision === 'APPROVED' ? 'RECOMMENDED FOR SANCTION' : riskAssessment.decision}
-                  </div>
-                  <p className="text-xs font-medium mt-0.5 opacity-90">
-                    Applicant demonstrates adequate cash flow coverage with post-loan DSCR of {dscrRatio}x and FOIR of {foirPct}%. Recommended Sanction: ₹{appliedAmount.toLocaleString('en-IN')}.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Manager Override Section */}
-            {isManagement && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-amber-600" />
-                    <span className="text-xs font-bold text-amber-800 uppercase">Manager Override Actions</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                    Restricted to {currentUser?.role}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => alert('Manual Override: Status changed to APPROVED')}
-                    className="px-4 py-2 bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Force Sanction
-                  </button>
-                  <button
-                    onClick={() => alert('Manual Override: Status changed to REJECTED')}
-                    className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Force Decline
-                  </button>
-                  <button
-                    onClick={() => alert('File sent back for re-verification')}
-                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Request Re-Verification
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* AUTOMATED EXECUTIVE SUMMARY CARD (DISPLAYED DIRECTLY AT RISK SCORE MENU) */}
-            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#eb8a23]" />
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider">
-                    Executive Appraisal Summary & Credit Synthesis
-                  </h4>
-                </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  AUTOMATICALLY GENERATED
-                </span>
-              </div>
-
-              <div className="prose prose-xs max-w-none text-slate-700 text-xs leading-relaxed space-y-3">
-
-                <p>
-                  <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}). {businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}
-                </p>
-                <p>
-                  <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong>, existing obligations of <strong>₹{existingEmis.toLocaleString('en-IN')}</strong>, and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}</strong>.
-                </p>
-                <p>
-                  <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {effectiveTenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
-                </p>
-                <p>
-                  <strong>Community Verification:</strong> {neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: {businessNeighbourFeedback || neighborFeedback || 'Not provided'}.
-                </p>
-              </div>
-
-              {/* Financial Waterfall Summary Table */}
-              <div className="pt-2">
-                <div className="text-[11px] font-extrabold text-slate-600 uppercase mb-2">Key Financial Waterfall Summary</div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Adopted Monthly Revenue</div>
-                    <div className="text-xs font-black text-[#2d3e50]">₹{adoptedMonthlySales.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Net Business Operating Profit</div>
-                    <div className="text-xs font-black text-emerald-700">₹{netBusinessIncome.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Proposed Monthly EMI</div>
-                    <div className="text-xs font-black text-blue-700">₹{proposedEmi.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Post-Loan Net Surplus</div>
-                    <div className="text-xs font-black text-[#eb8a23]">₹{postLoanSurplus.toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Strengths & Flags Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-emerald-800 uppercase flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  Key Institutional Credit Strengths ({riskAssessment.strengths.length})
-                </h4>
-                <ul className="space-y-1.5 text-xs text-slate-700">
-                  {riskAssessment.strengths.map((str, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
-                      <span>{str}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-amber-800 uppercase flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Audit & Compliance Risk Flags ({riskAssessment.flags.length})
-                </h4>
-                {riskAssessment.flags.length === 0 ? (
-                  <p className="text-xs text-slate-500">No critical risk flags detected.</p>
-                ) : (
-                  <ul className="space-y-1.5 text-xs text-slate-700">
-                    {riskAssessment.flags.map((flag, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>
-                        <span>{flag}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
+        <DecisionSection
+          applicantName={applicantName}
+          firmName={firmName}
+          riskAssessment={riskAssessment}
+          summary={executiveSummary}
+          dscrRatio={dscrRatio}
+          foirPct={foirPct}
+          appliedAmount={appliedAmount}
+          figures={{ monthlySales: adoptedMonthlySales, netBusinessIncome, proposedEmi, postLoanSurplus }}
+          managerRole={isManagement ? currentUser?.role ?? null : null}
+          footer={tabFooter}
+        />
       )}
 
       {/* CATEGORY SELECTOR MODAL */}
@@ -6542,278 +5487,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           </div>
         </div>
       )}
-      {/* 1-CLICK APPLICATION CASE GALLERY MODAL */}
       {isAppGalleryOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-            {/* Modal Header */}
-            <div className="bg-[#384c5e] text-white px-6 py-4 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-amber-400 fill-amber-400" />
-                <div>
-                  <h3 className="font-bold text-sm">1-Click Load Application Cases</h3>
-                  <p className="text-[11px] text-slate-300">Select any pre-audited loan file to instantly auto-populate all 5 PD Studio modules.</p>
-                </div>
-              </div>
-              <button onClick={() => setIsAppGalleryOpen(false)} className="text-slate-300 hover:text-white font-bold text-xl">
-                &times;
-              </button>
-            </div>
-
-            {/* Filter Tabs, Search Bar & Admin Actions */}
-            <div className="px-5 py-3 bg-slate-50 border-b border-slate-200 shrink-0 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                {/* Search in Gallery */}
-                <div className="relative flex-1 min-w-[220px] max-w-sm">
-                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    placeholder="Search by name, app #, bank, category..."
-                    value={gallerySearchQuery}
-                    onChange={(e) => setGallerySearchQuery(e.target.value)}
-                    className="w-full pl-8 pr-7 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-medium text-[#2d3e50] focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
-                  />
-                  {gallerySearchQuery && (
-                    <button
-                      onClick={() => setGallerySearchQuery('')}
-                      className="absolute right-2 top-2 text-slate-400 hover:text-slate-600"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-
-                {/* Filter Pills */}
-                <div className="flex items-center gap-1.5 bg-slate-200/80 p-1 rounded-xl text-xs font-bold">
-                  <button
-                    onClick={() => setGalleryFilter('ALL')}
-                    className={`px-3 py-1 rounded-lg transition ${
-                      galleryFilter === 'ALL'
-                        ? 'bg-white text-[#2d3e50] shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    All ({applicantsList.length})
-                  </button>
-                  <button
-                    onClick={() => setGalleryFilter('OPEN')}
-                    className={`px-3 py-1 rounded-lg transition flex items-center gap-1 ${
-                      galleryFilter === 'OPEN'
-                        ? 'bg-amber-500 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full bg-amber-300"></span>
-                    Open ({openCasesCount})
-                  </button>
-                  <button
-                    onClick={() => setGalleryFilter('CLOSED')}
-                    className={`px-3 py-1 rounded-lg transition flex items-center gap-1 ${
-                      galleryFilter === 'CLOSED'
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'text-slate-600 hover:text-slate-900'
-                    }`}
-                  >
-                    <CheckCheck className="w-3.5 h-3.5" />
-                    Closed / Delivered ({closedCasesCount})
-                  </button>
-                </div>
-
-                {/* Admin Danger Delete All Button */}
-                {isAdmin && galleryApplications.length > 0 && (
-                  <button
-                    onClick={async () => {
-                      if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
-                      try {
-                        const result = await api.deleteAllApplicants();
-                        setApplicantsList([]);
-                        setActiveAppId(null);
-                        activeAppIdRef.current = null;
-                        lastSavedStrRef.current = '';
-                        setLoadedToastMessage(`✅ Permanently deleted ${result.deletedCount} applicants from database.`);
-                        setTimeout(() => setLoadedToastMessage(null), 5000);
-                      } catch (err) {
-                        console.error('Failed to delete all applicants:', err);
-                        alert('Failed to delete all applicants. Check console.');
-                      }
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[10px] font-bold transition shadow-sm ml-auto"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Delete All Applicants
-                  </button>
-                )}
-              </div>
-
-              {/* PD Reports Prepared per Employee (Manager / Admin only) */}
-              {isManagement && preparedByCounts.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                  <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-slate-500 mr-1">
-                    <Users className="w-3.5 h-3.5" /> PD Reports by Employee:
-                  </span>
-                  <button
-                    onClick={() => setGalleryPreparedByFilter('ALL')}
-                    className={`px-2.5 py-1 rounded-lg border font-bold transition ${
-                      galleryPreparedByFilter === 'ALL'
-                        ? 'bg-[#384c5e] text-white border-[#384c5e]'
-                        : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
-                    }`}
-                  >
-                    Everyone ({applicantsList.length})
-                  </button>
-                  {preparedByCounts.map(([name, count]) => (
-                    <button
-                      key={name}
-                      onClick={() => setGalleryPreparedByFilter(galleryPreparedByFilter === name ? 'ALL' : name)}
-                      className={`px-2.5 py-1 rounded-lg border font-bold transition ${
-                        galleryPreparedByFilter === name
-                          ? 'bg-[#eb8a23] text-white border-[#eb8a23]'
-                          : 'bg-white text-[#2d3e50] border-slate-300 hover:border-[#eb8a23]'
-                      }`}
-                    >
-                      {name} <span className="font-black">{count}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* Application Cards Grid */}
-            <div className="p-6 overflow-y-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {galleryApplications.length === 0 && !loadingApplicants && (
-                <div className="col-span-3 text-center py-16 text-slate-400">
-                  <div className="text-4xl mb-3">📂</div>
-                  <p className="font-bold text-sm">No applications found</p>
-                  <p className="text-xs mt-1">
-                    {galleryFilter === 'CLOSED'
-                      ? 'No closed/delivered cases yet. Managers and Admins can mark completed cases as closed.'
-                      : galleryFilter === 'OPEN'
-                      ? 'No open cases matching your filter.'
-                      : 'Click "+ New Applicant" to create your first entry.'}
-                  </p>
-                </div>
-              )}
-              {galleryApplications.map((app) => {
-                const isClosed = Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED');
-                return (
-                  <div
-                    key={app._id || app.applicationNumber}
-                    className={`rounded-2xl p-4 transition flex flex-col justify-between space-y-3 relative ${
-                      isClosed
-                        ? 'bg-gradient-to-b from-emerald-50/80 via-white to-emerald-50/30 border-2 border-emerald-500 shadow-md shadow-emerald-500/10 ring-1 ring-emerald-500/20'
-                        : 'bg-white border border-slate-200 hover:border-amber-400 shadow-sm hover:shadow-md'
-                    }`}
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="font-mono font-black text-xs text-[#eb8a23] bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                          #{app.applicationNumber}
-                        </span>
-                        {isClosed ? (
-                          <span className="px-2.5 py-1 rounded-lg text-[10px] font-black bg-emerald-600 text-white border border-emerald-700 uppercase tracking-wider flex items-center gap-1 shadow-xs">
-                            <CheckCheck className="w-3 h-3" /> CLOSED (DELIVERED)
-                          </span>
-                        ) : (
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                            app.riskScore >= 80
-                              ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : 'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}>
-                            {app.riskScore >= 80 ? 'APPROVED' : 'CONDITIONAL'}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Closed Status Delivery Banner */}
-                      {isClosed && (
-                        <div className="bg-emerald-100/70 border border-emerald-300/90 rounded-xl p-2.5 text-xs text-emerald-950 flex items-start gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
-                          <div className="space-y-0.5">
-                            <p className="font-extrabold text-[11px] leading-tight text-emerald-950">Case Report Completed & Delivered</p>
-                            <p className="text-[10px] text-emerald-800 font-medium">
-                              {app.closedAt ? `Delivered: ${new Date(app.closedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}` : 'Delivered to client'}
-                              {app.closedBy ? ` • by ${app.closedBy}` : ''}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-
-                      <div>
-                        <h4 className="text-sm font-black text-[#2d3e50]">{app.applicantName}</h4>
-                        <p className="text-xs font-bold text-slate-600">{app.firmName}</p>
-                        <p className="text-[11px] text-slate-500 font-medium">{app.categoryName} • {app.constitution}</p>
-                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
-                          <UserCheck className="w-3 h-3 text-[#eb8a23]" />
-                          Prepared by: <span className="font-bold text-[#2d3e50]">{app.preparedBy || UNRECORDED_PREPARER}</span>
-                        </p>
-                      </div>
-
-                      <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 font-medium">Client Bank:</span>
-                          <span className="font-bold text-[#2d3e50]">{app.bankName}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 font-medium">Applied Amount:</span>
-                          <span className="font-extrabold text-emerald-700">₹{(app.appliedAmount || 0).toLocaleString('en-IN')}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-slate-500 font-medium">CIBIL / Vintage:</span>
-                          <span className="font-bold text-slate-700">Vintage: {app.yearsInBusiness} yrs</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 pt-1">
-                      <button
-                        onClick={() => handleLoadSampleApp(app)}
-                        className={`w-full py-2 rounded-xl text-xs font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs group ${
-                          isClosed
-                            ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                            : 'bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white border border-emerald-300'
-                        }`}
-                      >
-                        <Zap className="w-3.5 h-3.5" />
-                        Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
-                      </button>
-
-                      {isManagement && (
-                        <div className="flex items-center gap-1.5">
-                          {isClosed ? (
-                            <button
-                              onClick={(e) => handleToggleCloseCase(app, e)}
-                              className="flex-1 py-1.5 bg-amber-50 hover:bg-amber-600 text-amber-900 hover:text-white border border-amber-300 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
-                              title="Re-open this case for further editing"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                              Re-open Case
-                            </button>
-                          ) : (
-                            <button
-                              onClick={(e) => handleToggleCloseCase(app, e)}
-                              className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-700 rounded-xl text-[11px] font-extrabold transition flex items-center justify-center gap-1.5 shadow-xs"
-                              title="Mark this case report as completed and delivered to the client"
-                            >
-                              <CheckCheck className="w-3.5 h-3.5" />
-                              Mark as Closed (Delivered)
-                            </button>
-                          )}
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteApplication(app._id || app.applicationNumber); }}
-                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-600 text-rose-800 hover:text-white border border-rose-300 rounded-xl text-[11px] font-bold transition flex items-center justify-center gap-1 shadow-xs"
-                            title="Delete application"
-                          >
-                            <Trash2 className="w-3.5 h-3.5 text-rose-600 group-hover:text-white" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+        <CaseGalleryModal
+          applicants={applicantsList}
+          loading={loadingApplicants}
+          canManageCases={isManagement}
+          canDeleteAll={isAdmin}
+          onClose={() => setIsAppGalleryOpen(false)}
+          onLoad={handleLoadSampleApp}
+          onToggleClosed={handleToggleCloseCase}
+          onDelete={app => handleDeleteApplication(app._id || app.applicationNumber)}
+          onDeleteAll={handleDeleteAllApplicants}
+        />
       )}
 
       {/* AI Chatbot Floating Widget */}

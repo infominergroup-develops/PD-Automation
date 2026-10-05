@@ -185,6 +185,7 @@ Move Base64 photo payloads out of the MongoDB documents and into a dedicated obj
 | `PORT` | Server running port | No | `3000` |
 | `MONGODB_URI` | Connection string for DB | Yes | `mongodb+srv://user:pass@cluster.mongodb.net/`|
 | `GEMINI_API_KEY`| API Key for Google GenAI | Yes | `AIzaSyB...` |
+| `JWT_SECRET` | Signs login sessions; random, 32+ characters | Yes (production) | output of `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
 
 ---
 
@@ -307,6 +308,15 @@ npx tsx seed.ts
 # 5. Run Development Server (Frontend + Backend concurrently via Vite)
 npm run dev
 ```
+
+### Checks
+
+| Command | What it does |
+|---|---|
+| `npm run check` | Type-check, lint and run all tests (the same checks CI runs) |
+| `npm test` / `npm run test:watch` | Run the Vitest suite in `tests/` once / in watch mode |
+| `npm run lint` | ESLint; `any` and unused variables are warnings until the typed data model lands |
+| `npm run format -- <paths>` | Prettier-format the given files (format files as you touch them) |
 
 ---
 

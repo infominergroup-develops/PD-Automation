@@ -1,6 +1,5 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   const appNo = data.applicationNumber || '';
@@ -11,11 +10,15 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: '', relation: '', period: '', area: '' }];
   const bankingList = data.bankingDetails && data.bankingDetails.length > 0 ? data.bankingDetails : [{ bankName: '', accountType: '', accountNo: '', limit: '', vintage: '', collateral: '' }];
   const loansList = data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : [{ bankName: '', loanType: '', amount: '', emi: '', tenor: '', paidEmi: '' }];
-  const buyerSupplierList = (data.prominentCustomers || []).concat(data.prominentSuppliers || []);
-  if (buyerSupplierList.length === 0) buyerSupplierList.push({ name: 'Not shared', type: '', contribution: '', creditPeriod: '', relationship: '', contact: '' } as any);
+  // The form captures name and phone only; the other Godrej columns are filled in by hand
+  const buyerSupplierList: Array<{ name: string; contact?: string }> = [
+    ...(data.prominentCustomers || []),
+    ...(data.prominentSuppliers || []),
+  ].map(c => ({ name: c.name, contact: c.phone }));
+  if (buyerSupplierList.length === 0) buyerSupplierList.push({ name: 'Not shared' });
   
   let photosHtml = '';
-  const photos = (data as any).photos || [];
+  const photos = data.photos || [];
   if (photos && photos.length > 0) {
     photosHtml = `
       <div class="page-break"></div>
@@ -64,7 +67,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
 
   <div class="hdr-main">
     <div class="hdr-title">${data.companyHeader?.name || 'Infominer Pvt Ltd.'}</div>
@@ -134,7 +137,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bg-green">Quotation Amount (as per applicant)</td>
-      <td>${(data.appliedAmount || data.loanAmount || (data as any).quotationAmount) ? (String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || (data as any).quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || (data as any).quotationAmount).toLocaleString('en-IN')}/-`) : '-'}</td>
+      <td>${(data.appliedAmount || data.loanAmount || data.quotationAmount) ? (String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || data.quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || data.quotationAmount).toLocaleString('en-IN')}/-`) : '-'}</td>
       <td class="bg-green">Office Accessibility</td>
       <td colspan="3">${data.officeAccessibility || ''}</td>
     </tr>
@@ -257,7 +260,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bg-green">Other Source of Income</td>
-      <td>${data.otherSourceIncomeDetails !== 'Not provided' ? data.otherSourceIncomeDetails : ''}</td>
+      <td>${isProvided(data.otherSourceIncomeDetails) ? data.otherSourceIncomeDetails : ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Financial details</td>
@@ -348,14 +351,14 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td>Relationship since</td>
       <td>Contact Person Name & Number</td>
     </tr>
-    ${buyerSupplierList.map((bs: any) => `
+    ${buyerSupplierList.map(bs => `
       <tr>
-        <td>${bs.name || ''}</td>
-        <td>${bs.type || ''}</td>
-        <td>${bs.contribution || ''}</td>
-        <td>${bs.creditPeriod || ''}</td>
-        <td>${bs.relationship || ''}</td>
-        <td>${bs.contact || bs.phone || ''}</td>
+        <td>${bs.name}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td>${bs.contact || ''}</td>
       </tr>
     `).join('')}
   </table>
