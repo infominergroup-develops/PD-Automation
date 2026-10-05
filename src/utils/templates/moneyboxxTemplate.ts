@@ -1,6 +1,5 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
@@ -270,15 +269,13 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
 
   <div  style="outline: none;">
   
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
 
   <!-- PAGE 2: EXECUTIVE SUMMARY CONTINUED -->
   <div class="exec-page">
     <div class="shape-2"></div>
     <div class="exec-header">
-      <div class="exec-logo-container">
-        <img src="${coverLogo}" style="max-height: 40px;" alt="Infominer Services Pvt. Ltd." />
-      </div>
+${execHeaderLogoHTML(data)}
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
     
@@ -314,7 +311,7 @@ export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
     </div>
     
     <div class="exec-footer">
-      <div>Infominer</div>
+      <div>${reportBranding(data).footerLabel}</div>
       <div>Page 2 of 2</div>
     </div>
   </div>

@@ -1,6 +1,5 @@
 import { PDReportPrintData, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   const appNo = data.applicationNumber || '';
@@ -68,7 +67,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
 
   <div class="hdr-main">
     <div class="hdr-title">${data.companyHeader?.name || 'Infominer Pvt Ltd.'}</div>

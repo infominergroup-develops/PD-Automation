@@ -6,6 +6,8 @@ import { generateMoneyboxxLapPDReportHTML } from '../src/utils/templates/moneybo
 import { generateMoneyboxxPDReportHTML } from '../src/utils/templates/moneyboxxTemplate';
 import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from '../src/utils/templates/sbfcTemplate';
 import { generateStandardPDReportHTML } from '../src/utils/templates/standardTemplate';
+import { coverLogoBase64 } from '../src/images/logoBase64';
+import { maheshLogoBase64 } from '../src/images/maheshLogoBase64';
 
 const TEMPLATES: Record<string, (data: PDReportPrintData) => string> = {
   standard: generateStandardPDReportHTML,
@@ -168,5 +170,24 @@ describe('form fields reach the report rows that display them', () => {
     expect(visibleText(generateStandardPDReportHTML({ ...fullReport, cibilScore: 712 }))).toContain(
       'CIBIL Bureau Score 712',
     );
+  });
+});
+
+describe('cover page branding', () => {
+  const coverOf = (html: string) => html.slice(html.indexOf('<div class="exec-page">'), html.indexOf('Cover Page'));
+  const mahesh = { ...fullReport, companyHeader: { id: 'mahesh', name: 'Mahesh & Company', cin: '', designation: '', address: '' } };
+  const infominer = { ...fullReport, companyHeader: { id: 'infominers', name: 'Infominer Services Pvt. Ltd.', cin: '', designation: '', address: '' } };
+
+  it.each(Object.entries(TEMPLATES))('%s: Mahesh & Company gets its own logo and name', (_name, generate) => {
+    const cover = coverOf(generate(mahesh));
+    expect(cover).toContain(maheshLogoBase64);
+    expect(cover).not.toContain(coverLogoBase64);
+    expect(cover).toContain('Mahesh & Company');
+  });
+
+  it.each(Object.entries(TEMPLATES))('%s: Infominer keeps the Infominer logo', (_name, generate) => {
+    const html = generate(infominer);
+    expect(coverOf(html)).toContain(coverLogoBase64);
+    expect(html).not.toContain(maheshLogoBase64);
   });
 });

@@ -1,6 +1,5 @@
 import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'Moneyboxx Finance Limited';
@@ -319,7 +318,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
   <div class="page-break"></div>
 
   <!-- ==================== PAGE 1 ==================== -->

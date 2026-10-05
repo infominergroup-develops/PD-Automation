@@ -1,6 +1,5 @@
 import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   return generateCapitalPDReportHTML(data, 'Abhiyan');
@@ -201,7 +200,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
   <table>
     <tr>
       <td colspan="2" style="width: 60%;" class="bold">To,<br/>${lenderName} Capital Private Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${data.applicantName || 'Applicant'}</td>

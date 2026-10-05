@@ -2304,6 +2304,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
     return {
       companyHeader: {
+        id: selectedCompany.id,
         name: selectedCompany.name,
         cin: selectedCompany.id === 'infominers' ? 'U67100UP2020PTC131346' : 'U12345DL2024PTC987654',
         designation: 'Chartered Accountant & Risk Advisors',

@@ -3,6 +3,7 @@ import type { ParsedCreditReport } from '../types/creditTypes';
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
 import { coverLogoBase64 as coverLogo } from '../images/logoBase64';
+import { maheshLogoBase64 } from '../images/maheshLogoBase64';
 
 
 /** True when a report field holds real content rather than being empty or the "Not provided" placeholder. */
@@ -60,7 +61,25 @@ export function getUniversalCoverPageCSS(): string {
   `;
 }
 
-export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string, reportDate: string, caseStatus: string, coverLogoSrc: string): string {
+/** Logo, name and footer label of the company issuing the report (chosen on the company selection screen). */
+export function reportBranding(data: PDReportPrintData): { logo: string; name: string | null; footerLabel: string } {
+  if (data.companyHeader?.id === 'mahesh') {
+    return { logo: maheshLogoBase64, name: data.companyHeader.name, footerLabel: data.companyHeader.name };
+  }
+  return { logo: coverLogo, name: null, footerLabel: 'Infominer' };
+}
+
+/** Logo block for the executive-summary page headers. */
+export function execHeaderLogoHTML(data: PDReportPrintData): string {
+  const { logo, name } = reportBranding(data);
+  return `
+      <div class="exec-logo-container">
+        <img src="${logo}" style="max-height: 40px;" alt="${name || 'Infominer Services Pvt. Ltd.'}" />
+        ${name ? `<div style="font-size: 14pt; font-weight: 800; color: #0b3d63; letter-spacing: 0.5px;">${name}</div>` : ''}
+      </div>`;
+}
+
+export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string, reportDate: string, caseStatus: string): string {
   const clientName = data.clientBankName || data.companyHeader?.name || 'INFOMINER SERVICES PVT. LTD.';
   return `
   <div class="exec-page">
@@ -69,9 +88,7 @@ export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string
     <div class="shape-4"></div>
     
     <div class="exec-header">
-      <div class="exec-logo-container">
-        <img src="${coverLogoSrc}" style="max-height: 40px;" alt="Logo" />
-      </div>
+${execHeaderLogoHTML(data)}
       <div class="exec-header-links">Insights | Data | Better Decisions</div>
     </div>
     
@@ -136,7 +153,7 @@ export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string
     </div>
     
     <div class="exec-footer">
-      <div>Infominer</div>
+      <div>${reportBranding(data).footerLabel}</div>
       <div>Cover Page</div>
     </div>
   </div>
@@ -145,6 +162,8 @@ export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string
 
 export interface PDReportPrintData {
   companyHeader?: {
+    /** Company id from the selection screen, e.g. 'infominers' or 'mahesh'. */
+    id?: string;
     name: string;
     cin: string;
     designation: string;

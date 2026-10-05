@@ -1,6 +1,5 @@
 import { PDReportPrintData } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
-import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'SBFC Finance LTD';
@@ -160,7 +159,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   </style>
 </head>
 <body>
-  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus, coverLogo)}
+  ${getUniversalCoverPageHTML(data, appNo, reportDate, caseStatus)}
 
   <div class="hdr-main">
     <div class="hdr-title">${data.companyHeader?.name || 'Mahesh & Co.'}</div>
