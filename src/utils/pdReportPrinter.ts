@@ -161,6 +161,7 @@ export interface PDReportPrintData {
   metPersonIdProof?: string;
   personMetQualification?: string;
   executiveName?: string;
+  reportedBy?: string; // platform user who generated the report
 
   // Residence & Business Details
   locatingPremisesType?: string;

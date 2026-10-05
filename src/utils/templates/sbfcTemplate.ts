@@ -185,7 +185,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     <tr>
       <td colspan="2">Sub: AIP Report of ${data.applicantName || '-'}</td>
       <td>Case Status</td>
-      <td>${data.statusOfCase || data.businessStatus || 'Positive'}</td>
+      <td>${caseStatus}</td>
     </tr>
     <tr><td colspan="4">Please refer to your instructions on the captioned matter. In this connection, we submit our report as under:</td></tr>
     
@@ -533,11 +533,15 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     </tr>
     <tr>
       <td class="sec-head" style="text-align:left;">Case Status</td>
-      <td class="bold">${data.statusOfCase || data.businessStatus || 'Positive'}</td>
+      <td class="bold">${caseStatus}</td>
     </tr>
     <tr>
       <td class="sec-head" style="text-align:left;">Reported By</td>
-      <td>${data.executiveName || 'Verification Officer'}</td>
+      <td>${data.reportedBy || '-'}</td>
+    </tr>
+    <tr>
+      <td class="sec-head" style="text-align:left;">Executive Name</td>
+      <td>${data.executiveName || '-'}</td>
     </tr>
     <tr>
       <td class="sec-head" style="text-align:left;">• Distance from ${officeName} Office (In Km’s):</td>

@@ -3,7 +3,7 @@ import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
 
-import { api, EmployeeRecord } from '../services/api';
+import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
@@ -14,7 +14,7 @@ import {
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock
+  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock, Users, UserCheck
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -73,6 +73,22 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
   workingDays,
   monthlyAmount: 0
 });
+
+// Case status wording differs by lender; options are listed positive → negative → conditional
+const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
+const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
+const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
+const getCaseStatusOptions = (clientId?: string) =>
+  POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
+
+// Form rows store the remark as `feedback`; report templates read `remark`
+const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
+  rows
+    .filter(row => row.name?.trim())
+    .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
+
+// Gallery label for legacy applicants saved before the preparing employee was recorded
+const UNRECORDED_PREPARER = 'Not recorded';
 
 const SUB_LABEL = 'block text-[10px] uppercase font-bold text-slate-500 mb-1';
 
@@ -378,6 +394,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const activeAppIdRef = useRef(activeAppId);
   useEffect(() => { activeAppIdRef.current = activeAppId; }, [activeAppId]);
+  const [galleryPreparedByFilter, setGalleryPreparedByFilter] = useState<string>('ALL');
+  // Mirrors the server's role checks: closing, deleting and per-employee stats are management-only
+  const isManagement = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -535,6 +555,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       caseDeliveryStatus: raw.caseDeliveryStatus || formData.caseDeliveryStatus || (isClosedVal ? 'DELIVERED' : 'IN_PROGRESS'),
       closedAt: raw.closedAt || formData.closedAt || null,
       closedBy: raw.closedBy || formData.closedBy || null,
+      preparedBy: raw.preparedBy || formData.preparedBy || '',
       updatedAt: raw.updatedAt || formData.updatedAt || raw.createdAt || null,
       createdAt: raw.createdAt || formData.createdAt || null,
     };
@@ -1233,6 +1254,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessStatus(val);
   };
 
+  // Keep the saved status within the selected lender's options (e.g. Recommended → Positive for Tata / SBFC)
+  const caseStatusOptions = getCaseStatusOptions(selectedClient?.id);
+  useEffect(() => {
+    if (caseStatusOptions.includes(statusOfCase)) return;
+    const otherOptions = caseStatusOptions === POSITIVE_NEGATIVE_STATUSES ? RECOMMENDATION_STATUSES : POSITIVE_NEGATIVE_STATUSES;
+    const idx = otherOptions.indexOf(statusOfCase);
+    handleStatusChange(caseStatusOptions[idx >= 0 ? idx : 0]);
+  }, [caseStatusOptions, statusOfCase]);
+
   const [hasAdditionalBusiness, setHasAdditionalBusiness] = useState(false);
   const [additionalBusinessAddress, setAdditionalBusinessAddress] = useState('');
   const [additionalBusinessIncomeAssessment, setAdditionalBusinessIncomeAssessment] = useState('');
@@ -1300,7 +1330,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [existingLoans]);
 
   const handleDeleteApplication = async (appIdOrNumber: string) => {
-    if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
+    if (isManagement && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
       // Match by _id first (most reliable), then fall back to applicationNumber
       const applicantToDelete =
         applicantsList.find(a => a._id === appIdOrNumber) ||
@@ -1339,7 +1369,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // TOGGLE CLOSE / REOPEN CASE (Manager / Admin only)
   const handleToggleCloseCase = async (app: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (currentUser?.role === 'EMPLOYEE') {
+    if (!isManagement) {
       alert('Restricted: Only Managers and Admins can mark cases as closed or reopen them.');
       return;
     }
@@ -2029,6 +2059,9 @@ ${qaPairs.join('\n\n')}`;
     } else if (galleryFilter === 'CLOSED') {
       list = list.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
     }
+    if (galleryPreparedByFilter !== 'ALL') {
+      list = list.filter(app => (app.preparedBy || UNRECORDED_PREPARER) === galleryPreparedByFilter);
+    }
     if (gallerySearchQuery.trim()) {
       const query = gallerySearchQuery.toLowerCase();
       list = list.filter(app =>
@@ -2036,11 +2069,22 @@ ${qaPairs.join('\n\n')}`;
         app.applicantName?.toLowerCase().includes(query) ||
         app.firmName?.toLowerCase().includes(query) ||
         app.bankName?.toLowerCase().includes(query) ||
-        app.categoryName?.toLowerCase().includes(query)
+        app.categoryName?.toLowerCase().includes(query) ||
+        app.preparedBy?.toLowerCase().includes(query)
       );
     }
     return sortLatestFirst(list);
-  }, [applicantsList, galleryFilter, gallerySearchQuery]);
+  }, [applicantsList, galleryFilter, galleryPreparedByFilter, gallerySearchQuery]);
+
+  // PD report count per preparing employee (Manager / Admin view), highest first
+  const preparedByCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    applicantsList.forEach(app => {
+      const name = app.preparedBy || UNRECORDED_PREPARER;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [applicantsList]);
 
   const openCasesCount = useMemo(() => {
     return applicantsList.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
@@ -2440,6 +2484,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       })() : ''),
       metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'Not provided') : (identityProof || 'Not provided'),
       executiveName: executiveName || 'Not provided',
+      reportedBy: currentUser?.name || 'Not provided',
       tataCapitalDistance: tataCapitalDistance || '5-10 Km (Approx)',
       familyMembers: familyMembers,
       documentsSeen: [ ...documentsSeen.filter(d => d !== 'Other'), ...(documentsSeen.includes('Other') && otherDocumentsSeen ? [otherDocumentsSeen] : []) ],
@@ -2489,8 +2534,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       otherSourceIncomeDetails: hasOtherIncome && otherIncomeSources.length > 0 ? `Applicant has other income sources: ${otherIncomeSources.map(s => `${s.source} (₹${s.amount.toLocaleString('en-IN')} ${s.frequency})`).join(', ')}` : 'Not provided',
       operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
-      prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
-      prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [],
+      prominentCustomers: toReportContacts(prominentCustomers),
+      prominentSuppliers: toReportContacts(prominentSuppliers),
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
       currentObligationSummary: currentObligation || 'Not provided',
@@ -2673,7 +2718,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     if (!rawWhatsappText.trim()) return;
     setIsExtractingWhatsapp(true);
     try {
-      const response = await fetch('/api/extract-whatsapp', {
+      const response = await authFetch('/api/extract-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawWhatsappText })
@@ -3273,13 +3318,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               <Field label="Business Status (Recommendation)">
                 <select
-                  value={statusOfCase || businessStatus || 'Recommended'}
+                  value={statusOfCase}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 >
-                  <option value="Recommended">Recommended</option>
-                  <option value="Not Recommended">Not Recommended</option>
-                  <option value="Recommended subject to demerits">Recommended subject to demerits</option>
+                  {caseStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </Field>
 
@@ -3693,20 +3736,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <input type="text" value={activeAppNumber} onChange={(e) => setActiveAppNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. INF/2026/88492" />
               </Field>
               <Field label="Status of the Case">
-                <select value={statusOfCase || businessStatus || (['tata', 'sbfc'].includes(selectedClient?.id || '') ? 'Positive' : 'Recommended')} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  {['tata', 'sbfc'].includes(selectedClient?.id || '') ? (
-                    <>
-                      <option value="Positive">Positive</option>
-                      <option value="Negative">Negative</option>
-                      <option value="Refer to Credit">Refer to Credit</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Recommended">Recommended</option>
-                      <option value="Not Recommended">Not Recommended</option>
-                      <option value="Recommended subject to demerits">Recommended subject to demerits</option>
-                    </>
-                  )}
+                <select value={statusOfCase} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                  {caseStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
               </Field>
             </div>
@@ -5382,16 +5413,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {/* G. Business Status */}
             <Field label="Business Status (Recommendation)" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
               <div className="flex flex-wrap gap-2">
-                {['Recommended', 'Not Recommended', 'Recommended subject to demerits'].map(opt => (
+                {caseStatusOptions.map((opt, optIdx) => (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => handleStatusChange(opt)}
                     className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${
-                      (businessStatus === opt || statusOfCase === opt)
-                        ? (opt === 'Recommended'
+                      statusOfCase === opt
+                        ? (optIdx === 0
                             ? 'bg-green-600 text-white border-green-600 shadow-md'
-                            : opt === 'Not Recommended'
+                            : optIdx === 1
                               ? 'bg-red-600 text-white border-red-600 shadow-md'
                               : 'bg-amber-600 text-white border-amber-600 shadow-md')
                         : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
@@ -6250,7 +6281,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* Manager Override Section */}
-            {currentUser?.role !== 'EMPLOYEE' && (
+            {isManagement && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -6589,7 +6620,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
 
                 {/* Admin Danger Delete All Button */}
-                {currentUser?.role !== 'EMPLOYEE' && galleryApplications.length > 0 && (
+                {isAdmin && galleryApplications.length > 0 && (
                   <button
                     onClick={async () => {
                       if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
@@ -6613,6 +6644,38 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                 )}
               </div>
+
+              {/* PD Reports Prepared per Employee (Manager / Admin only) */}
+              {isManagement && preparedByCounts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-slate-500 mr-1">
+                    <Users className="w-3.5 h-3.5" /> PD Reports by Employee:
+                  </span>
+                  <button
+                    onClick={() => setGalleryPreparedByFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-lg border font-bold transition ${
+                      galleryPreparedByFilter === 'ALL'
+                        ? 'bg-[#384c5e] text-white border-[#384c5e]'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    Everyone ({applicantsList.length})
+                  </button>
+                  {preparedByCounts.map(([name, count]) => (
+                    <button
+                      key={name}
+                      onClick={() => setGalleryPreparedByFilter(galleryPreparedByFilter === name ? 'ALL' : name)}
+                      className={`px-2.5 py-1 rounded-lg border font-bold transition ${
+                        galleryPreparedByFilter === name
+                          ? 'bg-[#eb8a23] text-white border-[#eb8a23]'
+                          : 'bg-white text-[#2d3e50] border-slate-300 hover:border-[#eb8a23]'
+                      }`}
+                    >
+                      {name} <span className="font-black">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Application Cards Grid */}
@@ -6679,6 +6742,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <h4 className="text-sm font-black text-[#2d3e50]">{app.applicantName}</h4>
                         <p className="text-xs font-bold text-slate-600">{app.firmName}</p>
                         <p className="text-[11px] text-slate-500 font-medium">{app.categoryName} • {app.constitution}</p>
+                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                          <UserCheck className="w-3 h-3 text-[#eb8a23]" />
+                          Prepared by: <span className="font-bold text-[#2d3e50]">{app.preparedBy || UNRECORDED_PREPARER}</span>
+                        </p>
                       </div>
 
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
@@ -6710,7 +6777,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
                       </button>
 
-                      {currentUser?.role !== 'EMPLOYEE' && (
+                      {isManagement && (
                         <div className="flex items-center gap-1.5">
                           {isClosed ? (
                             <button
