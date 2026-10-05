@@ -74,7 +74,7 @@ export function execHeaderLogoHTML(data: PDReportPrintData): string {
   const { logo, name } = reportBranding(data);
   return `
       <div class="exec-logo-container">
-        <img src="${logo}" style="max-height: 40px;" alt="${name || 'Infominer Services Pvt. Ltd.'}" />
+        <img src="${logo}" style="max-height: ${name ? 56 : 40}px;" alt="${name || 'Infominer Services Pvt. Ltd.'}" />
         ${name ? `<div style="font-size: 14pt; font-weight: 800; color: #0b3d63; letter-spacing: 0.5px;">${name}</div>` : ''}
       </div>`;
 }
