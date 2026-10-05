@@ -115,9 +115,13 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const businessVintageText = (data as any).businessVintage
     ? `The applicant has been operating the business at the current address for the past ${(data as any).businessVintage}.`
     : 'The applicant has been operating the business at the current address for the past 05 years.';
-  const staffCountText = (data as any).staffCount && Number((data as any).staffCount) > 0
-    ? `The business employs ${(data as any).staffCount} staff members.`
-    : 'He is self-employed and operates the business by himself.';
+  // staffCount arrives as the form's "2. Number of Staffs" summary sentence, not a bare number
+  const rawStaffCount = String((data as any).staffCount || '').trim();
+  const staffCountText = !rawStaffCount || rawStaffCount === 'Not provided'
+    ? 'He is self-employed and operates the business by himself.'
+    : /^\d+$/.test(rawStaffCount)
+      ? `The business employs ${rawStaffCount} staff members.`
+      : rawStaffCount;
   const businessPremisesOwnershipText = (data as any).businessOwnership || 'The applicant is managing and operating the business from his residence.';
   const assetDetailsText = (data as any).assetDetails || (data as any).officeInfrastructure || 'The applicant owns livestock assets and business equipment, which are being used for business operations and production.';
   const stockDetailsText = (data as any).stockDetails || 'stock is maintained with an approximate value of 2,000-3,000';
