@@ -66,6 +66,11 @@ try {
   console.error("[PD System Server] Firestore connection error:", err);
 }
 
+// Surface a missing session secret at startup rather than as a generic "Login failed"
+if (process.env.NODE_ENV === "production" && (process.env.JWT_SECRET || "").length < 32) {
+  console.error("[Auth] JWT_SECRET is missing or shorter than 32 characters; every login will fail until it is set.");
+}
+
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
@@ -287,6 +292,7 @@ app.post("/api/auth/login", async (req, res) => {
     addAuditLog(authUser, "USER_LOGIN", "Authentication", authUser.id, `Logged in successfully`);
     res.json({ success: true, user: toPublicUser(existingUser), token: signToken(authUser) });
   } catch (err) {
+    console.error("[Auth] Login error:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
