@@ -6,19 +6,27 @@ import { INITIAL_PRODUCTS } from '../data/productsData';
 import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
-import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
+import { BusinessCategory, CategoryProduct, FamilyMember } from '../types';
 import type { ParsedCreditReport } from '../types/creditTypes';
 import type { ApplicantRecord, GalleryApplicant } from '../types/applicant';
 import { CaseGalleryModal } from './pd/CaseGalleryModal';
 import { sortLatestFirst } from './pd/caseList';
+import { PdTabBar, PdTabFooter, isPdTabId, type PdTabId } from './pd/PdTabs';
+import {
+  EXECUTIVE_SUMMARY_TITLES,
+  buildExecutiveSummary,
+  describeBusinessVintage,
+  describeStaffing,
+  type ExecutiveSummary,
+  type ExecutiveSummaryInput,
+} from '../utils/pdSummaries';
+import { DecisionSection } from './pd/DecisionSection';
 import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
-  Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2,
-  AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
-  Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
-  Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock, Users, UserCheck
+  Store, User, DollarSign, Sparkles, CheckCircle2, MapPin, Plus, Trash2, ArrowRight, Building,
+  Search, X, Check, Calculator, FileText, Upload, Briefcase, Building2, Zap, Printer, ChevronLeft,
+  ChevronRight, Settings, Cloud, CheckCheck
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -606,10 +614,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [selectedClient, categoriesList]);
 
   // Form Section Tabs
-  const [activeTab, setActiveTab] = useState<'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'>(
-
-    (localStorage.getItem('lastActiveTab') as any) || 'applicant'
-  );
+  const [activeTab, setActiveTab] = useState<PdTabId>(() => {
+    const saved = localStorage.getItem('lastActiveTab');
+    return isPdTabId(saved) ? saved : 'applicant';
+  });
 
   const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [chatbotText, setChatbotText] = useState('');
@@ -1159,6 +1167,20 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [businessManagedByOther, setBusinessManagedByOther] = useState('');
   const [premiseOwnership, setPremiseOwnership] = useState('');
   const [premiseOwnershipOther, setPremiseOwnershipOther] = useState('');
+
+  // Default wording for "1. Vintage" and "2. Number of Staffs" until the user edits it
+  const vintageSummary = describeBusinessVintage({
+    years: businessAgeYears,
+    approximate: businessAgeApprox,
+    previousOccupation,
+    previousOccupationOther,
+    reasonToLeave,
+  });
+  const staffingSummary = describeStaffing({
+    externalStaffCount,
+    managedBy: businessManagedBy,
+    managedByOther: businessManagedByOther,
+  });
   const [businessAssets, setBusinessAssets] = useState<any[]>([]);
   const [hasStock, setHasStock] = useState(true);
   const [stockDetails, setStockDetails] = useState<any[]>([]);
@@ -2265,6 +2287,41 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   // Saved with the form (declared after it) so the case gallery can show the risk badge
   updateDataRef.current = { ...updateDataRef.current, riskScore: riskAssessment.score };
 
+  const resolvedVintage =
+    businessVintageText || vintageSummary || `The business has an established vintage of ${yearsInBusiness} years.`;
+  const executiveSummaryInput: ExecutiveSummaryInput = {
+    applicantName,
+    firmName,
+    categoryName: currentCategory.name,
+    vintage: resolvedVintage,
+    monthlySales: adoptedMonthlySales,
+    grossMarginPct,
+    grossProfit,
+    operatingExpenses: totalOperatingExpenses,
+    existingEmis,
+    householdExpenses,
+    disposableSurplus: netFamilySurplusBeforeEmi,
+    appliedAmount,
+    interestRatePct,
+    tenureMonths: effectiveTenureMonths,
+    proposedEmi,
+    dscrRatio,
+    foirPct,
+    residenceNeighbourCheckDone: neighborVerificationConducted,
+    residenceConfirmed: neighborResidenceConfirmed,
+    residenceNeighbourFeedback: neighborBehaviourFeedback,
+    residenceNegativeFeedback: neighborNegativeFeedback,
+    residenceNegativeDetails: neighborNegativeDetails,
+    businessNeighbourFeedback: businessNeighbourFeedback || neighborFeedback,
+  };
+  const executiveSummary = buildExecutiveSummary(executiveSummaryInput);
+  const executiveSummaryHtml = (() => {
+    const html = buildExecutiveSummary(executiveSummaryInput, text => `<strong>${text}</strong>`);
+    return (Object.keys(EXECUTIVE_SUMMARY_TITLES) as Array<keyof ExecutiveSummary>)
+      .map(key => `<strong>${EXECUTIVE_SUMMARY_TITLES[key]}:</strong> ${html[key]}`)
+      .join('<br/><br/>');
+  })();
+
   const handleSaveToDB = async () => {
     if (!selectedClient) {
       alert("Please select a client first.");
@@ -2380,8 +2437,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const finalMeetingAddress = meetingAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
-    const fbBusinessVintage = `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || 'Not provided';
-    const fbStaffCount = `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`.trim() || 'Not provided';
+    const fbBusinessVintage = vintageSummary || 'Not provided';
+    const fbStaffCount = staffingSummary;
     const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'Not provided');
     const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Not provided';
     const fbStockDetails = stockDetails.length > 0 ? `The estimated value of observed stock (${stockDetails.map(s => s.name).join(', ')}) is approximately ₹${stockDetails.reduce((sum, s) => sum + (Number(s.value) || 0), 0)}.` : 'No significant stock maintained received from customers for processing.';
@@ -2599,10 +2656,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       dscrRatio: dscrRatio,
       foirPct: foirPct,
 
-      executiveSummary_BorrowerProfile: `${businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}`,
-      executiveSummary_SalesWaterfall: `The business generates an assessed monthly revenue of ₹${adoptedMonthlySales.toLocaleString('en-IN')}. Gross profit margin is assessed at ${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')}). After total business operating expenses of ₹${totalOperatingExpenses.toLocaleString('en-IN')}, existing obligations of ₹${existingEmis.toLocaleString('en-IN')}, and household living costs of ₹${householdExpenses.toLocaleString('en-IN')}, net monthly disposable surplus stands at ₹${(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}.`,
-      executiveSummary_DebtService: `The requested micro-lending facility of ₹${appliedAmount.toLocaleString('en-IN')} at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of ₹${proposedEmi.toLocaleString('en-IN')}. The post-loan DSCR is calculated at ${dscrRatio}x (policy threshold ≥ 1.25x) with FOIR at ${foirPct}% (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}`,
-      executiveSummary_Community: `${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
+      executiveSummary_BorrowerProfile: resolvedVintage,
+      executiveSummary_SalesWaterfall: executiveSummary.salesWaterfall,
+      executiveSummary_DebtService: executiveSummary.debtService,
+      executiveSummary_Community: executiveSummary.community,
 
       // Godrej Specific Fields
       alternateMobileNumber,
@@ -2666,7 +2723,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         mimeType: 'image/jpeg',
         gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
       })),
-      aiExecutiveSummary: `<strong>Borrower & Vintage Profile:</strong> ${applicantName} operates <strong>${firmName}</strong> (${currentCategory.name}). ${businessVintageText || fbBusinessVintage || `The business has an established vintage of ${yearsInBusiness} years.`}<br/><br/><strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹${adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>${grossMarginPct}% (₹${grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹${totalOperatingExpenses.toLocaleString('en-IN')}</strong> and household living costs of <strong>₹${householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹${(postLoanSurplus + proposedEmi).toLocaleString('en-IN')}</strong>.<br/><br/><strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹${appliedAmount.toLocaleString('en-IN')}</strong> at ${interestRatePct}% for ${effectiveTenureMonths} months requires a monthly EMI of <strong>₹${proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>${dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>${foirPct}%</strong> (policy cap ≤ 60%), ${(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}<br/><br/><strong>Community Verification:</strong> ${neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: ${businessNeighbourFeedback || neighborFeedback || 'Not provided'}.`,
+      aiExecutiveSummary: executiveSummaryHtml,
       parsedCreditReport: parsedCreditReport
     };
   };
@@ -2764,65 +2821,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     alert(`WhatsApp data mapped successfully! Confidence: ${payload._confidence_score || 'N/A'}`);
   };
 
-  const renderTabNavigationFooter = () => {
-    const hasCoAppBusiness = hasCoAppInBusiness;
-    const TABS_LIST: Array<{ id: 'profile' | 'applicant' | 'verification' | 'customer_supplier' | 'field' | 'coapp_business' | 'financials' | 'decision'; label: string }> = [
-      { id: 'applicant', label: '1. Applicant & Household' },
-      { id: 'verification', label: '2. Business & Residence Verification' },
-      { id: 'profile', label: '3. Business Profile' },
-      { id: 'customer_supplier', label: '4. Customer & Supplier Details' },
-      { id: 'field', label: '5. Field Verification' },
-      ...(hasCoAppBusiness ? [{ id: 'coapp_business' as const, label: '5.1 Co-App Business' }] : []),
-      { id: 'financials', label: '6. Financial Analysis' },
-      { id: 'decision', label: '7. Risk Score & Summary' },
-    ];
-
-    const currentIndex = TABS_LIST.findIndex(t => t.id === activeTab);
-    const prevTab = currentIndex > 0 ? TABS_LIST[currentIndex - 1] : null;
-    const nextTab = currentIndex < TABS_LIST.length - 1 ? TABS_LIST[currentIndex + 1] : null;
-
-    const scrollToTop = () => {
-      window.scrollTo({ top: 280, behavior: 'smooth' });
-    };
-
-    return (
-      <div className="mt-8 pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border">
-        <div>
-          {prevTab ? (
-            <button
-              onClick={() => {
-                setActiveTab(prevTab.id);
-                scrollToTop();
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs"
-            >
-              <ChevronLeft className="w-4 h-4 text-[#eb8a23]" />
-              Previous: {prevTab.label}
-            </button>
-          ) : <div />}
-        </div>
-
-        <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-          Section {currentIndex + 1} of {TABS_LIST.length}
-        </div>
-
-        <div>
-          {nextTab ? (
-            <button
-              onClick={() => {
-                setActiveTab(nextTab.id);
-                scrollToTop();
-              }}
-              className="flex items-center gap-2 px-5 py-2 bg-[#384c5e] hover:bg-[#2d3e50] text-white rounded-xl text-xs font-bold transition shadow-sm"
-            >
-              Next: {nextTab.label}
-              <ChevronRight className="w-4 h-4 text-[#eb8a23]" />
-            </button>
-          ) : null}
-        </div>
-      </div>
-    );
-  };
+  const tabFooter = (
+    <PdTabFooter activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
+  );
 
   const filteredCategoriesModal = categoriesList.filter(c =>
     c.name.toLowerCase().includes(categorySearch.toLowerCase()) ||
@@ -3214,34 +3215,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       </div>
 
       {/* Navigation Module Tabs */}
-      <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
-        {[
-          { id: 'applicant', label: '1. Applicant & Household', icon: User },
-          { id: 'verification', label: '2. Business & Residence Verification', icon: Store },
-          { id: 'profile', label: '3. Business Profile', icon: Store },
-          { id: 'customer_supplier', label: '4. Customer & Supplier Details', icon: Briefcase },
-          { id: 'field', label: '5. Field Investigation & EXIF', icon: Camera },
-          ...(hasCoAppInBusiness ? [{ id: 'coapp_business', label: '5.1 Co-App Business', icon: Briefcase }] : []),
-          { id: 'financials', label: '6. Waterfall Cash Flow Engine', icon: Calculator },
-          { id: 'decision', label: '7. Risk Score & Decision', icon: Shield },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex-1 min-w-[170px] py-2.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-2 ${isActive
-                  ? 'bg-[#384c5e] text-white shadow-sm'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-[#eb8a23]' : 'text-slate-400'}`} />
-              {tab.label}
-            </button>
-          );
-        })}
-      </div>
+      <PdTabBar activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
 
       {/* TAB 1: BUSINESS PROFILE */}
       {activeTab === 'profile' && (
@@ -3683,7 +3657,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
           )}
 
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -4206,7 +4180,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -4272,7 +4246,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={businessVintageText || vintageSummary} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </Field>
@@ -4307,7 +4281,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setStaffCountText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={staffCountText || staffingSummary} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </Field>
@@ -5109,7 +5083,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -5401,7 +5375,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -5554,7 +5528,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             ))}
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -5695,7 +5669,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </Field>
             </div>
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
@@ -6182,198 +6156,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
           </div>
-          {renderTabNavigationFooter()}
+          {tabFooter}
         </div>
       )}
 
       {/* TAB 5: AUTOMATED RISK SCORE & AUTOMATIC EXECUTIVE SUMMARY REPORT */}
       {activeTab === 'decision' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-[#eb8a23]" />
-                  Automated Credit Assessment & Risk Scoring Report
-                </h3>
-                <p className="text-xs text-slate-500 font-medium">
-                  Real-time rule engine evaluation for {firmName} ({applicantName}).
-                </p>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <div className="text-right">
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">Risk Quality Score</div>
-                  <div className="text-2xl font-black" style={{ color: riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444' }}>
-                    {riskAssessment.score} / 100
-                  </div>
-                </div>
-                <div className="relative w-20 h-10 overflow-hidden flex items-end">
-                  <svg viewBox="0 0 100 50" className="w-full h-full">
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="#e2e8f0" strokeWidth="12" strokeLinecap="round" />
-                    <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none"
-                      stroke={riskAssessment.score >= 80 ? '#10b981' : riskAssessment.score >= 60 ? '#f59e0b' : '#ef4444'}
-                      strokeWidth="12" strokeLinecap="round"
-                      strokeDasharray="125.6"
-                      strokeDashoffset={125.6 - (riskAssessment.score / 100) * 125.6}
-                      className="transition-all duration-1000 ease-out"
-                    />
-                  </svg>
-                </div>
-              </div>
-            </div>
-
-
-
-            {/* Decision Recommendation Banner */}
-            <div className={`p-5 rounded-xl border flex flex-wrap items-center justify-between gap-4 ${riskAssessment.decision === 'APPROVED'
-                ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                : riskAssessment.decision === 'CONDITIONAL'
-                  ? 'bg-amber-50 border-amber-300 text-amber-900'
-                  : 'bg-rose-50 border-rose-300 text-rose-900'
-              }`}>
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
-                <div>
-                  <div className="text-sm font-black uppercase tracking-wide">
-                    AUTOMATED RECOMMENDATION: {riskAssessment.decision === 'APPROVED' ? 'RECOMMENDED FOR SANCTION' : riskAssessment.decision}
-                  </div>
-                  <p className="text-xs font-medium mt-0.5 opacity-90">
-                    Applicant demonstrates adequate cash flow coverage with post-loan DSCR of {dscrRatio}x and FOIR of {foirPct}%. Recommended Sanction: ₹{appliedAmount.toLocaleString('en-IN')}.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-
-            {/* Manager Override Section */}
-            {isManagement && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-amber-600" />
-                    <span className="text-xs font-bold text-amber-800 uppercase">Manager Override Actions</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">
-                    Restricted to {currentUser?.role}
-                  </span>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => alert('Manual Override: Status changed to APPROVED')}
-                    className="px-4 py-2 bg-white border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Force Sanction
-                  </button>
-                  <button
-                    onClick={() => alert('Manual Override: Status changed to REJECTED')}
-                    className="px-4 py-2 bg-white border border-rose-300 text-rose-700 hover:bg-rose-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Force Decline
-                  </button>
-                  <button
-                    onClick={() => alert('File sent back for re-verification')}
-                    className="px-4 py-2 bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-lg shadow-sm text-xs font-bold transition"
-                  >
-                    Request Re-Verification
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* AUTOMATED EXECUTIVE SUMMARY CARD (DISPLAYED DIRECTLY AT RISK SCORE MENU) */}
-            <div className="bg-slate-50/80 border border-slate-200 rounded-xl p-5 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-[#eb8a23]" />
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider">
-                    Executive Appraisal Summary & Credit Synthesis
-                  </h4>
-                </div>
-                <span className="text-[10px] font-bold px-2.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
-                  AUTOMATICALLY GENERATED
-                </span>
-              </div>
-
-              <div className="prose prose-xs max-w-none text-slate-700 text-xs leading-relaxed space-y-3">
-
-                <p>
-                  <strong>Borrower & Vintage Profile:</strong> {applicantName} operates <strong>{firmName}</strong> ({currentCategory.name}). {businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim() || `The business has an established vintage of ${yearsInBusiness} years.`}
-                </p>
-                <p>
-                  <strong>Sales & Cash Flow Waterfall:</strong> The business generates an assessed monthly revenue of <strong>₹{adoptedMonthlySales.toLocaleString('en-IN')}</strong>. Gross profit margin is assessed at <strong>{grossMarginPct}% (₹{grossProfit.toLocaleString('en-IN')})</strong>. After total business operating expenses of <strong>₹{totalOperatingExpenses.toLocaleString('en-IN')}</strong>, existing obligations of <strong>₹{existingEmis.toLocaleString('en-IN')}</strong>, and household living costs of <strong>₹{householdExpenses.toLocaleString('en-IN')}</strong>, net monthly disposable surplus stands at <strong>₹{(netBusinessIncome - existingEmis - householdExpenses).toLocaleString('en-IN')}</strong>.
-                </p>
-                <p>
-                  <strong>Debt Service Capacity & Policy Compliance:</strong> The requested micro-lending facility of <strong>₹{appliedAmount.toLocaleString('en-IN')}</strong> at {interestRatePct}% for {effectiveTenureMonths} months requires a monthly EMI of <strong>₹{proposedEmi.toLocaleString('en-IN')}</strong>. The post-loan DSCR is calculated at <strong>{dscrRatio}x</strong> (policy threshold ≥ 1.25x) with FOIR at <strong>{foirPct}%</strong> (policy cap ≤ 60%), {(dscrRatio >= 1.25 && foirPct <= 60) ? 'fully satisfying institutional credit guidelines.' : 'falling outside standard institutional credit guidelines.'}
-                </p>
-                <p>
-                  <strong>Community Verification:</strong> {neighborVerificationConducted ? `Residence Neighbor Verification: Neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : (neighborResidenceConfirmed || 'did not confirm').toLowerCase()} that the applicant has been residing at the given address. Feedback: ${neighborBehaviourFeedback || 'Not provided'}. ${neighborNegativeFeedback ? `Negative Details: ${neighborNegativeDetails}` : ''}` : 'Residence Neighbor Verification: Not Conducted.'} Business Neighbor Verification: {businessNeighbourFeedback || neighborFeedback || 'Not provided'}.
-                </p>
-              </div>
-
-              {/* Financial Waterfall Summary Table */}
-              <div className="pt-2">
-                <div className="text-[11px] font-extrabold text-slate-600 uppercase mb-2">Key Financial Waterfall Summary</div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Adopted Monthly Revenue</div>
-                    <div className="text-xs font-black text-[#2d3e50]">₹{adoptedMonthlySales.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Net Business Operating Profit</div>
-                    <div className="text-xs font-black text-emerald-700">₹{netBusinessIncome.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Proposed Monthly EMI</div>
-                    <div className="text-xs font-black text-blue-700">₹{proposedEmi.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div className="bg-white p-2.5 rounded-lg border border-slate-200">
-                    <div className="text-[10px] text-slate-400 font-bold">Post-Loan Net Surplus</div>
-                    <div className="text-xs font-black text-[#eb8a23]">₹{postLoanSurplus.toLocaleString('en-IN')}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Strengths & Flags Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-emerald-50/50 border border-emerald-200 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-emerald-800 uppercase flex items-center gap-1.5">
-                  <Check className="w-4 h-4 text-emerald-600" />
-                  Key Institutional Credit Strengths ({riskAssessment.strengths.length})
-                </h4>
-                <ul className="space-y-1.5 text-xs text-slate-700">
-                  {riskAssessment.strengths.map((str, idx) => (
-                    <li key={idx} className="flex items-start gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0"></span>
-                      <span>{str}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-amber-50/50 border border-amber-200 rounded-xl p-4 space-y-2">
-                <h4 className="text-xs font-bold text-amber-800 uppercase flex items-center gap-1.5">
-                  <AlertTriangle className="w-4 h-4 text-amber-600" />
-                  Audit & Compliance Risk Flags ({riskAssessment.flags.length})
-                </h4>
-                {riskAssessment.flags.length === 0 ? (
-                  <p className="text-xs text-slate-500">No critical risk flags detected.</p>
-                ) : (
-                  <ul className="space-y-1.5 text-xs text-slate-700">
-                    {riskAssessment.flags.map((flag, idx) => (
-                      <li key={idx} className="flex items-start gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0"></span>
-                        <span>{flag}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-          {renderTabNavigationFooter()}
-        </div>
+        <DecisionSection
+          applicantName={applicantName}
+          firmName={firmName}
+          riskAssessment={riskAssessment}
+          summary={executiveSummary}
+          dscrRatio={dscrRatio}
+          foirPct={foirPct}
+          appliedAmount={appliedAmount}
+          figures={{ monthlySales: adoptedMonthlySales, netBusinessIncome, proposedEmi, postLoanSurplus }}
+          managerRole={isManagement ? currentUser?.role ?? null : null}
+          footer={tabFooter}
+        />
       )}
 
       {/* CATEGORY SELECTOR MODAL */}
