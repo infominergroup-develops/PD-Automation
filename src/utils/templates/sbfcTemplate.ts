@@ -76,7 +76,8 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
+  // Net profit is A − B of the rows printed above, not the Financials tab's separately derived figure
+  const netProfY = totalSalesY > 0 ? totalSalesY - totalExpY : 0;
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
@@ -117,7 +118,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
+  const coAppNetProfY = coAppTotalSalesY > 0 ? coAppTotalSalesY - coAppTotalExpY : 0;
 
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);

@@ -191,3 +191,26 @@ describe('cover page branding', () => {
     expect(html).not.toContain(maheshLogoBase64);
   });
 });
+
+describe('Tata / SBFC net profit (A − B)', () => {
+  const sales = [{ particulars: 'Government civil contract work', monthly: 590000, yearly: 7080000 }];
+  const expenses = [
+    { particulars: 'Construction materials & labour', monthly: 430700, yearly: 5168400 },
+    { particulars: 'Electricity', monthly: 4500, yearly: 54000 },
+    { particulars: 'Salaries', monthly: 70000, yearly: 840000 },
+    { particulars: 'Travel', monthly: 3500, yearly: 42000 },
+  ];
+  // The Financials tab derives its own figure (COGS margin + operating expenses); it must not leak into this row
+  const data = { ...fullReport, itemizedSales: sales, itemizedExpenses: expenses, netProfitMonthly: 150000, netProfitYearly: 1800000 } as PDReportPrintData;
+
+  it.each([['tata', generateTataCapitalPDReportHTML], ['sbfc', generateSbfcPDReportHTML]])(
+    '%s prints sales minus the listed expenses for both month and year',
+    (_name, generate) => {
+      const html = generate(data);
+      const row = html.slice(html.indexOf('Net Profit Per month(A- B)'), html.indexOf('Net Profit Per month(A- B)') + 600);
+      expect(row).toContain('₹81,300');
+      expect(row).toContain('₹9,75,600');
+      expect(row).not.toContain('₹18,00,000');
+    },
+  );
+});
