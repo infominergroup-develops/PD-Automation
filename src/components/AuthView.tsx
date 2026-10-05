@@ -42,42 +42,17 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
     }
   ];
 
-  const handleQuickDemoLogin = async (selectedRole: UserRole) => {
-    setIsLoading(true);
-    setErrorMsg(null);
-    try {
-      const emails: Record<UserRole, string> = {
-        ADMIN: 'admin@infominers.com',
-        MANAGER: 'manager@infominers.com',
-        EMPLOYEE: 'employee@infominers.com',
-        CREDIT_MANAGER: 'credit@infominers.com',
-        FIELD_OFFICER: 'field@infominers.com',
-        AUDITOR: 'auditor@infominers.com'
-      };
-      const res = await api.login({
-        email: emails[selectedRole],
-        password: 'password123',
-        role: selectedRole
-      });
-      onLoginSuccess(res.user);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'Quick login failed');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const res = await api.login({
+      const user = await api.login({
         email: loginEmail,
         role,
         password: loginPassword
       });
-      onLoginSuccess(res.user);
+      onLoginSuccess(user);
     } catch (err: any) {
       setErrorMsg(err.message || 'Invalid credentials or role selection');
     } finally {
@@ -96,7 +71,7 @@ export const AuthView: React.FC<AuthViewProps> = ({ onLoginSuccess }) => {
       {/* Main Container */}
       <div className="w-full max-w-4xl bg-white text-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-200 z-10 flex flex-col md:flex-row">
         
-        {/* Left Side: Brand & Quick Demo Access */}
+        {/* Left Side: Brand */}
         <div className="md:w-5/12 bg-[#384c5e] text-white p-6 sm:p-8 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#2c3d4e]">
           <div>
             <div className="mb-6">

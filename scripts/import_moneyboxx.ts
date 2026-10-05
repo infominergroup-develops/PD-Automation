@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import { MongoClient, ObjectId } from 'mongodb';
 import fs from 'fs';
 
-const uri = "mongodb+srv://infominergroupdev_db_user:ah9lwaTpGOM3mKja@cluster0.ea2qhi2.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI!;
 
 async function importData() {
   const client = new MongoClient(uri);

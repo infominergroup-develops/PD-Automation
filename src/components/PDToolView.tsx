@@ -3,7 +3,7 @@ import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
 
-import { api, EmployeeRecord } from '../services/api';
+import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
@@ -14,7 +14,7 @@ import {
   AlertTriangle, RefreshCw, MapPin, Plus, Trash2, Shield, ArrowRight,
   Building, Award, Search, X, Check, Calculator, PieChart, FileText, Upload,
   Briefcase, Building2, Filter, Layers, Zap, Printer, ChevronLeft, ChevronRight, Settings,
-  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock
+  Loader2, Bot, Cloud, CheckCheck, RotateCcw, Lock, Unlock, Clock, Users, UserCheck
 } from 'lucide-react';
 import {
   extractTextFromPdfFile,
@@ -38,6 +38,230 @@ export interface ItemizedCalculationLine {
   unit?: string;
   monthlyAmount: number;
 }
+
+// Applies a field edit to one itemized line; editing qty/price/days/unit recomputes the monthly amount and notes.
+const updateItemizedLine = (lines: ItemizedCalculationLine[], id: string, field: keyof ItemizedCalculationLine, value: any) =>
+  lines.map(line => {
+    if (line.id !== id) return line;
+    const newLine = { ...line, [field]: value };
+    if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
+      const { quantity: q, price: p, workingDays: w, unit: u } = newLine;
+      if (!q || !p || !w || !u) {
+        newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
+        newLine.monthlyAmount = 0;
+      } else {
+        newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
+        newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
+      }
+    }
+    return newLine;
+  });
+
+// Copies the list, sets one field on the item at `index` (mutating that item in place, matching the original per-field handlers) and stores the copy.
+const updateListItem = <T,>(list: T[], setList: (next: T[]) => void, index: number, field: keyof T, value: any) => {
+  const next = [...list];
+  (next[index] as any)[field] = value;
+  setList(next);
+};
+
+const newItemizedLine = (id: string, unit: string, workingDays: number): ItemizedCalculationLine => ({
+  id,
+  particulars: '',
+  unit,
+  quantity: 1,
+  price: 0,
+  workingDays,
+  monthlyAmount: 0
+});
+
+// Case status wording differs by lender; options are listed positive → negative → conditional
+const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
+const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
+const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
+const getCaseStatusOptions = (clientId?: string) =>
+  POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
+
+// Form rows store the remark as `feedback`; report templates read `remark`
+const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
+  rows
+    .filter(row => row.name?.trim())
+    .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
+
+// Gallery label for legacy applicants saved before the preparing employee was recorded
+const UNRECORDED_PREPARER = 'Not recorded';
+
+const SUB_LABEL = 'block text-[10px] uppercase font-bold text-slate-500 mb-1';
+
+// Standard form field: a wrapper div with the label stacked above its control(s).
+const Field: React.FC<{ label: string; labelClassName?: string; className?: string; children: React.ReactNode }> = ({
+  label, labelClassName = 'block text-xs font-bold text-slate-700 mb-1', className, children
+}) => (
+  <div className={className}>
+    <label className={labelClassName}>{label}</label>
+    {children}
+  </div>
+);
+
+const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
+
+const ITEMIZED_ACCENTS = {
+  emerald: { icon: 'text-emerald-600', amount: 'text-emerald-700', addButton: 'bg-emerald-600 hover:bg-emerald-700' },
+  rose: { icon: 'text-rose-600', amount: 'text-rose-700', addButton: 'bg-rose-600 hover:bg-rose-700' }
+};
+
+interface ItemizedLinesTableProps {
+  accent: keyof typeof ITEMIZED_ACCENTS;
+  title: string;
+  subtitle: string;
+  headerRight: React.ReactNode;
+  firstColumnLabel: string;
+  emptyMessage: React.ReactNode;
+  notesPlaceholder: string;
+  deleteTitle: string;
+  addLabel: string;
+  lines: ItemizedCalculationLine[];
+  onUpdate: (id: string, field: keyof ItemizedCalculationLine, value: any) => void;
+  onRemove: (id: string) => void;
+  onAdd: () => void;
+}
+
+// Editable Qty × Price × Days table used for both itemized income and itemized expenditure.
+const ItemizedLinesTable: React.FC<ItemizedLinesTableProps> = ({
+  accent, title, subtitle, headerRight, firstColumnLabel, emptyMessage, notesPlaceholder, deleteTitle, addLabel, lines, onUpdate, onRemove, onAdd
+}) => {
+  const colors = ITEMIZED_ACCENTS[accent];
+  return (
+    <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
+        <div>
+          <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
+            <DollarSign className={`w-4 h-4 ${colors.icon}`} />
+            {title}
+          </h4>
+          <p className="text-[11px] text-slate-500 font-medium">{subtitle}</p>
+        </div>
+
+        {headerRight}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs text-left">
+          <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
+            <tr>
+              <th className="p-2.5">{firstColumnLabel}</th>
+              <th className="p-2.5">Business Notes</th>
+              <th className="p-2.5">Unit</th>
+              <th className="p-2.5 text-right">Qty</th>
+              <th className="p-2.5 text-right">Price (₹)</th>
+              <th className="p-2.5 text-right">Days/Mo</th>
+              <th className="p-2.5 text-right">Monthly (₹)</th>
+              <th className="p-2.5 text-right">Yearly (₹)</th>
+              <th className="p-2.5 text-center">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200 bg-white font-medium">
+            {lines.length === 0 ? (
+              <tr>
+                <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
+                  {emptyMessage}
+                </td>
+              </tr>
+            ) : (
+              lines.map((line) => (
+                <tr key={line.id} className="hover:bg-slate-50">
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={line.particulars}
+                      onChange={(e) => onUpdate(line.id, 'particulars', e.target.value)}
+                      className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
+                    />
+                  </td>
+                  <td className="p-2">
+                    <input
+                      type="text"
+                      value={line.businessNotes || ''}
+                      onChange={(e) => onUpdate(line.id, 'businessNotes', e.target.value)}
+                      className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                      placeholder={notesPlaceholder}
+                    />
+                  </td>
+                  <td className="p-2">
+                    <select
+                      value={line.unit || ''}
+                      onChange={(e) => onUpdate(line.id, 'unit', e.target.value)}
+                      className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
+                    >
+                      <option value="">Select...</option>
+                      {ITEMIZED_UNITS.map(unit => <option key={unit} value={unit}>{unit}</option>)}
+                    </select>
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.quantity || ''}
+                      onChange={(e) => onUpdate(line.id, 'quantity', Number(e.target.value))}
+                      className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.price || ''}
+                      onChange={(e) => onUpdate(line.id, 'price', Number(e.target.value))}
+                      className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.workingDays || ''}
+                      onChange={(e) => onUpdate(line.id, 'workingDays', Number(e.target.value))}
+                      className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
+                    />
+                  </td>
+                  <td className="p-2 text-right">
+                    <input
+                      type="number"
+                      value={line.monthlyAmount || 0}
+                      onChange={(e) => onUpdate(line.id, 'monthlyAmount', Number(e.target.value))}
+                      className={`w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black ${colors.amount}`}
+                    />
+                  </td>
+                  <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
+                    ₹{((line.monthlyAmount || 0) * 12).toLocaleString('en-IN')}
+                  </td>
+                  <td className="p-2 text-center">
+                    <button
+                      onClick={() => onRemove(line.id)}
+                      className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
+                      title={deleteTitle}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="flex justify-between items-center pt-1">
+        <button
+          onClick={onAdd}
+          className={`px-3 py-1.5 ${colors.addButton} text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5`}
+        >
+          <Plus className="w-3.5 h-3.5" />
+          {addLabel}
+        </button>
+        <div className="text-xs font-bold text-slate-500">
+          Direct Monthly Basis
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export interface CoApplicant {
   name: string;
@@ -170,6 +394,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [activeAppId, setActiveAppId] = useState<string | null>(null);
   const activeAppIdRef = useRef(activeAppId);
   useEffect(() => { activeAppIdRef.current = activeAppId; }, [activeAppId]);
+  const [galleryPreparedByFilter, setGalleryPreparedByFilter] = useState<string>('ALL');
+  // Mirrors the server's role checks: closing, deleting and per-employee stats are management-only
+  const isManagement = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
+  const isAdmin = currentUser?.role === 'ADMIN';
 
   const [photos, setPhotos] = useState<any[]>([]);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -327,6 +555,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
       caseDeliveryStatus: raw.caseDeliveryStatus || formData.caseDeliveryStatus || (isClosedVal ? 'DELIVERED' : 'IN_PROGRESS'),
       closedAt: raw.closedAt || formData.closedAt || null,
       closedBy: raw.closedBy || formData.closedBy || null,
+      preparedBy: raw.preparedBy || formData.preparedBy || '',
       updatedAt: raw.updatedAt || formData.updatedAt || raw.createdAt || null,
       createdAt: raw.createdAt || formData.createdAt || null,
     };
@@ -724,40 +953,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Income
   const handleUpdateIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setIncomeLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setIncomeLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddIncomeLine = () => {
-    const newId = `inc-custom-${Date.now()}`;
-    setIncomeLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Piece',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`inc-custom-${Date.now()}`, 'Piece', workingDays || 26);
+    setIncomeLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveIncomeLine = (id: string) => {
@@ -766,40 +967,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Handlers for Itemized Expenditure
   const handleUpdateExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setExpenseLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setExpenseLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddExpenseLine = () => {
-    const newId = `exp-custom-${Date.now()}`;
-    setExpenseLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`exp-custom-${Date.now()}`, 'Month', workingDays || 26);
+    setExpenseLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveExpenseLine = (id: string) => {
@@ -811,40 +984,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [coAppExpenseLines, setCoAppExpenseLines] = useState<ItemizedCalculationLine[]>([]);
 
   const handleUpdateCoAppIncomeLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setCoAppIncomeLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setCoAppIncomeLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddCoAppIncomeLine = () => {
-    const newId = `coapp-inc-${Date.now()}`;
-    setCoAppIncomeLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`coapp-inc-${Date.now()}`, 'Month', workingDays || 26);
+    setCoAppIncomeLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveCoAppIncomeLine = (id: string) => {
@@ -852,40 +997,12 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   const handleUpdateCoAppExpenseLine = (id: string, field: keyof ItemizedCalculationLine, value: any) => {
-    setCoAppExpenseLines(prev => prev.map(line => {
-      if (line.id === id) {
-        const newLine = { ...line, [field]: value };
-        if (['quantity', 'price', 'workingDays', 'unit'].includes(field as string)) {
-          const q = newLine.quantity;
-          const p = newLine.price;
-          const w = newLine.workingDays;
-          const u = newLine.unit;
-
-          if (!q || !p || !w || !u) {
-            newLine.businessNotes = '⚠️ Error: Missing inputs (Qty, Price, Days, or Unit)';
-            newLine.monthlyAmount = 0;
-          } else {
-            newLine.monthlyAmount = Number(q) * Number(p) * Number(w);
-            newLine.businessNotes = `${q} ${u} x ₹${p} x ${w} Days`;
-          }
-        }
-        return newLine;
-      }
-      return line;
-    }));
+    setCoAppExpenseLines(prev => updateItemizedLine(prev, id, field, value));
   };
 
   const handleAddCoAppExpenseLine = () => {
-    const newId = `coapp-exp-${Date.now()}`;
-    setCoAppExpenseLines(prev => [...prev, {
-      id: newId,
-      particulars: '',
-      unit: 'Month',
-      quantity: 1,
-      price: 0,
-      workingDays: workingDays || 26,
-      monthlyAmount: 0
-    }]);
+    const newLine = newItemizedLine(`coapp-exp-${Date.now()}`, 'Month', workingDays || 26);
+    setCoAppExpenseLines(prev => [...prev, newLine]);
   };
 
   const handleRemoveCoAppExpenseLine = (id: string) => {
@@ -1137,6 +1254,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessStatus(val);
   };
 
+  // Keep the saved status within the selected lender's options (e.g. Recommended → Positive for Tata / SBFC)
+  const caseStatusOptions = getCaseStatusOptions(selectedClient?.id);
+  useEffect(() => {
+    if (caseStatusOptions.includes(statusOfCase)) return;
+    const otherOptions = caseStatusOptions === POSITIVE_NEGATIVE_STATUSES ? RECOMMENDATION_STATUSES : POSITIVE_NEGATIVE_STATUSES;
+    const idx = otherOptions.indexOf(statusOfCase);
+    handleStatusChange(caseStatusOptions[idx >= 0 ? idx : 0]);
+  }, [caseStatusOptions, statusOfCase]);
+
   const [hasAdditionalBusiness, setHasAdditionalBusiness] = useState(false);
   const [additionalBusinessAddress, setAdditionalBusinessAddress] = useState('');
   const [additionalBusinessIncomeAssessment, setAdditionalBusinessIncomeAssessment] = useState('');
@@ -1204,7 +1330,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   }, [existingLoans]);
 
   const handleDeleteApplication = async (appIdOrNumber: string) => {
-    if (currentUser?.role !== 'EMPLOYEE' && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
+    if (isManagement && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
       // Match by _id first (most reliable), then fall back to applicationNumber
       const applicantToDelete =
         applicantsList.find(a => a._id === appIdOrNumber) ||
@@ -1243,7 +1369,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // TOGGLE CLOSE / REOPEN CASE (Manager / Admin only)
   const handleToggleCloseCase = async (app: any, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (currentUser?.role === 'EMPLOYEE') {
+    if (!isManagement) {
       alert('Restricted: Only Managers and Admins can mark cases as closed or reopen them.');
       return;
     }
@@ -1287,38 +1413,13 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // CREATE NEW APPLICANT
   const handleCreateNewApplicant = async () => {
     if (!selectedClient) return;
-    const newAppNumber = '';
 
+    // handleLoadSampleApp falls back to the blank-form default for every field not listed here;
+    // these are the only fields whose new-application value differs from (or bypasses) that fallback.
     const newApplicant = {
       _id: null,
-      applicationNumber: newAppNumber,
-      applicantName: '',
       categoryId: 'kirana',
-      product: selectedClient.defaultScheme,
-      appliedAmount: 0,
       tenureMonths: 0,
-      purpose: '',
-      status: 'DRAFT',
-      firmName: '',
-      noFormalBusinessName: false,
-      mobileNumber: '',
-      alternateMobileNumber: '',
-      panNumber: '',
-      aadhaarNumber: '',
-      residenceAddress: '',
-      residenceOwnership: 'OWN',
-      yearsAtResidence: 0,
-      dependentsCount: 0,
-      constitution: 'Proprietorship',
-      yearsInBusiness: 0,
-      shopOwnership: 'OWN',
-      monthlyRent: 0,
-      shopAreaSqFt: 0,
-      inventoryValue: 0,
-      dailyFootfall: 0,
-      avgTicketValue: 0,
-      workingDays: 0,
-      businessRemark: '',
       aataChakkiData: {
         machines: [],
         attaChakki: { size: '', capacity: '', wheatKg: '', charge: '' },
@@ -1328,225 +1429,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
         powerSource: 'Diesel',
         powerDetails: { consumption: '', rate: '' }
       },
-      neighborName: '',
-      neighborFeedback: '',
-      landlordFeedback: '',
-      exifGpsLat: '',
-      exifGpsLng: '',
-      interestRatePct: 12,
-      statedMonthlySales: 0,
-      cogsMarginPct: 0,
-      salariesExpense: 0,
-      utilitiesExpense: 0,
-      transportExpense: 0,
-      miscExpense: 0,
-      otherIncome: 0,
-      householdExpenses: 0,
-      existingEmis: 0,
-      existingEmiNotes: '',
-      householdExpensesNotes: '',
-      comfortableEmiNotes: '',
-      solarPurposeUsage: '',
-      riskFactor: '',
-      photos: [],
-      incomeLines: [],
-      expenseLines: [],
-      coApplicants: [],
-      caseInitiationDate: new Date().toISOString().split('T')[0],
-      visitDate: new Date().toISOString().split('T')[0],
-      reportDate: new Date().toISOString().split('T')[0],
-      hasFemaleCandidate: false,
-      femaleCandidateName: '',
-      femaleCandidateRelation: 'Spouse',
-      femaleCandidateOtherRelation: '',
-      loanType: 'Commercial Solar Loan',
-      otherLoanType: '',
-      powerSource: 'Electricity',
-      otherPowerSource: '',
-      monthlyEnergyExpense: '',
-      solarPurposes: [],
-      solarPurposeGeneratedText: '',
-      loanPurpose: '',
-      businessAddress: '',
-      additionalAddresses: [],
-      personsMet: [],
-      personsMetOtherName: '',
-      personsMetOtherRelation: '',
-      identityProof: 'Aadhaar Card',
-      documentsSeen: ['PAN Card', 'Aadhaar Card'],
-      otherDocumentsSeen: '',
-      otherIdentityProof: '',
-      executiveName: '',
-      tataCapitalDistance: '',
-      businessAgeYears: '',
-      businessAgeApprox: false,
-      previousOccupation: '',
-      previousOccupationOther: '',
-      reasonToLeave: '',
-      externalStaffCount: 0,
-      businessManagedBy: [],
-      businessManagedByOther: '',
-      premiseOwnership: '',
-      premiseOwnershipOther: '',
-      businessAssets: [],
-      hasStock: true,
-      stockDetails: [],
-      currentAssets: [],
-      currentAssetsOther: '',
-      businessIncomeAssetCreation: false,
-      createdAssets: [],
-      createdAssetsOther: '',
-      otherHouseholdExpenses: false,
-      otherHouseholdExpensesDesc: '',
-      initialInvestment: '',
-      investmentSource: '',
-      investmentSourceOther: '',
-      hasAgricultureLand: false,
-      agriLandArea: '',
-      agriLandUnit: 'Bigha',
-      agriLandOwnership: 'Self-owned',
-      agriLandOwnershipOther: '',
-      agriCrops: [],
-      agriCropsOther: '',
-      agriIncomeMin: '',
-      agriIncomeMax: '',
-      agriOwnershipDoc: 'Not Provided',
-      hasOtherIncome: false,
-      otherIncomeSources: [],
-      expectedSolarCostReductionPct: '',
-      expectedSolarMonthlySaving: '',
-      meetingAddressSource: 'RESIDENCE',
-      meetingAddress: '',
-      locatingPremisesType: '',
-      locatingPremisesTypeOther: '',
-      propertyOwnership: '',
-      propertyOwnershipOther: '',
-      propertyRentAmount: '',
-      propertyOwnerName: '',
-      propertyArea: '',
-      propertyValue: '',
-      propertyOwnershipDoc: 'Not Provided',
-      houseFloors: '',
-      houseRooms: '',
-      houseStructureType: '',
-      houseStructureTypeOther: '',
-      houseFloorPosition: '',
-      houseFloorPositionOther: '',
-      houseAdditionalDetails: '',
-      monthlyHouseholdExpensesAmount: '',
-      hasElectricityConnection: 'Not Provided',
-      electricityConnectionType: '',
-      electricityConnectionTypeOther: '',
-      electricityConsumerNumber: '',
-      electricityMonthlyExpense: '',
-      hasResElectricityConnection: 'Not Provided',
-      resElectricityConnectionType: '',
-      resElectricityConnectionTypeOther: '',
-      resElectricityConsumerNumber: '',
-      resElectricityMonthlyExpense: '',
-      neighbors: [],
-      neighborVerificationConducted: false,
-      neighborResidenceConfirmed: '',
-      neighborBehaviourFeedback: '',
-      neighborNegativeFeedback: false,
-      neighborNegativeDetails: '',
-      gpsLat: '',
-      gpsLng: '',
-      residenceStatus: '',
-      residenceStatusReason: '',
-      prominentCustomers: [{ id: 'c1', name: '', phone: '', feedback: '' }],
-      prominentSuppliers: [{ id: 's1', name: '', phone: '', feedback: '' }],
-      hasCollateral: false,
-      collateralAddress: '',
-      collateralPropertyType: 'Residential',
-      collateralPropertyArea: '',
-      collateralPropertyUsage: '',
-      collateralValuation: '',
-      collateralRemarks: '',
-      bankingDetails: [{ id: 'b1', bankName: '', branchName: '', accountType: 'Saving Account', limit: 'NA', accountNo: '', remark: '' }],
-      existingLoans: [{ id: 'l1', typeOfLoan: 'NA', financerName: 'NA', amountInLakhs: '', emi: '', tenure: '', balanceTenure: '', remark: 'No any existing obligation' }],
-      currentObligation: 'No any existing obligation',
-      businessLongitudeVerified: false,
-      businessLongitudeRemarks: 'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.',
-      businessNeighbourName: '',
-      businessNeighbourFeedback: 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.',
-      businessStatus: 'Recommended',
-      hasAdditionalBusiness: false,
-      additionalBusinessAddress: '',
-      additionalBusinessIncomeAssessment: '',
-      briefBusinessProfile: '',
-      coApplicantBusinessName: '',
-      coApplicantBriefBusinessProfile: '',
-      coApplicantBusinessVintage: '',
-      coApplicantPreviousOccupation: 'Not Applicable',
-      coApplicantReasonToLeave: '',
-      coApplicantStaffCount: '',
-      coApplicantBusinessPremiseOwnership: 'Self-Owned',
-      coApplicantFactoryInfrastructure: '',
-      coApplicantStockDetailsValue: '',
-      coApplicantFixedAndCurrentAssetAnalysis: '',
-      coApplicantAssetCreationThroughBusiness: '',
-      coApplicantInitialBusinessInvestment: '',
-      coApplicantAgriculturalIncomeDetails: '',
-      coApplicantOtherSourceIncomeDetails: '',
-      coApplicantOperationalSavingAnalysis: '',
-      coAppIncomeLines: [],
-      coAppExpenseLines: [],
-      coAppStatedMonthlySales: 0,
-      coAppSalariesExpense: 0,
-      coAppRentExpense: 0,
-      coAppUtilitiesExpense: 0,
-      coAppMiscExpense: 0,
-      businessVintageText: '',
-      staffCountText: '',
-      premiseOwnershipText: '',
-      factoryInfrastructureText: '',
-      stockDetailsValueText: '',
-      fixedAndCurrentAssetAnalysisText: '',
-      assetCreationText: '',
-      businessInvestmentText: '',
-      agriculturalIncomeText: '',
-      solarSavingText: '',
-      projectedIncomeText: '',
-      statusOfCase: 'Recommended',
-      officeAccessibility: '',
-      tenorRequested: '',
-      marginsAssessed: '',
-      customerGstNo: '',
-      industryType: '',
-      productType: '',
-      onLoanStructure: '',
-      machineryDetailsText: '',
-      keyEmployeeDetailsText: '✓ .',
-      groupCompanyDetailsText: '',
-      financialDetailsText: '',
-      otherBusinessPremisesText: '',
-      otherStateGstText: '',
-      familyInvolvedText: '',
-      applicantQualification: '',
-      godrejStockLevel: '',
-      godrejRoughStockValue: '',
-      godrejLocality: '',
-      godrejOfficeSetup: '',
-      godrejActivityLevel: '',
-      godrejOfficeSize: '',
-      godrejEmployeesSeen: 'No external staff/labour is engaged. Business operations are managed by Applicant.',
-      godrejThirdPartyConfirmation: '',
-      godrejCourtCasePending: '',
-      godrejThirdPartyComment: '',
-      godrejSeparateDemarcation: '',
-      godrejGstDisplayed: '',
-      godrejPanCard: '',
-      godrejGstinLegalName: '',
-      godrejBusinessRegProof: '',
-      godrejGstinRegDate: '',
-      godrejElectricityBill: '',
-      godrejEmployeeRegister: '',
-      godrejSaleBills: '',
-      godrejOtherRecords: '',
-      godrejStrengths: [],
-      godrejWeaknesses: [],
-      finalStatus: 'POSITIVE'
     };
     try {
       setActiveAppId(null);
@@ -2177,6 +2059,9 @@ ${qaPairs.join('\n\n')}`;
     } else if (galleryFilter === 'CLOSED') {
       list = list.filter(app => Boolean(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED'));
     }
+    if (galleryPreparedByFilter !== 'ALL') {
+      list = list.filter(app => (app.preparedBy || UNRECORDED_PREPARER) === galleryPreparedByFilter);
+    }
     if (gallerySearchQuery.trim()) {
       const query = gallerySearchQuery.toLowerCase();
       list = list.filter(app =>
@@ -2184,11 +2069,22 @@ ${qaPairs.join('\n\n')}`;
         app.applicantName?.toLowerCase().includes(query) ||
         app.firmName?.toLowerCase().includes(query) ||
         app.bankName?.toLowerCase().includes(query) ||
-        app.categoryName?.toLowerCase().includes(query)
+        app.categoryName?.toLowerCase().includes(query) ||
+        app.preparedBy?.toLowerCase().includes(query)
       );
     }
     return sortLatestFirst(list);
-  }, [applicantsList, galleryFilter, gallerySearchQuery]);
+  }, [applicantsList, galleryFilter, galleryPreparedByFilter, gallerySearchQuery]);
+
+  // PD report count per preparing employee (Manager / Admin view), highest first
+  const preparedByCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    applicantsList.forEach(app => {
+      const name = app.preparedBy || UNRECORDED_PREPARER;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [applicantsList]);
 
   const openCasesCount = useMemo(() => {
     return applicantsList.filter(app => !(app.isClosed || app.status === 'CLOSED' || app.caseDeliveryStatus === 'DELIVERED')).length;
@@ -2588,6 +2484,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       })() : ''),
       metPersonIdProof: identityProof === 'Other' ? (otherIdentityProof || 'Not provided') : (identityProof || 'Not provided'),
       executiveName: executiveName || 'Not provided',
+      reportedBy: currentUser?.name || 'Not provided',
       tataCapitalDistance: tataCapitalDistance || '5-10 Km (Approx)',
       familyMembers: familyMembers,
       documentsSeen: [ ...documentsSeen.filter(d => d !== 'Other'), ...(documentsSeen.includes('Other') && otherDocumentsSeen ? [otherDocumentsSeen] : []) ],
@@ -2637,8 +2534,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       otherSourceIncomeDetails: hasOtherIncome && otherIncomeSources.length > 0 ? `Applicant has other income sources: ${otherIncomeSources.map(s => `${s.source} (₹${s.amount.toLocaleString('en-IN')} ${s.frequency})`).join(', ')}` : 'Not provided',
       operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
-      prominentCustomers: prominentCustomers.length > 0 && prominentCustomers[0].name ? prominentCustomers : [],
-      prominentSuppliers: prominentSuppliers.length > 0 && prominentSuppliers[0].name ? prominentSuppliers : [],
+      prominentCustomers: toReportContacts(prominentCustomers),
+      prominentSuppliers: toReportContacts(prominentSuppliers),
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
       currentObligationSummary: currentObligation || 'Not provided',
@@ -2821,7 +2718,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     if (!rawWhatsappText.trim()) return;
     setIsExtractingWhatsapp(true);
     try {
-      const response = await fetch('/api/extract-whatsapp', {
+      const response = await authFetch('/api/extract-whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: rawWhatsappText })
@@ -3248,58 +3145,52 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 {isEditingCreditReport ? (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Report Date</label>
+                    <Field label="Report Date" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         value={parsedCreditReport.reportDate || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, reportDate: e.target.value})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Credit Score</label>
+                    </Field>
+                    <Field label="Credit Score" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         value={parsedCreditReport.creditScore || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, creditScore: e.target.value})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Total Accounts</label>
+                    </Field>
+                    <Field label="Total Accounts" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalAccounts || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalAccounts: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Active Accounts</label>
+                    </Field>
+                    <Field label="Active Accounts" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.activeAccounts || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, activeAccounts: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Current Balance (₹)</label>
+                    </Field>
+                    <Field label="Current Balance (₹)" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalCurrentBalance || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalCurrentBalance: parseInt(e.target.value) || 0})}
                       />
-                    </div>
-                    <div className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
-                      <label className="text-slate-500 uppercase font-bold">Overdue Amount (₹)</label>
+                    </Field>
+                    <Field label="Overdue Amount (₹)" labelClassName="text-slate-500 uppercase font-bold" className="bg-white p-2 rounded border border-slate-200 shadow-sm flex flex-col gap-1">
                       <input 
                         className="border rounded p-1 w-full"
                         type="number"
                         value={parsedCreditReport.totalOverdueAmount || ''}
                         onChange={(e) => setParsedCreditReport({...parsedCreditReport, totalOverdueAmount: parseInt(e.target.value) || 0})}
                       />
-                    </div>
+                    </Field>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[10px]">
@@ -3396,18 +3287,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Firm / Trade Name *</label>
+              <Field label="Firm / Trade Name *">
                 <input
                   type="text"
                   value={firmName}
                   onChange={(e) => setFirmName(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Constitution</label>
+              <Field label="Business Constitution">
                 <select
                   value={constitution}
                   onChange={(e) => setConstitution(e.target.value)}
@@ -3419,32 +3308,27 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="Pvt Ltd">Private Limited Company</option>
                   <option value="LLP">Limited Liability Partnership</option>
                 </select>
-              </div>
+              </Field>
 
               {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Details of Partners/Directors</label>
+                <Field label="Details of Partners/Directors">
                   <input type="text" value={partnersDirectorsDetails} onChange={(e) => setPartnersDirectorsDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Not applicable" />
-                </div>
+                </Field>
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Status (Recommendation)</label>
+              <Field label="Business Status (Recommendation)">
                 <select
-                  value={statusOfCase || businessStatus || 'Recommended'}
+                  value={statusOfCase}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 >
-                  <option value="Recommended">Recommended</option>
-                  <option value="Not Recommended">Not Recommended</option>
-                  <option value="Recommended subject to demerits">Recommended subject to demerits</option>
+                  {caseStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
-              </div>
+              </Field>
 
 
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
+              <Field label="Premises Ownership">
                 <select
                   value={shopOwnership}
                   onChange={(e) => setShopOwnership(e.target.value as any)}
@@ -3456,56 +3340,49 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="FAMILY">Family / Ancestral Owned</option>
                   <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
                 </select>
-              </div>
+              </Field>
 
               {shopOwnership === 'RENTED' && (
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Monthly Shop Rent (₹)</label>
+                <Field label="Monthly Shop Rent (₹)">
                   <input
                     type="number"
                     value={monthlyRent}
                     onChange={(e) => setMonthlyRent(Number(e.target.value))}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   />
-                </div>
+                </Field>
               )}
 
               {/* Additional fields requested in Business Profile */}
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Legal Trade Name</label>
+              <Field label="GSTIN – Legal Trade Name">
                 <input type="text" value={godrejGstinLegalName} onChange={(e) => setGodrejGstinLegalName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">GSTIN – Date of Registration</label>
+              </Field>
+              <Field label="GSTIN – Date of Registration">
                 <input type="text" value={godrejGstinRegDate} onChange={(e) => setGodrejGstinRegDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Employee Register</label>
+              </Field>
+              <Field label="Employee Register">
                 <input type="text" value={godrejEmployeeRegister} onChange={(e) => setGodrejEmployeeRegister(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Carpet Area (Sq. Ft.)</label>
+              <Field label="Carpet Area (Sq. Ft.)">
                 <input
                   type="number"
                   value={shopAreaSqFt}
                   onChange={(e) => setShopAreaSqFt(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Estimated Business Premises Value (₹)</label>
+              <Field label="Estimated Business Premises Value (₹)">
                 <input
                   type="number"
                   value={inventoryValue}
                   onChange={(e) => setInventoryValue(Number(e.target.value))}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Remark</label>
+              <Field label="Business Remark" className="md:col-span-3">
                 <textarea
                   value={businessRemark}
                   onChange={(e) => setBusinessRemark(e.target.value)}
@@ -3513,16 +3390,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="Enter business remarks..."
                 />
-              </div>
+              </Field>
 
               <div className="md:col-span-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Strengths, Weaknesses & Status</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-bold text-slate-700">Strengths</label>
+                    <Field label="Strengths" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-2">
                       <button onClick={() => setGodrejStrengths([...godrejStrengths, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
-                    </div>
+                    </Field>
                     <textarea 
                       placeholder="Paste numbered list here to auto-fill..."
                       onChange={(e) => {
@@ -3537,16 +3413,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     />
                     {godrejStrengths.map((s, idx) => (
                       <div key={s.id} className="flex gap-2 mb-2">
-                        <input type="text" value={s.text} onChange={(e) => { const st = [...godrejStrengths]; st[idx].text = e.target.value; setGodrejStrengths(st); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <input type="text" value={s.text} onChange={(e) => updateListItem(godrejStrengths, setGodrejStrengths, idx, 'text', e.target.value)} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
                         <button onClick={() => { const st = [...godrejStrengths]; st.splice(idx, 1); setGodrejStrengths(st); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
                   </div>
                   <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="block text-xs font-bold text-slate-700">Weaknesses</label>
+                    <Field label="Weaknesses" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-2">
                       <button onClick={() => setGodrejWeaknesses([...godrejWeaknesses, { id: Date.now().toString(), text: '' }])} className="text-[10px] text-white bg-[#eb8a23] px-2 py-1 rounded">Add</button>
-                    </div>
+                    </Field>
                     <textarea 
                       placeholder="Paste numbered list here to auto-fill..."
                       onChange={(e) => {
@@ -3561,15 +3436,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     />
                     {godrejWeaknesses.map((w, idx) => (
                       <div key={w.id} className="flex gap-2 mb-2">
-                        <input type="text" value={w.text} onChange={(e) => { const wk = [...godrejWeaknesses]; wk[idx].text = e.target.value; setGodrejWeaknesses(wk); }} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
+                        <input type="text" value={w.text} onChange={(e) => updateListItem(godrejWeaknesses, setGodrejWeaknesses, idx, 'text', e.target.value)} className="w-full px-3 py-1.5 text-xs border border-slate-300 rounded focus:ring-2 focus:ring-[#eb8a23]" />
                         <button onClick={() => { const wk = [...godrejWeaknesses]; wk.splice(idx, 1); setGodrejWeaknesses(wk); }} className="text-red-500 hover:text-red-700"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
                     ))}
                   </div>
                 </div>
                 
-                <div className="mt-4 w-1/3">
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Final Status</label>
+                <Field label="Final Status" className="mt-4 w-1/3">
                   <select
                     value={finalStatus}
                     onChange={(e) => setFinalStatus(e.target.value)}
@@ -3578,7 +3452,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <option value="POSITIVE">POSITIVE</option>
                     <option value="NEGATIVE">NEGATIVE</option>
                   </select>
-                </div>
+                </Field>
               </div>
 
               <div className="md:col-span-3">
@@ -3602,8 +3476,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 Aata Chakki Setup & Details
               </h3>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-2">Select Available Machines</label>
+              <Field label="Select Available Machines" labelClassName="block text-xs font-bold text-slate-700 mb-2">
                 <div className="flex flex-wrap gap-4">
                   {['Atta Chakki', 'Kohlu', 'Dhan Polisher', 'Masala Grinding Machine', 'Engine', 'Motor'].map(machine => (
                     <label key={machine} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -3622,28 +3495,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </label>
                   ))}
                 </div>
-              </div>
+              </Field>
 
               {aataChakkiData.machines.includes('Atta Chakki') && (
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Atta Chakki Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size (Inches)</label>
+                    <Field label="Machine Size (Inches)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.size} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Capacity (Per Hr)</label>
+                    </Field>
+                    <Field label="Capacity (Per Hr)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.capacity} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, capacity: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Wheat (Kg)</label>
+                    </Field>
+                    <Field label="Daily Wheat (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.wheatKg} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, wheatKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Grinding Charge (₹/Kg)</label>
+                    </Field>
+                    <Field label="Grinding Charge (₹/Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.attaChakki.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, attaChakki: { ...aataChakkiData.attaChakki, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3652,26 +3521,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Kohlu Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Bolt/Patti Details</label>
+                    <Field label="Bolt/Patti Details" labelClassName={SUB_LABEL}>
                       <input type="text" value={aataChakkiData.kohlu.boltDetails} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, boltDetails: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Mustard (Kg)</label>
+                    </Field>
+                    <Field label="Daily Mustard (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.mustardKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, mustardKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
+                    </Field>
+                    <Field label="Processing Charge (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Qty (Kg)</label>
+                    </Field>
+                    <Field label="Khali Qty (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.khaliKg} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Khali Selling Rate (₹)</label>
+                    </Field>
+                    <Field label="Khali Selling Rate (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.kohlu.khaliRate} onChange={e => setAataChakkiData({ ...aataChakkiData, kohlu: { ...aataChakkiData.kohlu, khaliRate: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3680,34 +3544,27 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Dhan Polisher Specifics</h4>
                   <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
+                    <Field label="Machine Size" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.size} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, size: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Paddy (Kg)</label>
+                    </Field>
+                    <Field label="Paddy (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.paddyKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, paddyKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Charge (₹)</label>
+                    </Field>
+                    <Field label="Charge (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, charge: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi (Kg)</label>
+                    </Field>
+                    <Field label="Bhusi (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.bhusiKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Bhusi Rate (₹)</label>
+                    </Field>
+                    <Field label="Bhusi Rate (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.bhusiRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, bhusiRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Qty (Kg)</label>
+                    </Field>
+                    <Field label="Rice Polish Qty (Kg)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.ricePolishKg} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishKg: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[9px] uppercase font-bold text-slate-500 mb-1">Rice Polish Rate (₹)</label>
+                    </Field>
+                    <Field label="Rice Polish Rate (₹)" labelClassName="block text-[9px] uppercase font-bold text-slate-500 mb-1">
                       <input type="number" value={aataChakkiData.dhanPolisher.ricePolishRate} onChange={e => setAataChakkiData({ ...aataChakkiData, dhanPolisher: { ...aataChakkiData.dhanPolisher, ricePolishRate: e.target.value } })} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3716,18 +3573,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="p-4 bg-orange-50 border border-orange-100 rounded-xl space-y-4">
                   <h4 className="text-xs font-bold text-orange-800">Masala Grinding Specifics</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Machine Size</label>
+                    <Field label="Machine Size" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.size} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, size: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Daily Masala (Kg)</label>
+                    </Field>
+                    <Field label="Daily Masala (Kg)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.masalaKg} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, masalaKg: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Processing Charge (₹)</label>
+                    </Field>
+                    <Field label="Processing Charge (₹)" labelClassName={SUB_LABEL}>
                       <input type="number" value={aataChakkiData.masalaMachine.charge} onChange={e => setAataChakkiData({ ...aataChakkiData, masalaMachine: { ...aataChakkiData.masalaMachine, charge: e.target.value } })} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
                 </div>
               )}
@@ -3775,72 +3629,56 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {isGodrejSectionOpen && (
                 <div className="mt-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Alternate Mobile Number</label>
+                    <Field label="Alternate Mobile Number">
                       <input type="text" value={alternateMobileNumber} onChange={(e) => setAlternateMobileNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Person Met Qualification (Overrides Auto)</label>
+                    </Field>
+                    <Field label="Person Met Qualification (Overrides Auto)">
                       <input type="text" value={applicantQualification} onChange={(e) => setApplicantQualification(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 10th Pass, Graduate" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Office Accessibility</label>
+                    </Field>
+                    <Field label="Office Accessibility">
                       <input type="text" value={officeAccessibility} onChange={(e) => setOfficeAccessibility(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Easy, Difficult" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                    </Field>
+                    <Field label="Tenor Requested">
                       <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                    </Field>
+                    <Field label="Margins Assessed">
                       <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                    </Field>
+                    <Field label="Customer GST No.">
                       <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Industry Type</label>
+                    </Field>
+                    <Field label="Industry Type">
                       <input type="text" value={industryType} onChange={(e) => setIndustryType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Manufacturing, Retail" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">Product Type</label>
+                    </Field>
+                    <Field label="Product Type">
                       <input type="text" value={productType} onChange={(e) => setProductType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. Garments, Hardware" />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 mb-1">On Loan Structure</label>
+                    </Field>
+                    <Field label="On Loan Structure">
                       <input type="text" value={onLoanStructure} onChange={(e) => setOnLoanStructure(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    </div>
+                    </Field>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Machinery Details</label>
+                  <Field label="Machinery Details">
                     <textarea value={machineryDetailsText} onChange={(e) => setMachineryDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List machinery details..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Key Employee Details</label>
+                  </Field>
+                  <Field label="Key Employee Details">
                     <textarea value={keyEmployeeDetailsText} onChange={(e) => setKeyEmployeeDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="List key employees..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Group Company Details</label>
+                  </Field>
+                  <Field label="Group Company Details">
                     <textarea value={groupCompanyDetailsText} onChange={(e) => setGroupCompanyDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" placeholder="Name, Relation, Brief business details..." />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Financial Details Summary</label>
+                  </Field>
+                  <Field label="Financial Details Summary">
                     <textarea value={financialDetailsText} onChange={(e) => setFinancialDetailsText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Other Business Premises</label>
+                  </Field>
+                  <Field label="Other Business Premises">
                     <textarea value={otherBusinessPremisesText} onChange={(e) => setOtherBusinessPremisesText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Other State GST Registration</label>
+                  </Field>
+                  <Field label="Other State GST Registration">
                     <input type="text" value={otherStateGstText} onChange={(e) => setOtherStateGstText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Family Members Involved</label>
+                  </Field>
+                  <Field label="Family Members Involved">
                     <textarea value={familyInvolvedText} onChange={(e) => setFamilyInvolvedText(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] min-h-[60px]" />
-                  </div>
+                  </Field>
 
                   {/* Godrej Specific Observation Fields */}
                   <div className="pt-6 border-t border-slate-200">
@@ -3894,62 +3732,42 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* Application ID & Status of Case */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Application ID</label>
+              <Field label="Application ID">
                 <input type="text" value={activeAppNumber} onChange={(e) => setActiveAppNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. INF/2026/88492" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Status of the Case</label>
-                <select value={statusOfCase || businessStatus || (['tata', 'sbfc'].includes(selectedClient?.id || '') ? 'Positive' : 'Recommended')} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  {['tata', 'sbfc'].includes(selectedClient?.id || '') ? (
-                    <>
-                      <option value="Positive">Positive</option>
-                      <option value="Negative">Negative</option>
-                      <option value="Refer to Credit">Refer to Credit</option>
-                    </>
-                  ) : (
-                    <>
-                      <option value="Recommended">Recommended</option>
-                      <option value="Not Recommended">Not Recommended</option>
-                      <option value="Recommended subject to demerits">Recommended subject to demerits</option>
-                    </>
-                  )}
+              </Field>
+              <Field label="Status of the Case">
+                <select value={statusOfCase} onChange={(e) => handleStatusChange(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
+                  {caseStatusOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
-              </div>
+              </Field>
             </div>
 
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">1. Case Initiation Date</label>
+              <Field label="1. Case Initiation Date">
                 <input type="date" value={caseInitiationDate} onChange={(e) => setCaseInitiationDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">2. Visit Date</label>
+              </Field>
+              <Field label="2. Visit Date">
                 <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">3. Report Date</label>
+              </Field>
+              <Field label="3. Report Date">
                 <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
-              </div>
+              </Field>
             </div>
 
 
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">3. Name of Applicant *</label>
+              <Field label="3. Name of Applicant *">
                 <input type="text" required value={applicantName} onChange={(e) => setApplicantName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. Mr. Lalbabu Sahani" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">4. Contact Number</label>
+              </Field>
+              <Field label="4. Contact Number">
                 <input type="text" maxLength={10} pattern="\d{10}" value={mobileNumber} onChange={(e) => setMobileNumber(e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit mobile number" />
-              </div>
+              </Field>
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs font-bold text-slate-700">5. Business Firm Name</label>
+              <Field label="5. Business Firm Name" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center mb-1">
                 <label className="flex items-center gap-1.5 text-xs text-slate-600 font-medium cursor-pointer">
                   <input type="checkbox" checked={noFormalBusinessName} onChange={(e) => {
                     setNoFormalBusinessName(e.target.checked);
@@ -3958,18 +3776,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   }} className="rounded text-[#eb8a23] focus:ring-[#eb8a23]" />
                   No formal business name
                 </label>
-              </div>
+              </Field>
               <input type="text" value={firmName} onChange={(e) => setFirmName(e.target.value)} disabled={noFormalBusinessName} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100 disabled:text-slate-500" placeholder="Business Name" />
             </div>
 
             {/* 6. Co-applicant Name with Relation & 7. Contact */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-700">6. Co-applicant Details</label>
+              <Field label="6. Co-applicant Details" labelClassName="block text-xs font-bold text-slate-700" className="flex items-center justify-between">
                 <button type="button" onClick={() => setCoApplicants([...coApplicants, { name: '', relation: 'Spouse', mobileNumber: '' }])} className="px-3 py-1.5 bg-[#2d3e50] text-white text-xs font-bold rounded-lg hover:bg-[#1e293b]">
                   + Add Co-applicant
                 </button>
-              </div>
+              </Field>
 
               {coApplicants.length === 0 && (
                 <div className="text-xs font-semibold text-slate-500 italic p-3 text-center border border-dashed border-slate-300 rounded-lg">No Co-applicants Added</div>
@@ -3981,16 +3798,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     Remove
                   </button>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-2">
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Co-applicant Name</label>
-                      <input type="text" value={coApp.name} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].name = e.target.value;
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship</label>
+                    <Field label="Co-applicant Name" labelClassName={SUB_LABEL}>
+                      <input type="text" value={coApp.name} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'name', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
+                    </Field>
+                    <Field label="Relationship" labelClassName={SUB_LABEL}>
                       <select value={coApp.relation} onChange={(e) => {
                         const newCoApps = [...coApplicants];
                         newCoApps[idx].relation = e.target.value;
@@ -3998,63 +3809,31 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         setCoApplicants(newCoApps);
                       }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                         <option value="">Select Relationship ▼</option>
-                        <option value="Spouse">Spouse</option>
-                        <option value="Father">Father</option>
-                        <option value="Mother">Mother</option>
-                        <option value="Son">Son</option>
-                        <option value="Daughter">Daughter</option>
-                        <option value="Brother">Brother</option>
-                        <option value="Sister">Sister</option>
-                        <option value="Business Partner">Business Partner</option>
-                        <option value="Other">Other</option>
+                        {['Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Brother', 'Sister', 'Business Partner', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                    </div>
+                    </Field>
                     {coApp.relation === 'Other' && (
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
-                        <input type="text" value={coApp.otherRelation || ''} onChange={(e) => {
-                          const newCoApps = [...coApplicants];
-                          newCoApps[idx].otherRelation = e.target.value;
-                          setCoApplicants(newCoApps);
-                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                      </div>
+                      <Field label="Specify Relationship" labelClassName={SUB_LABEL}>
+                        <input type="text" value={coApp.otherRelation || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'otherRelation', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
+                      </Field>
                     )}
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">7. Contact Number</label>
-                      <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => {
-                        const newCoApps = [...coApplicants];
-                        newCoApps[idx].mobileNumber = e.target.value.replace(/\D/g, '');
-                        setCoApplicants(newCoApps);
-                      }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Profession</label>
+                    <Field label="7. Contact Number" labelClassName={SUB_LABEL}>
+                      <input type="text" maxLength={10} value={coApp.mobileNumber || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'mobileNumber', e.target.value.replace(/\D/g, ''))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="10-digit number" />
+                    </Field>
+                    <Field label="Profession" labelClassName={SUB_LABEL}>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Salaried';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Business';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Other';
-                          setCoApplicants(arr);
-                        }} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`flex-1 px-3 py-2 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other</button>
                       </div>
-                    </div>
+                    </Field>
                   </div>
                 </div>
               ))}
             </div>
 
             {/* 8. Female Candidate */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">8. Female candidate is on loan / application</label>
+            <Field label="8. Female candidate is on loan / application" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
                 <button type="button" onClick={() => { setHasFemaleCandidate(false); setFemaleCandidateName(''); setFemaleCandidateRelation(''); }} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${!hasFemaleCandidate ? 'bg-slate-200 text-slate-800 border-slate-300' : 'bg-white text-slate-600 border-slate-300'}`}>No</button>
@@ -4062,26 +3841,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasFemaleCandidate && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Female Candidate Name</label>
+                  <Field label="Female Candidate Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={femaleCandidateName} onChange={(e) => setFemaleCandidateName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Name" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Relationship with Applicant</label>
+                  </Field>
+                  <Field label="Relationship with Applicant" labelClassName={SUB_LABEL}>
                     <select value={femaleCandidateRelation} onChange={(e) => setFemaleCandidateRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                       <option value="">Select ▼</option>
-                      <option value="Spouse">Spouse</option>
-                      <option value="Mother">Mother</option>
-                      <option value="Daughter">Daughter</option>
-                      <option value="Sister">Sister</option>
-                      <option value="Other">Other</option>
+                      {['Spouse', 'Mother', 'Daughter', 'Sister', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                   {femaleCandidateRelation === 'Other' && (
-                    <div className="md:col-span-2">
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Specify Relationship</label>
+                    <Field label="Specify Relationship" labelClassName={SUB_LABEL} className="md:col-span-2">
                       <input type="text" value={femaleCandidateOtherRelation} onChange={(e) => setFemaleCandidateOtherRelation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
-                    </div>
+                    </Field>
                   )}
                   <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
                     Generated: Yes, the female candidate is already included in the application as {femaleCandidateName || '[Name]'}, {femaleCandidateRelation === 'Other' ? femaleCandidateOtherRelation : femaleCandidateRelation.toLowerCase()} of the applicant.
@@ -4094,12 +3866,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   Generated: We need to collect KYC documents and live photograph of the female candidate.
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Quotation Amount</label>
+              <Field label="9. Quotation Amount">
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
@@ -4120,30 +3891,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {numberToWordsIndian(appliedAmount)}
                   </div>
                 )}
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">10. Type of Loan</label>
+              </Field>
+              <Field label="10. Type of Loan">
                 <select value={loanType} onChange={(e) => setLoanType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
-                  <option value="Commercial Solar Loan">Commercial Solar Loan</option>
-                  <option value="Residential Solar Loan">Residential Solar Loan</option>
-                  <option value="Personal Loan">Personal Loan</option>
-                  <option value="Home Loan">Home Loan</option>
-                  <option value="Business Loan">Business Loan</option>
-                  <option value="Vehicle Loan">Vehicle Loan</option>
-                  <option value="LAP">LAP</option>
-                  <option value="Micro Buisness Loan">Micro Buisness Loan</option>
-                  <option value="Education Loan">Education Loan</option>
-                  <option value="Other">Other</option>
+                  {['Commercial Solar Loan', 'Residential Solar Loan', 'Personal Loan', 'Home Loan', 'Business Loan', 'Vehicle Loan', 'LAP', 'Micro Buisness Loan', 'Education Loan', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 {loanType === 'Other' && (
                   <input type="text" value={otherLoanType} onChange={(e) => setOtherLoanType(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Loan Type" />
                 )}
-              </div>
+              </Field>
             </div>
 
             {/* Purpose of Loan (as per applicant) */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Purpose of Loan (as per applicant)</label>
+            <Field label="Purpose of Loan (as per applicant)">
               <textarea
                 value={loanPurpose}
                 onChange={(e) => setLoanPurpose(e.target.value)}
@@ -4151,7 +3911,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 placeholder="e.g. Business Expansion / Working Capital Requirement / Solar plant installation"
                 rows={2}
               />
-            </div>
+            </Field>
 
             {/* 11. Solar Purpose & Usage */}
             {loanType === 'Commercial Solar Loan' && (
@@ -4159,31 +3919,23 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Current Power / Energy Source</label>
+                  <Field label="Current Power / Energy Source" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                     <select value={powerSource} onChange={(e) => setPowerSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
-                      <option value="Electricity">Electricity</option>
-                      <option value="Electricity Engine">Electricity Engine</option>
-                      <option value="Diesel Generator">Diesel Generator</option>
-                      <option value="Solar">Solar</option>
-                      <option value="Grid Electricity">Grid Electricity</option>
-                      <option value="Other">Other</option>
+                      {['Electricity', 'Electricity Engine', 'Diesel Generator', 'Solar', 'Grid Electricity', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {powerSource === 'Other' && (
                       <input type="text" value={otherPowerSource} onChange={(e) => setOtherPowerSource(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Power Source" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Approximate Monthly Expense</label>
+                  </Field>
+                  <Field label="Approximate Monthly Expense" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
                       <input type="number" value={monthlyEnergyExpense} onChange={(e) => setMonthlyEnergyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-2">Purpose of Solar Installation</label>
+                <Field label="Purpose of Solar Installation" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-2">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {['Reduce operational cost', 'Reduce electricity expense', 'Improve savings', 'Replace current power source', 'Improve business efficiency', 'Backup power', 'Other'].map(purpose => (
                       <label key={purpose} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4198,7 +3950,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   {solarPurposes.includes('Other') && (
                     <input type="text" value={otherSolarPurpose} onChange={(e) => setOtherSolarPurpose(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Specify Purpose" />
                   )}
-                </div>
+                </Field>
 
                 <div className="p-3 bg-white border border-orange-200 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
@@ -4220,32 +3972,29 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
             {/* 12. Address of Residence */}
-            <div className="space-y-3">
-              <label className="block text-xs font-bold text-slate-700">12. Address of the Residence</label>
+            <Field label="12. Address of the Residence" labelClassName="block text-xs font-bold text-slate-700" className="space-y-3">
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete residence address" rows={2} />
               </div>
-            </div>
+            </Field>
 
             {/* 13. Address of Business */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">13. Address of the Business (Applicant)</label>
+              <Field label="13. Address of the Business (Applicant)" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <button type="button" onClick={() => {
                   setBusinessAddress(residenceAddress);
                 }} className="text-[10px] bg-slate-100 text-slate-700 px-3 py-1.5 rounded font-bold hover:bg-slate-200 border border-slate-300">Same as Residence Address</button>
-              </div>
+              </Field>
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
               </div>
 
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-slate-700">Additional Addresses</label>
+                <Field label="Additional Addresses" labelClassName="text-xs font-semibold text-slate-700" className="flex items-center justify-between">
                   <button type="button" onClick={() => setAdditionalAddresses([...additionalAddresses, ''])} className="text-xs text-blue-600 hover:text-blue-800 flex items-center font-semibold">
                     <Plus className="w-3 h-3 mr-1" /> Add Address
                   </button>
-                </div>
+                </Field>
                 {additionalAddresses.map((addr, idx) => (
                   <div key={idx} className="flex space-x-2 items-center mb-2">
                     <input type="text" value={addr} onChange={(e) => { const newAddrs = [...additionalAddresses]; newAddrs[idx] = e.target.value; setAdditionalAddresses(newAddrs); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder={`Additional Address ${idx + 1}`} />
@@ -4258,8 +4007,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 14. Met Person During Visit Time */}
-            <div className="space-y-3 pt-4 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700">14. Met Person During Visit</label>
+            <Field label="14. Met Person During Visit" labelClassName="block text-xs font-bold text-slate-700" className="space-y-3 pt-4 border-t border-slate-100">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {['Applicant', 'Co-applicant', 'Spouse', 'Father', 'Mother', 'Son', 'Daughter', 'Other'].map(person => (
                   <label key={person} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4291,11 +4039,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   return p;
                 }).join(' & ') || 'No one selected'}
               </div>
-            </div>
+            </Field>
 
             {/* 15. Met Person Identity Proof */}
-            <div className="pt-4 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700 mb-2">15. Met Person Identity Proof</label>
+            <Field label="15. Met Person Identity Proof" labelClassName="block text-xs font-bold text-slate-700 mb-2" className="pt-4 border-t border-slate-100">
               <div className="flex flex-wrap gap-3">
                 {['Aadhaar Card', 'PAN Card', 'Voter ID', 'Driving Licence', 'Passport', 'Other'].map(proof => (
                   <label key={proof} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4307,11 +4054,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {identityProof === 'Other' && (
                 <input type="text" value={otherIdentityProof} onChange={(e) => setOtherIdentityProof(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Identity Proof" />
               )}
-            </div>
+            </Field>
 
             {/* 15.1 Documents Seen */}
-            <div className="pt-6 border-t border-slate-100">
-              <label className="block text-xs font-bold text-slate-700 mb-2">15.1 Documents Seen</label>
+            <Field label="15.1 Documents Seen" labelClassName="block text-xs font-bold text-slate-700 mb-2" className="pt-6 border-t border-slate-100">
               <div className="flex flex-wrap gap-3">
                 {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Buisness Invoices', 'Other'].map(doc => (
                   <label key={doc} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4331,7 +4077,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {documentsSeen.includes('Other') && (
                 <input type="text" value={otherDocumentsSeen} onChange={(e) => setOtherDocumentsSeen(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Other Documents Seen" />
               )}
-            </div>
+            </Field>
 
             {/* 16. Spouse and Dependencies Details */}
             <div className="mt-8 pt-6 border-t border-slate-200">
@@ -4367,7 +4113,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       familyMembers.map((member, idx) => (
                         <tr key={member.id} className="border-b border-slate-100 hover:bg-slate-50">
                           <td className="p-2 border-r border-slate-100">
-                            <input type="text" value={member.name} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].name = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
+                            <input type="text" value={member.name} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'name', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" placeholder="Name" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             {!member._otherRelation ? (
@@ -4386,33 +4132,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="Self">Self</option>
-                                <option value="Father">Father</option>
-                                <option value="Mother">Mother</option>
-                                <option value="Spouse">Spouse</option>
-                                <option value="Son">Son</option>
-                                <option value="Daughter">Daughter</option>
-                                <option value="Brother">Brother</option>
-                                <option value="Sister">Sister</option>
-                                <option value="Mother in law">Mother in law</option>
-                                <option value="Father in law">Father in law</option>
-                                <option value="Sister in law">Sister in law</option>
-                                <option value="Brother in law">Brother in law</option>
-                                <option value="Neice">Neice</option>
-                                <option value="Nephew">Nephew</option>
-                                <option value="Grand Mother">Grand Mother</option>
-                                <option value="Grand Father">Grand Father</option>
-                                <option value="Other">Other</option>
+                                {['Self', 'Father', 'Mother', 'Spouse', 'Son', 'Daughter', 'Brother', 'Sister', 'Mother in law', 'Father in law', 'Sister in law', 'Brother in law', 'Neice', 'Nephew', 'Grand Mother', 'Grand Father', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.relationship || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].relationship = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.relationship || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'relationship', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherRelation = false; newFm[idx].relationship = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100">
-                            <input type="number" value={member.age} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].age = Number(e.target.value); setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
+                            <input type="number" value={member.age} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'age', Number(e.target.value))} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold" />
                           </td>
                           <td className="p-2 border-r border-slate-100">
                             {!member._otherProfession ? (
@@ -4431,17 +4161,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="Student">Student</option>
-                                <option value="Working professional">Working professional</option>
-                                <option value="Housewife">Housewife</option>
-                                <option value="Business">Business</option>
-                                <option value="Salaried">Salaried</option>
-                                <option value="Retired">Retired</option>
-                                <option value="Other">Other</option>
+                                {['Student', 'Working professional', 'Housewife', 'Business', 'Salaried', 'Retired', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.profession || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].profession = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.profession || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'profession', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherProfession = false; newFm[idx].profession = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
@@ -4463,22 +4187,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                                 className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold"
                               >
                                 <option value="">Select...</option>
-                                <option value="10th Pass">10th Pass</option>
-                                <option value="12th Pass">12th Pass</option>
-                                <option value="Graduate">Graduate</option>
-                                <option value="Post Graduate">Post Graduate</option>
-                                <option value="Illiterate">Illiterate</option>
-                                <option value="Other">Other</option>
+                                {['10th Pass', '12th Pass', 'Graduate', 'Post Graduate', 'Illiterate', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                               </select>
                             ) : (
                               <div className="flex items-center gap-1">
-                                <input type="text" value={member.qualification || ''} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].qualification = e.target.value; setFamilyMembers(newFm); }} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
+                                <input type="text" value={member.qualification || ''} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'qualification', e.target.value)} className="w-full bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold border-b border-slate-300" placeholder="Please specify..." autoFocus />
                                 <button onClick={() => { const newFm = [...familyMembers]; newFm[idx]._otherQualification = false; newFm[idx].qualification = ''; setFamilyMembers(newFm); }} className="text-slate-400 hover:text-slate-600">×</button>
                               </div>
                             )}
                           </td>
                           <td className="p-2 border-r border-slate-100 text-center">
-                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => { const newFm = [...familyMembers]; newFm[idx].isDependent = e.target.value === 'Yes'; setFamilyMembers(newFm); }} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
+                            <select value={member.isDependent !== false ? 'Yes' : 'No'} onChange={(e) => updateListItem(familyMembers, setFamilyMembers, idx, 'isDependent', e.target.value === 'Yes')} className="bg-transparent border-none outline-none focus:ring-0 text-xs font-semibold">
                               <option value="Yes">Yes</option>
                               <option value="No">No</option>
                             </select>
@@ -4497,8 +4216,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 17. Executive Name */}
-            <div className="pt-6 border-t border-slate-200">
-              <label className="block text-xs font-bold text-slate-700 mb-1">17. Executive Name</label>
+            <Field label="17. Executive Name" className="pt-6 border-t border-slate-200">
               <input
                 type="text"
                 value={executiveName}
@@ -4506,12 +4224,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 placeholder="Enter Executive Name..."
                 className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
               />
-            </div>
+            </Field>
 
             {/* 18. Tata Capital Distance (Conditional) */}
             {selectedClient?.name === 'Tata Capital Limited' && (
-              <div className="pt-6 border-t border-slate-200">
-                <label className="block text-xs font-bold text-slate-700 mb-1">18. Distance from Tata Capital Office (In Km's)</label>
+              <Field label="18. Distance from Tata Capital Office (In Km's)" className="pt-6 border-t border-slate-200">
                 <input
                   type="text"
                   value={tataCapitalDistance}
@@ -4519,7 +4236,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 5-10 Km (Approx)"
                   className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white"
                 />
-              </div>
+              </Field>
             )}
 
           </div>
@@ -4538,31 +4255,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             {/* 1. Vintage of Business */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">1. Vintage of the Business</label>
+            <Field label="1. Vintage of the Business" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Business Age (Years)</label>
+                <Field label="Business Age (Years)" labelClassName={SUB_LABEL}>
                   <div className="flex gap-2 items-center">
                     <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
                     <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                   </div>
-                </div>
+                </Field>
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Previous Occupation / Activity</label>
+                  <Field label="Previous Occupation / Activity" labelClassName={SUB_LABEL}>
                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                       <option value="">Select...</option>
-                      <option value="Agriculture">Agriculture</option>
-                      <option value="Salaried Employment">Salaried Employment</option>
-                      <option value="Business">Business</option>
-                      <option value="Self-employed">Self-employed</option>
-                      <option value="Labour">Labour</option>
-                      <option value="Student">Student</option>
-                      <option value="Homemaker">Homemaker</option>
-                      <option value="Other">Other</option>
+                      {['Agriculture', 'Salaried Employment', 'Business', 'Self-employed', 'Labour', 'Student', 'Homemaker', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
                   <div>
@@ -4579,8 +4286,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 )}
                 {(businessAgeYears !== '' && businessAgeYears < 10) && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Reason to leave the last occupation</label>
+                  <Field label="Reason to leave the last occupation" labelClassName={SUB_LABEL}>
                     <select
                       value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')}
                       onChange={(e) => setReasonToLeave(e.target.value === 'Not informed' ? 'Not informed' : (e.target.value === 'Informed' ? ' ' : ''))}
@@ -4593,7 +4299,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {(reasonToLeave !== '' && reasonToLeave !== 'Not informed') && (
                       <input type="text" value={reasonToLeave.trim()} onChange={(e) => setReasonToLeave(e.target.value || ' ')} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g., Low Income, Better Opportunity" />
                     )}
-                  </div>
+                  </Field>
                 )}
                 <div className="md:col-span-2 lg:col-span-3 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
@@ -4603,21 +4309,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={businessVintageText || `${businessAgeApprox ? 'Approximately ' : ''}${businessAgeYears ? `${String(businessAgeYears).padStart(2, '0')} years in business.` : ''}${(businessAgeYears !== '' && businessAgeYears < 10) ? `${previousOccupation ? ` Prior to this, engaged in ${previousOccupation === 'Other' ? previousOccupationOther : previousOccupation === 'Business' ? `business (${previousOccupationOther})` : previousOccupation === 'Salaried Employment' ? `salaried employment (${previousOccupationOther})` : previousOccupation.toLowerCase()}.` : ''}${reasonToLeave ? (reasonToLeave === 'Not informed' ? ' Reason for leaving the last occupation was not informed.' : (reasonToLeave.trim() ? ` Left the last occupation due to: ${reasonToLeave.trim()}.` : '')) : ''}` : ''}`.trim()} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 2. Number of Staffs */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">2. Number of Staffs</label>
+            <Field label="2. Number of Staffs" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of External Staff / Labour</label>
+                <Field label="Number of External Staff / Labour" labelClassName={SUB_LABEL}>
                   <div className="flex gap-2">
                     <input type="number" value={externalStaffCount} onChange={(e) => setExternalStaffCount(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
                     <button type="button" onClick={() => setExternalStaffCount(0)} className="px-3 py-1.5 text-[10px] bg-slate-200 text-slate-700 font-bold rounded hover:bg-slate-300 whitespace-nowrap">No External Staff</button>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Who manages the business?</label>
+                </Field>
+                <Field label="Who manages the business?" labelClassName={SUB_LABEL}>
                   <div className="flex flex-wrap gap-2">
                     {['Applicant', 'Family Members', 'Co-applicant', 'Other'].map(opt => (
                       <label key={opt} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4632,7 +4335,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   {businessManagedBy.includes('Other') && (
                     <input type="text" value={businessManagedByOther} onChange={(e) => setBusinessManagedByOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify" />
                   )}
-                </div>
+                </Field>
                 <div className="md:col-span-2 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
@@ -4641,11 +4344,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={staffCountText || `${externalStaffCount === 0 ? 'No external staff/labour is engaged. ' : `${externalStaffCount} external staff/labour engaged. `}${businessManagedBy.length > 0 ? `Business operations are managed by ${businessManagedBy.map(m => m === 'Other' ? businessManagedByOther : m).join(', ')}.` : ''}`} onChange={(e) => setStaffCountText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 3. Is Office Premise Rented / Owned */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">3. Is Office Premise Rented / Owned</label>
+            <Field label="3. Is Office Premise Rented / Owned" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
                 {['Self-Owned', 'Rented', 'Leased', 'Residence cum business', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -4664,7 +4366,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
               </div>
-            </div>
+            </Field>
 
             {/* 4. Details of Office / Factory Infrastructure */}
             <div className="mt-6">
@@ -4681,16 +4383,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="space-y-2">
                 {businessAssets.map((asset, idx) => (
                   <div key={asset.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                    <input type="text" value={asset.name} onChange={(e) => { const arr = [...businessAssets]; arr[idx].name = e.target.value; setBusinessAssets(arr); }} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <input type="number" value={asset.quantity} onChange={(e) => { const arr = [...businessAssets]; arr[idx].quantity = Number(e.target.value); setBusinessAssets(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <input type="text" value={asset.size} onChange={(e) => { const arr = [...businessAssets]; arr[idx].size = e.target.value; setBusinessAssets(arr); }} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                    <select value={asset.condition} onChange={(e) => { const arr = [...businessAssets]; arr[idx].condition = e.target.value; setBusinessAssets(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                    <input type="text" value={asset.name} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'name', e.target.value)} placeholder="Asset / Machine Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="number" value={asset.quantity} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'quantity', Number(e.target.value))} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <input type="text" value={asset.size} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'size', e.target.value)} placeholder="Size / Capacity" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                    <select value={asset.condition} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'condition', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                       <option value="Operational">Operational</option>
                       <option value="Non-Operational">Non-Operational</option>
                       <option value="Needs Repair">Needs Repair</option>
                     </select>
                     <div className="flex items-center gap-1">
-                      <input type="text" value={asset.remarks} onChange={(e) => { const arr = [...businessAssets]; arr[idx].remarks = e.target.value; setBusinessAssets(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={asset.remarks} onChange={(e) => updateListItem(businessAssets, setBusinessAssets, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       <button onClick={() => { const arr = [...businessAssets]; arr.splice(idx, 1); setBusinessAssets(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   </div>
@@ -4712,8 +4414,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">5. Stock Details with Estimated Value</h4>
-                <div className="flex items-center gap-3">
-                  <label className="text-[10px] font-bold text-slate-500">Stock Available?</label>
+                <Field label="Stock Available?" labelClassName="text-[10px] font-bold text-slate-500" className="flex items-center gap-3">
                   <div className="flex gap-1">
                     <button type="button" onClick={() => setHasStock(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
                     <button type="button" onClick={() => setHasStock(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasStock ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
@@ -4723,7 +4424,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <Plus className="w-3 h-3" /> Add Stock
                     </button>
                   )}
-                </div>
+                </Field>
               </div>
 
               {!hasStock ? (
@@ -4738,15 +4439,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <div className="space-y-2">
                   {stockDetails.map((stock, idx) => (
                     <div key={stock.id} className="grid grid-cols-1 md:grid-cols-6 gap-2 p-2 border border-slate-200 rounded-lg bg-slate-50 items-center">
-                      <input type="text" value={stock.name} onChange={(e) => { const arr = [...stockDetails]; arr[idx].name = e.target.value; setStockDetails(arr); }} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                      <input type="number" value={stock.quantity} onChange={(e) => { const arr = [...stockDetails]; arr[idx].quantity = Number(e.target.value); setStockDetails(arr); }} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
-                      <input type="text" value={stock.unit} onChange={(e) => { const arr = [...stockDetails]; arr[idx].unit = e.target.value; setStockDetails(arr); }} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={stock.name} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'name', e.target.value)} placeholder="Stock Name" className="col-span-2 px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="number" value={stock.quantity} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'quantity', Number(e.target.value))} placeholder="Qty" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                      <input type="text" value={stock.unit} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'unit', e.target.value)} placeholder="Unit" className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       <div className="relative">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                        <input type="number" value={stock.value} onChange={(e) => { const arr = [...stockDetails]; arr[idx].value = Number(e.target.value); setStockDetails(arr); }} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="number" value={stock.value} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'value', Number(e.target.value))} placeholder="Value" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       </div>
                       <div className="flex items-center gap-1">
-                        <input type="text" value={stock.remarks} onChange={(e) => { const arr = [...stockDetails]; arr[idx].remarks = e.target.value; setStockDetails(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="text" value={stock.remarks} onChange={(e) => updateListItem(stockDetails, setStockDetails, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                         <button onClick={() => { const arr = [...stockDetails]; arr.splice(idx, 1); setStockDetails(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -4765,20 +4466,17 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 6. Details and confirmation of business by neighbor */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">6. Details and confirmation of business by neighbor</label>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Neighbor Name</label>
+            <Field label="6. Details and confirmation of business by neighbor" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <Field label="Neighbor Name" labelClassName={SUB_LABEL}>
                 <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
-              </div>
+              </Field>
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-[10px] uppercase font-bold text-slate-500">Feedback Remark</label>
+                <Field label="Feedback Remark" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-1">
                   <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
-                </div>
+                </Field>
                 <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
               </div>
-            </div>
+            </Field>
 
             {/* 7. Fixed & Current Asset Analysis */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -4820,8 +4518,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 8. Asset Creation Through Business */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">8. Asset Creation Through Business</label>
+            <Field label="8. Asset Creation Through Business" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Has business income been used for asset creation?</span>
                 <button type="button" onClick={() => setBusinessIncomeAssetCreation(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${businessIncomeAssetCreation ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -4830,8 +4527,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {businessIncomeAssetCreation && (
                 <div className="space-y-4 mt-2">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">What assets were created?</label>
+                  <Field label="What assets were created?" labelClassName={SUB_LABEL}>
                     <div className="flex flex-wrap gap-2">
                       {['Residential House', 'Land', 'Vehicle', 'Business Expansion', 'Machinery', 'Other'].map(asset => (
                         <label key={asset} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4846,7 +4542,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {createdAssets.includes('Other') && (
                       <input type="text" value={createdAssetsOther} onChange={(e) => setCreatedAssetsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Created Assets" />
                     )}
-                  </div>
+                  </Field>
 
                   <div className="flex items-center gap-4 pt-2 border-t border-slate-200">
                     <span className="text-xs font-semibold text-slate-600">Other Household / Personal Expenses?</span>
@@ -4866,31 +4562,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 9. Business Investment */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">9. Business Investment (Initial)</label>
+              <Field label="9. Business Investment (Initial)">
                 <div className="relative">
                   <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                   <input type="number" value={initialInvestment} onChange={(e) => setInitialInvestment(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Amount" />
                 </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Investment Source</label>
+              </Field>
+              <Field label="Investment Source">
                 <select value={investmentSource} onChange={(e) => setInvestmentSource(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                   <option value="">Select...</option>
-                  <option value="Own Funds">Own Funds</option>
-                  <option value="Loan">Loan</option>
-                  <option value="Family Funds">Family Funds</option>
-                  <option value="Combination">Combination</option>
-                  <option value="Other">Other</option>
+                  {['Own Funds', 'Loan', 'Family Funds', 'Combination', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
                 {investmentSource === 'Other' && (
                   <input type="text" value={investmentSourceOther} onChange={(e) => setInvestmentSourceOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Source" />
                 )}
-              </div>
+              </Field>
             </div>
             <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex flex-col gap-1">
               <div className="flex justify-between items-center">
@@ -4901,8 +4591,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 10. Agricultural Income Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">10. Agricultural Income Details</label>
+            <Field label="10. Agricultural Income Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Agricultural Land?</span>
                 <button type="button" onClick={() => setHasAgricultureLand(true)} className={`px-4 py-1.5 text-[10px] font-bold rounded-lg border ${hasAgricultureLand ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -4917,33 +4606,24 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <div className="flex gap-2">
                         <input type="number" value={agriLandArea} onChange={(e) => setAgriLandArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Area" />
                         <select value={agriLandUnit} onChange={(e) => setAgriLandUnit(e.target.value)} className="w-full px-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                          <option value="Bigha">Bigha</option>
-                          <option value="Acre">Acre</option>
-                          <option value="Hectare">Hectare</option>
-                          <option value="Other">Other</option>
+                          {['Bigha', 'Acre', 'Hectare', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership</label>
+                    <Field label="Ownership" labelClassName={SUB_LABEL}>
                       <select value={agriLandOwnership} onChange={(e) => setAgriLandOwnership(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
-                        <option value="Self-owned">Self-owned</option>
-                        <option value="Family-owned">Family-owned</option>
-                        <option value="Leased">Leased</option>
-                        <option value="Other">Other</option>
+                        {['Self-owned', 'Family-owned', 'Leased', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                    </div>
-                    <div>
-                      <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Document Available?</label>
+                    </Field>
+                    <Field label="Document Available?" labelClassName={SUB_LABEL}>
                       <select value={agriOwnershipDoc} onChange={(e) => setAgriOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                         <option value="Yes">Yes</option>
                         <option value="No">No</option>
                         <option value="Not Provided">Not Provided</option>
                       </select>
-                    </div>
+                    </Field>
                   </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Crops</label>
+                  <Field label="Crops" labelClassName="block text-[10px] uppercase font-bold text-slate-500 mb-2">
                     <div className="flex flex-wrap gap-2">
                       {['Wheat', 'Sugarcane', 'Rice', 'Mustard', 'Vegetables', 'Other'].map(crop => (
                         <label key={crop} className="flex items-center gap-1 text-xs font-semibold text-slate-700">
@@ -4958,9 +4638,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     {agriCrops.includes('Other') && (
                       <input type="text" value={agriCropsOther} onChange={(e) => setAgriCropsOther(e.target.value)} className="w-full mt-2 md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify Crops" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Annual Agricultural Income</label>
+                  </Field>
+                  <Field label="Approximate Annual Agricultural Income" labelClassName={SUB_LABEL}>
                     <div className="flex items-center gap-2 max-w-md">
                       <div className="relative flex-1">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
@@ -4972,7 +4651,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <input type="number" value={agriIncomeMax} onChange={(e) => setAgriIncomeMax(Number(e.target.value))} className="w-full pl-5 pr-2 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Max" />
                       </div>
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasAgricultureLand && (
@@ -4984,17 +4663,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={agriculturalIncomeText || `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`} onChange={(e) => setAgriculturalIncomeText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 10. Other Source Income */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">10. Other source income</label>
+              <Field label="10. Other source income" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <button type="button" onClick={() => setHasOtherIncome(true)} className={`px-3 py-1 text-[10px] font-bold rounded ${hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>Yes</button>
                   <button type="button" onClick={() => setHasOtherIncome(false)} className={`px-3 py-1 text-[10px] font-bold rounded ${!hasOtherIncome ? 'bg-[#eb8a23] text-white' : 'bg-slate-200 text-slate-600'}`}>No</button>
                 </div>
-              </div>
+              </Field>
 
               {!hasOtherIncome ? (
                 <div className="text-xs font-semibold text-slate-500 italic">No other source of income reported.</div>
@@ -5005,25 +4683,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                   {otherIncomeSources.map((inc, idx) => (
                     <div key={inc.id} className="grid grid-cols-1 md:grid-cols-5 gap-2 p-2 border border-slate-200 rounded-lg bg-white items-center">
-                      <select value={inc.source} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].source = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
-                        <option value="Salary">Salary</option>
-                        <option value="Rent">Rent</option>
-                        <option value="Agriculture">Agriculture</option>
-                        <option value="Pension">Pension</option>
-                        <option value="Business">Business</option>
-                        <option value="Investment">Investment</option>
-                        <option value="Other">Other</option>
+                      <select value={inc.source} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'source', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                        {['Salary', 'Rent', 'Agriculture', 'Pension', 'Business', 'Investment', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                       </select>
-                      <select value={inc.frequency} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].frequency = e.target.value; setOtherIncomeSources(arr); }} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
+                      <select value={inc.frequency} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'frequency', e.target.value)} className="px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]">
                         <option value="Monthly">Monthly</option>
                         <option value="Annual">Annual</option>
                       </select>
                       <div className="relative">
                         <span className="absolute left-2 top-2 text-[10px] font-bold text-slate-500">₹</span>
-                        <input type="number" value={inc.amount} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].amount = Number(e.target.value); setOtherIncomeSources(arr); }} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="number" value={inc.amount} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'amount', Number(e.target.value))} placeholder="Amount" className="w-full pl-5 pr-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                       </div>
                       <div className="flex items-center gap-1 col-span-2">
-                        <input type="text" value={inc.remarks} onChange={(e) => { const arr = [...otherIncomeSources]; arr[idx].remarks = e.target.value; setOtherIncomeSources(arr); }} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
+                        <input type="text" value={inc.remarks} onChange={(e) => updateListItem(otherIncomeSources, setOtherIncomeSources, idx, 'remarks', e.target.value)} placeholder="Remarks" className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" />
                         <button onClick={() => { const arr = [...otherIncomeSources]; arr.splice(idx, 1); setOtherIncomeSources(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                       </div>
                     </div>
@@ -5033,23 +4705,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 11. Solar Saving Analysis */}
-            <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-orange-900">11. Solar Saving Analysis</label>
+            <Field label="11. Solar Saving Analysis" labelClassName="block text-xs font-bold text-orange-900" className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Reduction in Operational Cost</label>
+                <Field label="Expected Reduction in Operational Cost" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                   <div className="relative">
                     <input type="number" value={expectedSolarCostReductionPct} onChange={(e) => setExpectedSolarCostReductionPct(Number(e.target.value))} className="w-full pr-7 pl-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Percentage" />
                     <span className="absolute right-3 top-2 text-slate-500 font-bold">%</span>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-orange-700 mb-1">Expected Monthly Saving</label>
+                </Field>
+                <Field label="Expected Monthly Saving" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
                     <input type="number" value={expectedSolarMonthlySaving} onChange={(e) => setExpectedSolarMonthlySaving(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-orange-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white" placeholder="Amount" />
                   </div>
-                </div>
+                </Field>
                 <div className="md:col-span-2 p-3 bg-white border border-orange-200 rounded-lg flex flex-col gap-1">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] uppercase font-bold text-orange-800">Generated Narrative (Editable)</span>
@@ -5058,21 +4727,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <textarea value={solarSavingText || `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`} onChange={(e) => setSolarSavingText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-orange-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
-            </div>
+            </Field>
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700">12. Address of additional business with or without income assessment</label>
-              </div>
+              <Field label="12. Address of additional business with or without income assessment" labelClassName="block text-xs font-bold text-slate-700">
+              </Field>
 
               <div className="space-y-4 mt-3 border-t border-slate-200 pt-3">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Address</label>
+                <Field label="Address" labelClassName={SUB_LABEL}>
                   <textarea value={additionalBusinessAddress} onChange={(e) => setAdditionalBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" rows={2} placeholder="Enter address of additional business" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-2">Income Assessment Details</label>
+                </Field>
+                <Field label="Income Assessment Details" labelClassName="block text-[10px] uppercase font-bold text-slate-500 mb-2">
                   <div className="flex items-center gap-6">
                     <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
                       <input type="radio" name="incomeAssessment" value="With Income Assessment" checked={additionalBusinessIncomeAssessment === 'With Income Assessment'} onChange={(e) => setAdditionalBusinessIncomeAssessment(e.target.value)} className="w-4 h-4 text-[#eb8a23] focus:ring-[#eb8a23]" />
@@ -5083,7 +4749,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       Without Income Assessment
                     </label>
                   </div>
-                </div>
+                </Field>
               </div>
             </div>
 
@@ -5096,8 +4762,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 12. Met Person During Visit Time */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">12. Met Person During Visit Time</label>
+            <Field label="12. Met Person During Visit Time">
               <div className="p-3 bg-slate-100 border border-slate-300 rounded-lg flex justify-between items-center">
                 <div className="text-xs font-semibold text-slate-700">
                   {personsMet.map(p => {
@@ -5113,12 +4778,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
                 <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Participants</button>
               </div>
-            </div>
+            </Field>
 
             {/* 13. Address of the Meeting */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">13. Address of the Meeting</label>
+              <Field label="13. Address of the Meeting" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex gap-2">
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('RESIDENCE');
@@ -5133,15 +4797,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     setMeetingAddress('');
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'OTHER' ? 'bg-blue-600 text-white border-blue-600' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Different Address</button>
                 </div>
-              </div>
+              </Field>
               <div className="grid grid-cols-1 gap-3 opacity-90">
                 <textarea value={meetingAddress} onChange={(e) => setMeetingAddress(e.target.value)} disabled={meetingAddressSource !== 'OTHER'} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold disabled:bg-slate-100" placeholder="Enter complete meeting address" rows={2} />
               </div>
             </div>
 
             {/* 14. Locating Premises Type */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-2">14. Locating Premises Type</label>
+            <Field label="14. Locating Premises Type" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
                 {['Village Area', 'Urban Area', 'Semi-Urban Area', 'Industrial Area', 'Commercial Area', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700 p-2 border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
@@ -5158,11 +4821,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   Generated: The residence premises are located in {locatingPremisesType === 'Other' ? `a ${locatingPremisesTypeOther}` : `a ${locatingPremisesType.toLowerCase()}`}.
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 15. Ownership */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">15. Ownership</label>
+            <Field label="15. Ownership" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex flex-wrap gap-3">
                 {['Self-Owned', 'Rented', 'Leased', 'Family-Owned', 'Other'].map(opt => (
                   <label key={opt} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
@@ -5174,8 +4836,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3">
                 {propertyOwnership === 'Rented' && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Rent</label>
+                  <Field label="Monthly Rent" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={propertyRentAmount} onChange={(e) => {
@@ -5192,89 +4853,72 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         }
                       }} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 )}
                 {propertyOwnership === 'Self-Owned' && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Property Owner Name</label>
+                  <Field label="Property Owner Name" labelClassName={SUB_LABEL}>
                     <div className="flex gap-2">
                       <input type="text" value={propertyOwnerName} onChange={(e) => setPropertyOwnerName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Name" />
                       <button type="button" onClick={() => setPropertyOwnerName(applicantName)} className="text-[10px] whitespace-nowrap bg-slate-200 px-2 py-1 rounded font-bold text-slate-700">Set Applicant</button>
                     </div>
-                  </div>
+                  </Field>
                 )}
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Area (Sq. Ft.)</label>
+                <Field label="Approximate Property Area (Sq. Ft.)" labelClassName={SUB_LABEL}>
                   <input type="number" value={propertyArea} onChange={(e) => setPropertyArea(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Sq. Ft." />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Approximate Property Value</label>
+                </Field>
+                <Field label="Approximate Property Value" labelClassName={SUB_LABEL}>
                   <div className="relative">
                     <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                     <input type="number" value={propertyValue} onChange={(e) => setPropertyValue(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Value" />
                   </div>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Ownership Document Available?</label>
+                </Field>
+                <Field label="Ownership Document Available?" labelClassName={SUB_LABEL}>
                   <select value={propertyOwnershipDoc} onChange={(e) => setPropertyOwnershipDoc(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="Yes">Yes</option>
                     <option value="No">No</option>
                     <option value="Not Provided">Not Provided</option>
                   </select>
-                </div>
+                </Field>
               </div>
-            </div>
+            </Field>
 
             {/* 16. House Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">16. House Details</label>
+            <Field label="16. House Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Floors</label>
+                <Field label="Number of Floors" labelClassName={SUB_LABEL}>
                   <input type="number" value={houseFloors} onChange={(e) => setHouseFloors(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Floors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Number of Rooms</label>
+                </Field>
+                <Field label="Number of Rooms" labelClassName={SUB_LABEL}>
                   <input type="number" value={houseRooms} onChange={(e) => setHouseRooms(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Rooms" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Structure Type</label>
+                </Field>
+                <Field label="Structure Type" labelClassName={SUB_LABEL}>
                   <select value={houseStructureType} onChange={(e) => setHouseStructureType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
-                    <option value="Single Story">Single Story</option>
-                    <option value="Double Story">Double Story</option>
-                    <option value="Multi Story">Multi Story</option>
-                    <option value="Other">Other</option>
+                    {['Single Story', 'Double Story', 'Multi Story', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Floor</label>
+                </Field>
+                <Field label="Floor" labelClassName={SUB_LABEL}>
                   <select value={houseFloorPosition} onChange={(e) => setHouseFloorPosition(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                     <option value="">Select...</option>
-                    <option value="Ground Floor">Ground Floor</option>
-                    <option value="Ground + 1">Ground + 1</option>
-                    <option value="Ground + 2">Ground + 2</option>
-                    <option value="Other">Other</option>
+                    {['Ground Floor', 'Ground + 1', 'Ground + 2', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
-                </div>
+                </Field>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {houseStructureType === 'Other' && <input type="text" value={houseStructureTypeOther} onChange={(e) => setHouseStructureTypeOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Structure Type" />}
                 {houseFloorPosition === 'Other' && <input type="text" value={houseFloorPositionOther} onChange={(e) => setHouseFloorPositionOther(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Floor Position" />}
               </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Additional Details</label>
+              <Field label="Additional Details" labelClassName={SUB_LABEL}>
                 <input type="text" value={houseAdditionalDetails} onChange={(e) => setHouseAdditionalDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional details..." />
-              </div>
+              </Field>
               <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs font-semibold text-blue-800">
                 <span className="font-bold">Generated Summary:</span> {getHouseDetailsSummary()}
               </div>
-            </div>
+            </Field>
 
             {/* 17. Family Background of the Applicant */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">17. Family Background of the Applicant</label>
+            <Field label="17. Family Background of the Applicant">
               <div className="p-4 bg-slate-50 border border-slate-300 rounded-lg">
                 <div className="flex justify-between items-center mb-3">
                   <span className="text-xs font-semibold text-slate-600 italic">This table is automatically generated from the Household data.</span>
@@ -5309,11 +4953,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </table>
                 )}
               </div>
-            </div>
+            </Field>
 
             {/* 18. Monthly Household Expenses */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">18. Monthly Household Expenses</label>
+            <Field label="18. Monthly Household Expenses">
               <div className="relative md:w-1/3">
                 <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                 <input
@@ -5327,11 +4970,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Amount / month"
                 />
               </div>
-            </div>
+            </Field>
 
             {/* 19A. Residence Electricity Connection Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">19A. Residence Electricity Connection Details</label>
+            <Field label="19A. Residence Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
                   <button key={opt} type="button" onClick={() => setHasResElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasResElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
@@ -5340,42 +4982,34 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasResElectricityConnection === 'Yes' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                  <Field label="Connection Type" labelClassName={SUB_LABEL}>
                     <select value={resElectricityConnectionType} onChange={(e) => setResElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Domestic">Domestic</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Agricultural">Agricultural</option>
-                      <option value="Other">Other</option>
+                      {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {resElectricityConnectionType === 'Other' && (
                       <input type="text" value={resElectricityConnectionTypeOther} onChange={(e) => setResElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                  </Field>
+                  <Field label="Supplier Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={resElectricitySupplierName} onChange={(e) => setResElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                  </Field>
+                  <Field label="Consumer Number" labelClassName={SUB_LABEL}>
                     <input type="text" value={resElectricityConsumerNumber} onChange={(e) => setResElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                  </Field>
+                  <Field label="Monthly Expense" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={resElectricityMonthlyExpense} onChange={(e) => setResElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
-            </div>
+            </Field>
 
             {/* 19B. Business Electricity Connection Details */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">19B. Business Electricity Connection Details</label>
+            <Field label="19B. Business Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
                   <button key={opt} type="button" onClick={() => setHasElectricityConnection(opt)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${hasElectricityConnection === opt ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>{opt}</button>
@@ -5384,45 +5018,37 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {hasElectricityConnection === 'Yes' && (
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-3 border-t border-slate-200">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Connection Type</label>
+                  <Field label="Connection Type" labelClassName={SUB_LABEL}>
                     <select value={electricityConnectionType} onChange={(e) => setElectricityConnectionType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Domestic">Domestic</option>
-                      <option value="Commercial">Commercial</option>
-                      <option value="Agricultural">Agricultural</option>
-                      <option value="Other">Other</option>
+                      {['Domestic', 'Commercial', 'Agricultural', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                     {electricityConnectionType === 'Other' && (
                       <input type="text" value={electricityConnectionTypeOther} onChange={(e) => setElectricityConnectionTypeOther(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Specify Type" />
                     )}
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Supplier Name</label>
+                  </Field>
+                  <Field label="Supplier Name" labelClassName={SUB_LABEL}>
                     <input type="text" value={electricitySupplierName} onChange={(e) => setElectricitySupplierName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. BSES, Tata Power" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Consumer Number</label>
+                  </Field>
+                  <Field label="Consumer Number" labelClassName={SUB_LABEL}>
                     <input type="text" value={electricityConsumerNumber} onChange={(e) => setElectricityConsumerNumber(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Optional" />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Monthly Expense</label>
+                  </Field>
+                  <Field label="Monthly Expense" labelClassName={SUB_LABEL}>
                     <div className="relative">
                       <span className="absolute left-3 top-2 text-[10px] font-bold text-slate-500">₹</span>
                       <input type="number" value={electricityMonthlyExpense} onChange={(e) => setElectricityMonthlyExpense(Number(e.target.value))} className="w-full pl-7 pr-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Amount" />
                     </div>
-                  </div>
+                  </Field>
                 </div>
               )}
               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
-            </div>
+            </Field>
 
             {/* 20. Neighbor Name */}
             <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="block text-xs font-bold text-slate-700">20. Neighbor Name</label>
+              <Field label="20. Neighbor Name" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <button type="button" onClick={() => setNeighbors([{ id: Date.now(), name: 'Adjoining neighbors', remark: '' }])} className="text-[10px] bg-slate-100 px-2 py-1 rounded border border-slate-300 font-bold hover:bg-slate-200">No Specific Neighbor Provided</button>
-              </div>
+              </Field>
 
               <div className="space-y-2">
                 <button type="button" onClick={() => setNeighbors([...neighbors, { id: Date.now(), name: '', remark: '' }])} className="flex items-center gap-1 px-3 py-1 bg-slate-100 text-[#2d3e50] border border-slate-300 text-[10px] font-bold rounded hover:bg-slate-200">
@@ -5430,8 +5056,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
                 {neighbors.map((neighbor, idx) => (
                   <div key={neighbor.id} className="flex items-center gap-2">
-                    <input type="text" value={neighbor.name} onChange={(e) => { const arr = [...neighbors]; arr[idx].name = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
-                    <input type="text" value={neighbor.remark} onChange={(e) => { const arr = [...neighbors]; arr[idx].remark = e.target.value; setNeighbors(arr); }} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
+                    <input type="text" value={neighbor.name} onChange={(e) => updateListItem(neighbors, setNeighbors, idx, 'name', e.target.value)} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Neighbor Name" />
+                    <input type="text" value={neighbor.remark} onChange={(e) => updateListItem(neighbors, setNeighbors, idx, 'remark', e.target.value)} className="w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="Relationship / Location" />
                     <button onClick={() => { const arr = [...neighbors]; arr.splice(idx, 1); setNeighbors(arr); }} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                   </div>
                 ))}
@@ -5439,8 +5065,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 21. Neighbor Feedback */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <label className="block text-xs font-bold text-slate-700">21. Neighbor Feedback</label>
+            <Field label="21. Neighbor Feedback" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <span className="text-xs font-semibold text-slate-600">Neighbor Verification Conducted?</span>
                 <button type="button" onClick={() => setNeighborVerificationConducted(true)} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${neighborVerificationConducted ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -5449,25 +5074,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
               {neighborVerificationConducted && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Residence Confirmation</label>
+                  <Field label="Residence Confirmation" labelClassName={SUB_LABEL}>
                     <select value={neighborResidenceConfirmed} onChange={(e) => setNeighborResidenceConfirmed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
                       <option value="Confirmed">Confirmed</option>
                       <option value="Not Confirmed">Not Confirmed</option>
                       <option value="Partially Confirmed">Partially Confirmed</option>
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Behaviour Feedback</label>
+                  </Field>
+                  <Field label="Behaviour Feedback" labelClassName={SUB_LABEL}>
                     <select value={neighborBehaviourFeedback} onChange={(e) => setNeighborBehaviourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23] bg-white">
                       <option value="">Select...</option>
-                      <option value="Positive">Positive</option>
-                      <option value="Neutral">Neutral</option>
-                      <option value="Negative">Negative</option>
-                      <option value="Not Provided">Not Provided</option>
+                      {['Positive', 'Neutral', 'Negative', 'Not Provided'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
+                  </Field>
                   <div className="md:col-span-2 flex items-center gap-4">
                     <span className="text-[10px] uppercase font-bold text-slate-500">Any Negative Information?</span>
                     <button type="button" onClick={() => setNeighborNegativeFeedback(true)} className={`px-3 py-1 text-[10px] font-bold rounded border ${neighborNegativeFeedback ? 'bg-red-500 text-white border-red-500' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -5483,7 +5103,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 </div>
               )}
-            </div>
+            </Field>
 
             {/* 22. Latitude & Longitude */}
             <div>
@@ -5509,8 +5129,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 23. Residence Status */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
-              <label className="block text-xs font-bold text-slate-700">23. Residence Status</label>
+            <Field label="23. Residence Status" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
               <div className="flex flex-wrap gap-2">
                 {['Recommended', 'Not Recommended', 'Recommended subjects to demerits'].map(opt => (
                   <button key={opt} type="button" onClick={() => setResidenceStatus(opt)} className={`px-4 py-2 text-xs font-bold rounded-lg border ${residenceStatus === opt ? (opt === 'Recommended' ? 'bg-green-600 text-white border-green-600' : opt === 'Not Recommended' ? 'bg-red-600 text-white border-red-600' : 'bg-[#eb8a23] text-white border-[#eb8a23]') : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'}`}>
@@ -5521,7 +5140,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {(residenceStatus === 'Not Recommended' || residenceStatus === 'Recommended subjects to demerits') && (
                 <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
               )}
-            </div>
+            </Field>
 
           </div>
           {renderTabNavigationFooter()}
@@ -5561,9 +5180,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       {prominentCustomers.map((cust, idx) => (
                         <tr key={cust.id}>
                           <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].name = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => { const arr = [...prominentCustomers]; arr[idx].feedback = e.target.value; setProminentCustomers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.name} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.phone} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={cust.feedback} onChange={(e) => updateListItem(prominentCustomers, setProminentCustomers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
                           <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentCustomers]; arr.splice(idx, 1); setProminentCustomers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                         </tr>
                       ))}
@@ -5595,9 +5214,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       {prominentSuppliers.map((sup, idx) => (
                         <tr key={sup.id}>
                           <td className="py-2 text-center font-bold text-slate-400">{idx + 1}</td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].name = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].phone = e.target.value.replace(/\D/g, ''); setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
-                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => { const arr = [...prominentSuppliers]; arr[idx].feedback = e.target.value; setProminentSuppliers(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.name} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'name', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Name or 'Not applicable'" /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.phone} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'phone', e.target.value.replace(/\D/g, ''))} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Phone" maxLength={10} /></td>
+                          <td className="py-2 pr-2"><input type="text" value={sup.feedback} onChange={(e) => updateListItem(prominentSuppliers, setProminentSuppliers, idx, 'feedback', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Feedback" /></td>
                           <td className="py-2 text-center"><button onClick={() => { const arr = [...prominentSuppliers]; arr.splice(idx, 1); setProminentSuppliers(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                         </tr>
                       ))}
@@ -5609,45 +5228,35 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {/* Collateral Property Details (Ambit / Abhiyan / MoneyBoxx LAP Specific) */}
               {((selectedClient?.name || '').toLowerCase().includes('ambit') || (selectedClient?.name || '').toLowerCase().includes('abhiyan') || (selectedClient?.name || '').toLowerCase().includes('lap')) && (
                 <div className="pt-6 mt-6 border-t border-slate-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <label className="text-sm font-bold text-slate-700">Include Collateral Property Details?</label>
+                  <Field label="Include Collateral Property Details?" labelClassName="text-sm font-bold text-slate-700" className="flex items-center justify-between mb-4">
                     <div className="flex gap-4 text-xs font-semibold">
                       <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={hasCollateral} onChange={() => setHasCollateral(true)} className="text-[#eb8a23]" /> Yes</label>
                       <label className="flex items-center gap-1 cursor-pointer"><input type="radio" checked={!hasCollateral} onChange={() => setHasCollateral(false)} className="text-[#eb8a23]" /> No</label>
                     </div>
-                  </div>
+                  </Field>
 
                   {hasCollateral && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-700">Collateral Address</label>
+                      <Field label="Collateral Address" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
                         <input type="text" value={collateralAddress} onChange={(e) => setCollateralAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Tajganj Fatehabd Road Agra" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Property Type</label>
+                      </Field>
+                      <Field label="Property Type" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <select value={collateralPropertyType} onChange={(e) => setCollateralPropertyType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
-                          <option value="Residential">Residential</option>
-                          <option value="Commercial">Commercial</option>
-                          <option value="Industrial">Industrial</option>
-                          <option value="Agricultural">Agricultural</option>
+                          {['Residential', 'Commercial', 'Industrial', 'Agricultural'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Approx. Property Area (sq. feet)</label>
+                      </Field>
+                      <Field label="Approx. Property Area (sq. feet)" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralPropertyArea} onChange={(e) => setCollateralPropertyArea(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 800-900" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Property Usage</label>
+                      </Field>
+                      <Field label="Property Usage" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralPropertyUsage} onChange={(e) => setCollateralPropertyUsage(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. This property is used for residential purposes." />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-semibold text-slate-700">Approx Property Valuation</label>
+                      </Field>
+                      <Field label="Approx Property Valuation" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2">
                         <input type="text" value={collateralValuation} onChange={(e) => setCollateralValuation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. 8-10 Lakh" />
-                      </div>
-                      <div className="space-y-2 col-span-1 md:col-span-2">
-                        <label className="text-xs font-semibold text-slate-700">Remarks</label>
+                      </Field>
+                      <Field label="Remarks" labelClassName="text-xs font-semibold text-slate-700" className="space-y-2 col-span-1 md:col-span-2">
                         <textarea value={collateralRemarks} onChange={(e) => setCollateralRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Ownership details, etc." rows={2} />
-                      </div>
+                      </Field>
                     </div>
                   )}
                 </div>
@@ -5678,26 +5287,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <tbody className="divide-y divide-slate-100">
                     {bankingDetails.map((bank, idx) => (
                       <tr key={bank.id}>
-                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].bankName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].branchName = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.bankName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'bankName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. UCO Bank" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.branchName} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'branchName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Branch" /></td>
                         <td className="py-2 pr-2">
-                          <select value={bank.accountType} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountType = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
-                            <option value="Saving Account">Saving Account</option>
-                            <option value="Current Account">Current Account</option>
-                            <option value="OD">OD</option>
-                            <option value="CC">CC</option>
-                            <option value="Other">Other</option>
+                          <select value={bank.accountType} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountType', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23] bg-white">
+                            {['Saving Account', 'Current Account', 'OD', 'CC', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
                         </td>
                         <td className="py-2 pr-2">
-                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].limit = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
+                          <input list="limit-options" type="text" value={bank.limit} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'limit', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Limit or NA" />
                           <datalist id="limit-options">
                             <option value="NA" />
                             <option value="Not Disclosed" />
                           </datalist>
                         </td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].accountNo = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => { const arr = [...bankingDetails]; arr[idx].remark = e.target.value; setBankingDetails(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.accountNo} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'accountNo', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="*******9522" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={bank.remark} onChange={(e) => updateListItem(bankingDetails, setBankingDetails, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Remark" /></td>
                         <td className="py-2 text-center"><button onClick={() => { const arr = [...bankingDetails]; arr.splice(idx, 1); setBankingDetails(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
                     ))}
@@ -5731,64 +5336,45 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <tbody className="divide-y divide-slate-100">
                     {existingLoans.map((loan, idx) => (
                       <tr key={loan.id}>
-                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => { const arr = [...existingLoans]; arr[idx].typeOfLoan = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => { const arr = [...existingLoans]; arr[idx].financerName = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => { const arr = [...existingLoans]; arr[idx].amountInLakhs = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
-                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => { const arr = [...existingLoans]; arr[idx].emi = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].tenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => { const arr = [...existingLoans]; arr[idx].balanceTenure = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
-                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => { const arr = [...existingLoans]; arr[idx].remark = e.target.value; setExistingLoans(arr); }} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.typeOfLoan} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'typeOfLoan', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.financerName} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'financerName', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="NA" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.amountInLakhs} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'amountInLakhs', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="Amount" /></td>
+                        <td className="py-2 pr-2"><input type="number" step="any" value={loan.emi} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'emi', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="EMI" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.tenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'tenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 5, 0" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.balanceTenure} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'balanceTenure', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="e.g. 2, 6" /></td>
+                        <td className="py-2 pr-2"><input type="text" value={loan.remark} onChange={(e) => updateListItem(existingLoans, setExistingLoans, idx, 'remark', e.target.value)} className="w-full px-2 py-1.5 border border-slate-200 rounded focus:ring-1 focus:ring-[#eb8a23]" placeholder="No any existing obligation" /></td>
                         <td className="py-2 text-center"><button onClick={() => { const arr = [...existingLoans]; arr.splice(idx, 1); setExistingLoans(arr); }} className="text-red-400 hover:text-red-600"><Trash2 className="w-4 h-4 mx-auto" /></button></td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-                <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-                  <label className="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap">Current Obligation</label>
+                <Field label="Current Obligation" labelClassName="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap" className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
                   <input type="text" value={currentObligation} onChange={(e) => setCurrentObligation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. No any existing obligation" />
-                </div>
+                </Field>
               </div>
             </div>
 
             {/* D. Co-Applicant Business Details */}
             {coApplicants.length > 0 && (
-              <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
-                <label className="block text-xs font-bold text-slate-700">Business Details of Co-applicants</label>
+              <Field label="Business Details of Co-applicants" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
                 {coApplicants.map((coApp, idx) => (
                   <div key={idx} className="border-t border-slate-200 pt-3 first:border-0 first:pt-0">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-[10px] uppercase font-bold text-slate-500">{coApp.name || `Co-applicant ${idx + 1}`} ({coApp.relation})</span>
                       <div className="flex gap-2">
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Salaried';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Business';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
-                        <button type="button" onClick={() => {
-                          const arr = [...coApplicants];
-                          arr[idx].profession = 'Other';
-                          setCoApplicants(arr);
-                        }} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Salaried')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Salaried' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Salaried</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Business')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Business' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Business</button>
+                        <button type="button" onClick={() => updateListItem(coApplicants, setCoApplicants, idx, 'profession', 'Other')} className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border ${coApp.profession === 'Other' || !coApp.profession ? 'bg-slate-200 text-slate-700 border-slate-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Other / Not involved</button>
                       </div>
                     </div>
                     {coApp.profession === 'Business' && (
-                      <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Details / Role in Business</label>
-                        <textarea value={coApp.businessRole || ''} onChange={(e) => {
-                          const arr = [...coApplicants];
-                          arr[idx].businessRole = e.target.value;
-                          setCoApplicants(arr);
-                        }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
-                      </div>
+                      <Field label="Details / Role in Business" labelClassName={SUB_LABEL}>
+                        <textarea value={coApp.businessRole || ''} onChange={(e) => updateListItem(coApplicants, setCoApplicants, idx, 'businessRole', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="Specify role, shareholding, responsibilities..." rows={2} />
+                      </Field>
                     )}
                   </div>
                 ))}
-              </div>
+              </Field>
             )}
 
             {/* E. Latitude & Longitude Remarks */}
@@ -5813,32 +5399,30 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </button>
               </div>
               <div className="border-t border-slate-200 pt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-[10px] uppercase font-bold text-slate-500">Location Verified by GPS?</label>
+                <Field label="Location Verified by GPS?" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-2">
                   <div className="flex gap-2">
                     <button type="button" onClick={() => { setBusinessLongitudeVerified(true); setBusinessLongitudeRemarks("The location was successfully verified using the provided coordinates."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${businessLongitudeVerified ? 'bg-green-600 text-white border-green-600' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>Yes, Verified</button>
                     <button type="button" onClick={() => { setBusinessLongitudeVerified(false); setBusinessLongitudeRemarks("The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point."); }} className={`px-3 py-1 text-[10px] font-bold rounded border ${!businessLongitudeVerified ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'}`}>No, Navigation Failed</button>
                   </div>
-                </div>
+                </Field>
                 <textarea value={businessLongitudeRemarks} onChange={(e) => setBusinessLongitudeRemarks(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={2} />
               </div>
             </div>
 
 
             {/* G. Business Status */}
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
-              <label className="block text-xs font-bold text-slate-700">Business Status (Recommendation)</label>
+            <Field label="Business Status (Recommendation)" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6">
               <div className="flex flex-wrap gap-2">
-                {['Recommended', 'Not Recommended', 'Recommended subject to demerits'].map(opt => (
+                {caseStatusOptions.map((opt, optIdx) => (
                   <button
                     key={opt}
                     type="button"
                     onClick={() => handleStatusChange(opt)}
                     className={`px-6 py-2.5 text-xs font-bold rounded-lg border ${
-                      (businessStatus === opt || statusOfCase === opt)
-                        ? (opt === 'Recommended'
+                      statusOfCase === opt
+                        ? (optIdx === 0
                             ? 'bg-green-600 text-white border-green-600 shadow-md'
-                            : opt === 'Not Recommended'
+                            : optIdx === 1
                               ? 'bg-red-600 text-white border-red-600 shadow-md'
                               : 'bg-amber-600 text-white border-amber-600 shadow-md')
                         : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
@@ -5848,7 +5432,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                 ))}
               </div>
-            </div>
+            </Field>
 
           </div>
           {renderTabNavigationFooter()}
@@ -5869,8 +5453,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Latitude</label>
+              <Field label="Extracted GPS Latitude">
                 <input
                   type="text"
                   value={exifGpsLat}
@@ -5878,9 +5461,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 26.9124"
                   className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
                 />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Extracted GPS Longitude</label>
+              </Field>
+              <Field label="Extracted GPS Longitude">
                 <input
                   type="text"
                   value={exifGpsLng}
@@ -5888,7 +5470,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. 75.7873"
                   className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
                 />
-              </div>
+              </Field>
             </div>
 
             {['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map((categoryName) => (
@@ -6020,18 +5602,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Firm / Trade Name</label>
+              <Field label="Firm / Trade Name">
                 <input
                   type="text"
                   value={coApplicantBusinessName}
                   onChange={(e) => setCoApplicantBusinessName(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Premises Ownership</label>
+              <Field label="Premises Ownership">
                 <select
                   value={coApplicantBusinessPremiseOwnership}
                   onChange={(e) => setCoApplicantBusinessPremiseOwnership(e.target.value)}
@@ -6043,10 +5623,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="FAMILY">Family / Ancestral Owned</option>
                   <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
                 </select>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Vintage of Business</label>
+              <Field label="Vintage of Business">
                 <input
                   type="text"
                   value={coApplicantBusinessVintage}
@@ -6054,7 +5633,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                   placeholder="e.g. 5 Years"
                 />
-              </div>
+              </Field>
 
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary</label>
@@ -6067,35 +5646,32 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
               
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Number of Staffs</label>
+              <Field label="Number of Staffs">
                 <input
                   type="text"
                   value={coApplicantStaffCount}
                   onChange={(e) => setCoApplicantStaffCount(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Factory / Office Infrastructure</label>
+              <Field label="Factory / Office Infrastructure">
                 <input
                   type="text"
                   value={coApplicantFactoryInfrastructure}
                   onChange={(e) => setCoApplicantFactoryInfrastructure(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Stock Details with Estimated Value</label>
+              <Field label="Stock Details with Estimated Value">
                 <input
                   type="text"
                   value={coApplicantStockDetailsValue}
                   onChange={(e) => setCoApplicantStockDetailsValue(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Fixed & Current Asset Analysis</label>
@@ -6107,55 +5683,50 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Asset Creation Through Business</label>
+              <Field label="Asset Creation Through Business">
                 <input
                   type="text"
                   value={coApplicantAssetCreationThroughBusiness}
                   onChange={(e) => setCoApplicantAssetCreationThroughBusiness(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Business Investment</label>
+              <Field label="Business Investment">
                 <input
                   type="text"
                   value={coApplicantInitialBusinessInvestment}
                   onChange={(e) => setCoApplicantInitialBusinessInvestment(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Agricultural Income Details</label>
+              <Field label="Agricultural Income Details">
                 <input
                   type="text"
                   value={coApplicantAgriculturalIncomeDetails}
                   onChange={(e) => setCoApplicantAgriculturalIncomeDetails(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Other Source Income Details</label>
+              <Field label="Other Source Income Details">
                 <input
                   type="text"
                   value={coApplicantOtherSourceIncomeDetails}
                   onChange={(e) => setCoApplicantOtherSourceIncomeDetails(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Solar Saving Analysis</label>
+              <Field label="Solar Saving Analysis">
                 <input
                   type="text"
                   value={coApplicantOperationalSavingAnalysis}
                   onChange={(e) => setCoApplicantOperationalSavingAnalysis(e.target.value)}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
                 />
-              </div>
+              </Field>
             </div>
           </div>
           {renderTabNavigationFooter()}
@@ -6180,26 +5751,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {selectedClient?.name?.toLowerCase().includes('godrej') && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Tenor Requested</label>
+                <Field label="Tenor Requested">
                   <input type="text" value={tenorRequested} onChange={(e) => setTenorRequested(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Margins Assessed</label>
+                </Field>
+                <Field label="Margins Assessed">
                   <input type="text" value={marginsAssessed} onChange={(e) => setMarginsAssessed(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Customer GST No.</label>
+                </Field>
+                <Field label="Customer GST No.">
                   <input type="text" value={customerGstNo} onChange={(e) => setCustomerGstNo(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                </div>
+                </Field>
               </div>
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-2 mb-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Profit Margin (%)</label>
+              <Field label="Profit Margin (%)">
                 <input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20" />
-              </div>
+              </Field>
             </div>
 
             {/* Live Financial Waterfall Summary Cards */}
@@ -6230,16 +5797,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* Price x Quantity x Days Itemized Income Breakdown */}
-            <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                <div>
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-emerald-600" />
-                    Itemized Income & Goods Revenue ({currentCategory.name})
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-medium">Editable Price × Quantity per Day × Working Days format.</p>
-                </div>
-
+            <ItemizedLinesTable
+              accent="emerald"
+              title={`Itemized Income & Goods Revenue (${currentCategory.name})`}
+              subtitle="Editable Price × Quantity per Day × Working Days format."
+              headerRight={
                 <div className="flex items-center gap-2">
                   <div className="text-xs font-extrabold px-3 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg">
                     Itemized Total: ₹{itemizedMonthlyIncomeTotal.toLocaleString('en-IN')} / mo
@@ -6251,273 +5813,38 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     Sync to Stated Turnover
                   </button>
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-2.5">Item / Particulars</th>
-                      <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5">Unit</th>
-                      <th className="p-2.5 text-right">Qty</th>
-                      <th className="p-2.5 text-right">Price (₹)</th>
-                      <th className="p-2.5 text-right">Days/Mo</th>
-                      <th className="p-2.5 text-right">Monthly (₹)</th>
-                      <th className="p-2.5 text-right">Yearly (₹)</th>
-                      <th className="p-2.5 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {incomeLines.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
-                          No itemized product lines added yet. Click &quot;+ Add Income Item Line&quot; to specify itemized quantities and rates, or use the Stated Monthly Sales Turnover below.
-                        </td>
-                      </tr>
-                    ) : (
-                      incomeLines.map((line) => {
-                      const monthlyLineTotal = line.monthlyAmount || 0;
-                      return (
-                        <tr key={line.id} className="hover:bg-slate-50">
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.particulars}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'particulars', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.businessNotes || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'businessNotes', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                              placeholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <select
-                              value={line.unit || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'unit', e.target.value)}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                            >
-                              <option value="">Select...</option>
-                              <option value="Litre">Litre</option>
-                              <option value="Kg">Kg</option>
-                              <option value="Piece">Piece</option>
-                              <option value="Box">Box</option>
-                              <option value="Dozen">Dozen</option>
-                              <option value="Quintal">Quintal</option>
-                              <option value="Ton">Ton</option>
-                            </select>
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.quantity || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'quantity', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.price || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'price', Number(e.target.value))}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.workingDays || ''}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'workingDays', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.monthlyAmount || 0}
-                              onChange={(e) => handleUpdateIncomeLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-emerald-700"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
-                            ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleRemoveIncomeLine(line.id)}
-                              className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
-                              title="Delete Item Line"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    }))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-between items-center pt-1">
-                <button
-                  onClick={handleAddIncomeLine}
-                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Income Item Line
-                </button>
-                <div className="text-xs font-bold text-slate-500">
-                  Direct Monthly Basis
-                </div>
-              </div>
-            </div>
+              }
+              firstColumnLabel="Item / Particulars"
+              emptyMessage={<>No itemized product lines added yet. Click &quot;+ Add Income Item Line&quot; to specify itemized quantities and rates, or use the Stated Monthly Sales Turnover below.</>}
+              notesPlaceholder="e.g. 8 Quintal x 100 Kg x ₹1.60 x 28 Days"
+              deleteTitle="Delete Item Line"
+              addLabel="Add Income Item Line"
+              lines={incomeLines}
+              onUpdate={handleUpdateIncomeLine}
+              onRemove={handleRemoveIncomeLine}
+              onAdd={handleAddIncomeLine}
+            />
 
             {/* Direct Monthly Expenditure Breakdown */}
-            <div className="border border-slate-200 rounded-xl p-5 bg-slate-50/50 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-3">
-                <div>
-                  <h4 className="text-xs font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-rose-600" />
-                    Itemized Operating Expenditures & Direct Costs ({currentCategory.name})
-                  </h4>
-                  <p className="text-[11px] text-slate-500 font-medium">Direct Monthly Basis format.</p>
-                </div>
-
+            <ItemizedLinesTable
+              accent="rose"
+              title={`Itemized Operating Expenditures & Direct Costs (${currentCategory.name})`}
+              subtitle="Direct Monthly Basis format."
+              headerRight={
                 <div className="text-xs font-extrabold px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg">
                   Itemized Expense Total: ₹{itemizedMonthlyExpenseTotal.toLocaleString('en-IN')} / mo
                 </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-200/70 text-slate-700 font-extrabold uppercase tracking-wider">
-                    <tr>
-                      <th className="p-2.5">Expenditure / Cost Line</th>
-                      <th className="p-2.5">Business Notes</th>
-                      <th className="p-2.5">Unit</th>
-                      <th className="p-2.5 text-right">Qty</th>
-                      <th className="p-2.5 text-right">Price (₹)</th>
-                      <th className="p-2.5 text-right">Days/Mo</th>
-                      <th className="p-2.5 text-right">Monthly (₹)</th>
-                      <th className="p-2.5 text-right">Yearly (₹)</th>
-                      <th className="p-2.5 text-center">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white font-medium">
-                    {expenseLines.length === 0 ? (
-                      <tr>
-                        <td colSpan={9} className="p-6 text-center text-slate-400 italic bg-slate-50/50">
-                          No custom expense lines added. Standard operating expenses (COGS, Salaries, Rent, Utilities, etc.) configured below will be included in the assessment.
-                        </td>
-                      </tr>
-                    ) : (
-                      expenseLines.map((line) => {
-                      const monthlyLineTotal = line.monthlyAmount || 0;
-                      return (
-                        <tr key={line.id} className="hover:bg-slate-50">
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.particulars}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'particulars', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs font-bold text-[#2d3e50]"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <input
-                              type="text"
-                              value={line.businessNotes || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'businessNotes', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                              placeholder="e.g. Estimated based on usage"
-                            />
-                          </td>
-                          <td className="p-2">
-                            <select
-                              value={line.unit || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'unit', e.target.value)}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-slate-600"
-                            >
-                              <option value="">Select...</option>
-                              <option value="Litre">Litre</option>
-                              <option value="Kg">Kg</option>
-                              <option value="Piece">Piece</option>
-                              <option value="Box">Box</option>
-                              <option value="Dozen">Dozen</option>
-                              <option value="Quintal">Quintal</option>
-                              <option value="Ton">Ton</option>
-                            </select>
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.quantity || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'quantity', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.price || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'price', Number(e.target.value))}
-                              className="w-20 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.workingDays || ''}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'workingDays', Number(e.target.value))}
-                              className="w-16 px-2 py-1 border border-slate-300 rounded text-xs text-right"
-                            />
-                          </td>
-                          <td className="p-2 text-right">
-                            <input
-                              type="number"
-                              value={line.monthlyAmount || 0}
-                              onChange={(e) => handleUpdateExpenseLine(line.id, 'monthlyAmount', Number(e.target.value))}
-                              className="w-24 px-2 py-1 border border-slate-300 rounded text-xs text-right font-black text-rose-700"
-                            />
-                          </td>
-                          <td className="p-2 text-right font-bold text-slate-600 whitespace-nowrap">
-                            ₹{(monthlyLineTotal * 12).toLocaleString('en-IN')}
-                          </td>
-                          <td className="p-2 text-center">
-                            <button
-                              onClick={() => handleRemoveExpenseLine(line.id)}
-                              className="p-1 text-rose-500 hover:text-rose-700 rounded transition"
-                              title="Delete Expense Line"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    }))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex justify-between items-center pt-1">
-                <button
-                  onClick={handleAddExpenseLine}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Add Expenditure Line
-                </button>
-                <div className="text-xs font-bold text-slate-500">
-                  Direct Monthly Basis
-                </div>
-              </div>
-            </div>
+              }
+              firstColumnLabel="Expenditure / Cost Line"
+              emptyMessage="No custom expense lines added. Standard operating expenses (COGS, Salaries, Rent, Utilities, etc.) configured below will be included in the assessment."
+              notesPlaceholder="e.g. Estimated based on usage"
+              deleteTitle="Delete Expense Line"
+              addLabel="Add Expenditure Line"
+              lines={expenseLines}
+              onUpdate={handleUpdateExpenseLine}
+              onRemove={handleRemoveExpenseLine}
+              onAdd={handleAddExpenseLine}
+            />
 
             {/* Assessment of the monthly income of the co-applicant */}
             {hasCoAppInBusiness && (
@@ -6710,8 +6037,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
                 {/* Direct Quick Inputs for Co-applicant */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Stated Monthly Turnover (₹)</label>
+                  <Field label="Co-App Stated Monthly Turnover (₹)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6719,9 +6045,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppStatedMonthlySales(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-bold text-indigo-900"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Staff Salaries (₹/mo)</label>
+                  </Field>
+                  <Field label="Co-App Staff Salaries (₹/mo)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6729,9 +6054,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppSalariesExpense(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
                     />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Premises Rent (₹/mo)</label>
+                  </Field>
+                  <Field label="Co-App Premises Rent (₹/mo)" labelClassName="block text-[11px] font-bold text-slate-700 mb-1">
                     <input
                       type="number"
                       min="0"
@@ -6739,7 +6063,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       onChange={e => { const v = Number(e.target.value); if (v >= 0) setCoAppRentExpense(v); }}
                       className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded-lg font-semibold"
                     />
-                  </div>
+                  </Field>
                   <div>
                     <label className="block text-[11px] font-bold text-slate-700 mb-1">Co-App Utilities & Misc (₹/mo)</label>
                     <input
@@ -6756,8 +6080,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* Waterfall Input Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Stated Monthly Sales Turnover (₹)</label>
+              <Field label="Stated Monthly Sales Turnover (₹)">
                 <input
                   type="number"
                   min="0"
@@ -6765,7 +6088,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setStatedMonthlySales(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">COGS / Stock Purchase % ({cogsMarginPct}%)</label>
@@ -6792,8 +6115,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Staff Salaries (₹/mo)</label>
+              <Field label="Staff Salaries (₹/mo)">
                 <input
                   type="number"
                   min="0"
@@ -6801,7 +6123,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setSalariesExpense(v); }}
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
-              </div>
+              </Field>
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Power & Utilities (₹/mo)</label>
@@ -6814,8 +6136,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Household Expenses (₹/mo)</label>
+              <Field label="Household Expenses (₹/mo)">
                 <div className="space-y-2">
                   <input
                     type="number"
@@ -6832,10 +6153,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                   />
                 </div>
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Existing EMI Notes (Report Override)</label>
+              <Field label="Existing EMI Notes (Report Override)">
                 <div className="text-[10px] text-blue-600 font-semibold mb-1">Auto-calculated: {generatedExistingEmiNotes}</div>
                 <input
                   type="text"
@@ -6844,10 +6164,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Leave blank to use auto-calculated notes above"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
-              </div>
+              </Field>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Comfortable EMI Notes (Report Override)</label>
+              <Field label="Comfortable EMI Notes (Report Override)">
                 <input
                   type="text"
                   value={comfortableEmiNotes}
@@ -6855,7 +6174,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="e.g. Post all expenses As per Moneyboxx"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
-              </div>
+              </Field>
             </div>
 
             {/* LIVE FINANCIAL RATIOS CARD */}
@@ -6962,7 +6281,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* Manager Override Section */}
-            {currentUser?.role !== 'EMPLOYEE' && (
+            {isManagement && (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -7109,28 +6428,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               <div className="p-6 overflow-y-auto">
                 <h4 className="text-sm font-bold text-slate-800 mb-4">Add Custom Category & Map Products</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Category Name *</label>
+                  <Field label="Category Name *">
                     <input type="text" value={newCatName} onChange={(e) => setNewCatName(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Mobile Repair Shop" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Industry Group</label>
+                  </Field>
+                  <Field label="Industry Group">
                     <select value={newCatIndustry} onChange={(e) => setNewCatIndustry(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]">
-                      <option value="Retail">Retail</option>
-                      <option value="Services">Services</option>
-                      <option value="Manufacturing">Manufacturing</option>
-                      <option value="Wholesale">Wholesale</option>
-                      <option value="Other">Other</option>
+                      {['Retail', 'Services', 'Manufacturing', 'Wholesale', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Typical Margin Min (%)</label>
+                  </Field>
+                  <Field label="Typical Margin Min (%)">
                     <input type="number" value={newCatMarginMin} onChange={(e) => setNewCatMarginMin(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Typical Margin Max (%)</label>
+                  </Field>
+                  <Field label="Typical Margin Max (%)">
                     <input type="number" value={newCatMarginMax} onChange={(e) => setNewCatMarginMax(Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" />
-                  </div>
+                  </Field>
                 </div>
 
                 <div className="border border-slate-200 rounded-xl overflow-hidden mb-4">
@@ -7154,11 +6465,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                       <tbody className="divide-y divide-slate-200">
                         {newProducts.map((p, idx) => (
                           <tr key={p.id}>
-                            <td className="p-2"><input type="text" value={p.productName} onChange={(e) => { const arr = [...newProducts]; arr[idx].productName = e.target.value; setNewProducts(arr); }} className="w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. Repairs" /></td>
-                            <td className="p-2"><input type="number" value={p.revenueContributionPct} onChange={(e) => { const arr = [...newProducts]; arr[idx].revenueContributionPct = Number(e.target.value); setNewProducts(arr); }} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
-                            <td className="p-2"><input type="number" value={p.averageMarginPct} onChange={(e) => { const arr = [...newProducts]; arr[idx].averageMarginPct = Number(e.target.value); setNewProducts(arr); }} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
+                            <td className="p-2"><input type="text" value={p.productName} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'productName', e.target.value)} className="w-full border border-slate-300 rounded px-2 py-1" placeholder="e.g. Repairs" /></td>
+                            <td className="p-2"><input type="number" value={p.revenueContributionPct} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'revenueContributionPct', Number(e.target.value))} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
+                            <td className="p-2"><input type="number" value={p.averageMarginPct} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'averageMarginPct', Number(e.target.value))} className="w-16 border border-slate-300 rounded px-2 py-1" /></td>
                             <td className="p-2">
-                              <select value={p.inventoryType} onChange={(e) => { const arr = [...newProducts]; arr[idx].inventoryType = e.target.value as any; setNewProducts(arr); }} className="border border-slate-300 rounded px-2 py-1">
+                              <select value={p.inventoryType} onChange={(e) => updateListItem(newProducts, setNewProducts, idx, 'inventoryType', e.target.value as any)} className="border border-slate-300 rounded px-2 py-1">
                                 <option value="FAST_MOVING">Fast Moving</option>
                                 <option value="SLOW_MOVING">Slow Moving</option>
                                 <option value="PERISHABLE">Perishable</option>
@@ -7309,7 +6620,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
 
                 {/* Admin Danger Delete All Button */}
-                {currentUser?.role !== 'EMPLOYEE' && galleryApplications.length > 0 && (
+                {isAdmin && galleryApplications.length > 0 && (
                   <button
                     onClick={async () => {
                       if (!window.confirm(`⚠️ DANGER: This will permanently delete ALL ${galleryApplications.length} applicants from the database across ALL clients. This action cannot be undone.\n\nAre you absolutely sure?`)) return;
@@ -7333,6 +6644,38 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </button>
                 )}
               </div>
+
+              {/* PD Reports Prepared per Employee (Manager / Admin only) */}
+              {isManagement && preparedByCounts.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                  <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-slate-500 mr-1">
+                    <Users className="w-3.5 h-3.5" /> PD Reports by Employee:
+                  </span>
+                  <button
+                    onClick={() => setGalleryPreparedByFilter('ALL')}
+                    className={`px-2.5 py-1 rounded-lg border font-bold transition ${
+                      galleryPreparedByFilter === 'ALL'
+                        ? 'bg-[#384c5e] text-white border-[#384c5e]'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                    }`}
+                  >
+                    Everyone ({applicantsList.length})
+                  </button>
+                  {preparedByCounts.map(([name, count]) => (
+                    <button
+                      key={name}
+                      onClick={() => setGalleryPreparedByFilter(galleryPreparedByFilter === name ? 'ALL' : name)}
+                      className={`px-2.5 py-1 rounded-lg border font-bold transition ${
+                        galleryPreparedByFilter === name
+                          ? 'bg-[#eb8a23] text-white border-[#eb8a23]'
+                          : 'bg-white text-[#2d3e50] border-slate-300 hover:border-[#eb8a23]'
+                      }`}
+                    >
+                      {name} <span className="font-black">{count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Application Cards Grid */}
@@ -7399,6 +6742,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         <h4 className="text-sm font-black text-[#2d3e50]">{app.applicantName}</h4>
                         <p className="text-xs font-bold text-slate-600">{app.firmName}</p>
                         <p className="text-[11px] text-slate-500 font-medium">{app.categoryName} • {app.constitution}</p>
+                        <p className="text-[11px] text-slate-500 font-medium flex items-center gap-1 mt-0.5">
+                          <UserCheck className="w-3 h-3 text-[#eb8a23]" />
+                          Prepared by: <span className="font-bold text-[#2d3e50]">{app.preparedBy || UNRECORDED_PREPARER}</span>
+                        </p>
                       </div>
 
                       <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1">
@@ -7430,7 +6777,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                         Load {app.applicantName ? app.applicantName : `App #${app.applicationNumber}`}
                       </button>
 
-                      {currentUser?.role !== 'EMPLOYEE' && (
+                      {isManagement && (
                         <div className="flex items-center gap-1.5">
                           {isClosed ? (
                             <button

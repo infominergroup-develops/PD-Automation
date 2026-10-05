@@ -3,6 +3,8 @@ import { UserRole } from '../types';
 import { api, EmployeeRecord } from '../services/api';
 import { Users, UserPlus, Shield, Trash2, Edit3, Search, RefreshCw, CheckCircle, XCircle, Building, AlertCircle, Plus, BadgeCheck } from 'lucide-react';
 
+const MIN_PASSWORD_LENGTH = 8;
+
 interface EmployeeManagementViewProps {
   currentRole: UserRole;
   currentUserId?: string;
@@ -21,10 +23,11 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
   // Form fields
   const [formName, setFormName] = useState('');
   const [formEmail, setFormEmail] = useState('');
-  const [formRole, setFormRole] = useState<UserRole>('FIELD_OFFICER');
+  const [formRole, setFormRole] = useState<UserRole>('EMPLOYEE');
   const [formDesignation, setFormDesignation] = useState('');
   const [formAgency, setFormAgency] = useState('Axis Bank Micro Lending');
   const [formStatus, setFormStatus] = useState<'ACTIVE' | 'INACTIVE'>('ACTIVE');
+  const [formPassword, setFormPassword] = useState('');
 
   const [isSaving, setIsSaving] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -49,10 +52,11 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
     setEditingEmp(null);
     setFormName('');
     setFormEmail('');
-    setFormRole('FIELD_OFFICER');
+    setFormRole('EMPLOYEE');
     setFormDesignation('Infominer Field Inspection Specialist');
     setFormAgency('Axis Bank Infominer Division');
     setFormStatus('ACTIVE');
+    setFormPassword('');
     setIsModalOpen(true);
   };
 
@@ -64,6 +68,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
     setFormDesignation(emp.designation || '');
     setFormAgency(emp.agency || 'Axis Bank Micro Lending');
     setFormStatus(emp.status || 'ACTIVE');
+    setFormPassword('');
     setIsModalOpen(true);
   };
 
@@ -71,6 +76,14 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
     e.preventDefault();
     if (!formName.trim() || !formEmail.trim() || !formDesignation.trim()) {
       setActionFeedback({ type: 'error', message: 'Name, email, and designation are required.' });
+      return;
+    }
+    if (!editingEmp && !formPassword) {
+      setActionFeedback({ type: 'error', message: 'Set an initial password for the new employee.' });
+      return;
+    }
+    if (formPassword && formPassword.length < MIN_PASSWORD_LENGTH) {
+      setActionFeedback({ type: 'error', message: `Password must be at least ${MIN_PASSWORD_LENGTH} characters.` });
       return;
     }
     setIsSaving(true);
@@ -83,7 +96,8 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
         role: formRole,
         designation: formDesignation,
         agency: formAgency,
-        status: formStatus
+        status: formStatus,
+        ...(formPassword ? { password: formPassword } : {})
       });
       setIsModalOpen(false);
       setActionFeedback({
@@ -281,7 +295,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {['ADMIN', 'MANAGER'].includes(currentRole) && (
+                          {(currentRole === 'ADMIN' || (currentRole === 'MANAGER' && emp.role !== 'ADMIN')) && (
                             <button
                               onClick={() => handleOpenEditModal(emp)}
                               className="p-1.5 hover:bg-slate-100 text-slate-600 hover:text-blue-600 rounded transition"
@@ -290,7 +304,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
                               <Edit3 className="w-4 h-4" />
                             </button>
                           )}
-                          {currentRole === 'ADMIN' && (
+                          {currentRole === 'ADMIN' && emp.id !== currentUserId && (
                             <button
                               onClick={() => handleDeleteEmployee(emp)}
                               className="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition"
@@ -352,6 +366,22 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  {editingEmp ? 'Reset Password' : 'Initial Password *'}
+                </label>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  required={!editingEmp}
+                  minLength={MIN_PASSWORD_LENGTH}
+                  value={formPassword}
+                  onChange={(e) => setFormPassword(e.target.value)}
+                  placeholder={editingEmp ? 'Leave blank to keep the current password' : `At least ${MIN_PASSWORD_LENGTH} characters`}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23]"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">System Role *</label>
@@ -361,7 +391,7 @@ export const EmployeeManagementView: React.FC<EmployeeManagementViewProps> = ({ 
                     disabled={!['ADMIN', 'MANAGER'].includes(currentRole)}
                     className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#eb8a23] font-bold text-slate-800 disabled:bg-slate-50 disabled:text-slate-500"
                   >
-                    <option value="ADMIN">Admin</option>
+                    {currentRole === 'ADMIN' && <option value="ADMIN">Admin</option>}
                     <option value="MANAGER">Manager</option>
                     <option value="EMPLOYEE">Employee</option>
                   </select>

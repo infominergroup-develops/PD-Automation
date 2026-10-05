@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ClientBank, TemplateFieldSchema } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { InfominerLogo } from './InfominerLogo';
-import { api } from '../services/api';
+import { api, authFetch } from '../services/api';
 import { Building2, ArrowRight, ShieldCheck, CheckCircle2, Sparkles, Building, Layers } from 'lucide-react';
 import { EmployeeRecord } from '../services/api';
 
@@ -74,7 +74,7 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
         try {
           const formData = new FormData();
           formData.append('file', file);
-          const response = await fetch('/api/parse-excel-template', {
+          const response = await authFetch('/api/parse-excel-template', {
             method: 'POST',
             body: formData
           });

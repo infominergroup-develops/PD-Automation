@@ -3,6 +3,15 @@ import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReport
 import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
+  return generateCapitalPDReportHTML(data, 'Abhiyan');
+}
+
+export function generateAmbitPDReportHTML(data: PDReportPrintData): string {
+  return generateCapitalPDReportHTML(data, 'Ambit');
+}
+
+// Shared layout for Abhiyan and Ambit; only the lender name differs.
+function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string): string {
   const appNo = (data as any).applicationNumber || 'Not Provided';
   const reportDate = (data as any).reportDate || (data as any).visitDate || '-';
   const visitDate = (data as any).visitDate || reportDate || '-';
@@ -175,7 +184,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
 <html>
 <head>
   <meta charset="utf-8">
-  <title>Abhiyan Capital Private Limited - ${appNo}</title>
+  <title>${lenderName} Capital Private Limited - ${appNo}</title>
   <style>
     @page { size: A4; margin: 10mm 10mm 10mm 10mm; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 9pt; color: #000; background-color: #fff; margin: 0; padding: 0; line-height: 1.35; }
@@ -196,7 +205,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
   ${getUniversalCoverPageHTML((data as any), appNo, reportDate, caseStatus, coverLogo)}
   <table>
     <tr>
-      <td colspan="2" style="width: 60%;" class="bold">To,<br/>Abhiyan Capital Private Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${(data as any).applicantName || 'Applicant'}</td>
+      <td colspan="2" style="width: 60%;" class="bold">To,<br/>${lenderName} Capital Private Limited<br/><br/>Dear Sir/Madam,<br/><br/>Sub: Income Assesment of ${(data as any).applicantName || 'Applicant'}</td>
       <td colspan="2" style="width: 40%; vertical-align: top;">
         <table style="margin-bottom: 0; border: none; height: 100%;">
           <tr>
@@ -740,7 +749,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
     <tr class="bold text-center">
       <td class="text-left">Comfortable Monthly EMI</td>
       <td>${data.comfortableEmiNotes?.trim() || 'Comfortable Monthly EMI Post all expenses (Business and Household):-'}</td>
-      <td colspan="2">As per Abhiyan Capital</td>
+      <td colspan="2">As per ${lenderName} Capital</td>
     </tr>
   </table>
 
@@ -804,7 +813,7 @@ export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
         <span class="bold">Limitation and Disclaimer clause: -</span><br/>
         This report is prepared exclusively for the internal risk assessment purposes of the recipient institution. The findings are based on limited field verification, comprising site visits, on-ground observations, and verbal interactions with personnel available at the time of visit, and reflect conditions as observed at that point in time only. Document-related inputs are based solely on information shared during field interactions and do not constitute independent authentication or forensic validation by any issuing or competent authority. This report does not constitute an audit, legal investigation, or forensic activity and shall not be treated as legal evidence or relied upon by any external party, including law enforcement agencies, courts, or regulatory bodies. Any reliance placed on this report shall be strictly at the sole risk of the recipient. The issuing entity expressly disclaims all consequences, direct or indirect, arising from such reliance.<br/><br/>
         <span class="bold">Important Notes:</span><br/>
-        Actual Profit and Loss figures were not made available by "Abhiyan Capital Private Limited" hence only estimated figures are captured as per the information and understanding provided by the applicant during visit.<br/><br/><br/><br/><br/>
+        Actual Profit and Loss figures were not made available by "${lenderName} Capital Private Limited" hence only estimated figures are captured as per the information and understanding provided by the applicant during visit.<br/><br/><br/><br/><br/>
         <span class="bold">(Sign of Agency authorized signatory)</span>
       </td>
     </tr>

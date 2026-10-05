@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import { MongoClient } from 'mongodb';
 import { CLIENT_BANKS } from './src/data/clientBanksData';
 
-const uri = "mongodb+srv://infominergroupdev_db_user:ah9lwaTpGOM3mKja@cluster0.ea2qhi2.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI!;
 
 async function seedDatabase() {
   const client = new MongoClient(uri);

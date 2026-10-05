@@ -161,6 +161,7 @@ export interface PDReportPrintData {
   metPersonIdProof?: string;
   personMetQualification?: string;
   executiveName?: string;
+  reportedBy?: string; // platform user who generated the report
 
   // Residence & Business Details
   locatingPremisesType?: string;
@@ -408,11 +409,9 @@ export interface PDReportPrintData {
 import { generateStandardPDReportHTML } from './templates/standardTemplate';
 import { generateMoneyboxxPDReportHTML } from './templates/moneyboxxTemplate';
 import { generateMoneyboxxLapPDReportHTML } from './templates/moneyboxxLapTemplate';
-import { generateSbfcPDReportHTML } from './templates/sbfcTemplate';
+import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from './templates/sbfcTemplate';
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
-import { generateTataCapitalPDReportHTML } from './templates/tataCapitalTemplate';
-import { generateAbhiyanPDReportHTML } from './templates/abhiyanTemplate';
-import { generateAmbitPDReportHTML } from './templates/ambitTemplate';
+import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from './templates/abhiyanTemplate';
 
 export {
   generateStandardPDReportHTML,
@@ -456,26 +455,6 @@ export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
     return;
   }
   openPDReportPrintWindow(generateStandardPDReportHTML(data), data.applicationNumber || 'Standard');
-}
-
-export function openMoneyboxxLapPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
-}
-
-export function openMoneyboxxPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateMoneyboxxPDReportHTML(data), data.applicationNumber || 'Moneyboxx');
-}
-
-export function openSbfcPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateSbfcPDReportHTML(data), data.applicationNumber || 'SBFC');
-}
-
-export function openGodrejPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateGodrejPDReportHTML(data), data.applicationNumber || 'Godrej');
-}
-
-export function openTataCapitalPDReportPrintWindow(data: PDReportPrintData) {
-  openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
 }
 
 export function openPDReportPrintWindow(htmlContent: string, windowName: string) {

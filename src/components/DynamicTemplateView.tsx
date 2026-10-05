@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ClientBank, TemplateFieldSchema } from '../data/clientBanksData';
+import { authFetch } from '../services/api';
 import { Download, FileSpreadsheet, Calculator } from 'lucide-react';
 
 interface DynamicTemplateViewProps {
@@ -74,7 +75,7 @@ export const DynamicTemplateView: React.FC<DynamicTemplateViewProps> = ({ client
         formData: formData
       };
 
-      const response = await fetch(`/api/clients/${client.id}/applicants`, {
+      const response = await authFetch(`/api/clients/${client.id}/applicants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -93,7 +94,7 @@ export const DynamicTemplateView: React.FC<DynamicTemplateViewProps> = ({ client
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/generate-excel-report', {
+      const response = await authFetch('/api/generate-excel-report', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
