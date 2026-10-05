@@ -7,7 +7,7 @@ import { api, authFetch, EmployeeRecord } from '../services/api';
 import { ClientBank } from '../data/clientBanksData';
 import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FinancialWaterfall, FamilyMember } from '../types';
-import { openStandardPDReportPrintWindow, PDReportPrintData } from '../utils/pdReportPrinter';
+import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
   Store, User, DollarSign, Camera, FileCheck, Sparkles, CheckCircle2,
@@ -80,12 +80,6 @@ const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended 
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
 const getCaseStatusOptions = (clientId?: string) =>
   POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
-
-// Form rows store the remark as `feedback`; report templates read `remark`
-const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
-  rows
-    .filter(row => row.name?.trim())
-    .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
 
 // Gallery label for legacy applicants saved before the preparing employee was recorded
 const UNRECORDED_PREPARER = 'Not recorded';
@@ -422,7 +416,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
       let primaryApplicantInfo = null;
       let provider = 'CRIF';
-      let flags: string[] = [];
+      const flags: string[] = [];
 
       for (const file of creditReportFiles) {
         const text = await extractTextFromPdfFile(file);

@@ -32,7 +32,7 @@ export const ClientSelectionView: React.FC<ClientSelectionViewProps> = ({
 
   useEffect(() => {
     api.getClients().then(fetchedClients => {
-      let finalClients = [...fetchedClients];
+      const finalClients = [...fetchedClients];
       if (currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER') {
         finalClients.push({
           id: 'custom',

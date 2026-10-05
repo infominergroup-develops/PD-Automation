@@ -1,4 +1,4 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
@@ -367,7 +367,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${(data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : ((data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
+      <td colspan="5">${isProvided((data as any).residenceElectricityDetails) ? (data as any).residenceElectricityDetails : (isProvided((data as any).businessElectricityDetails) ? (data as any).businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
     </tr>
     
     <tr>
@@ -408,7 +408,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
           const resElec = String((data as any).residenceElectricityDetails || '');
           const busElec = String((data as any).businessElectricityDetails || '');
           const isNotProvided = resElec.toLowerCase().includes('not provided') && busElec.toLowerCase().includes('not provided');
-          let p3 = `During the visit, the electricity bill was ${isNotProvided ? 'not provided' : 'checked'}.`;
+          const p3 = `During the visit, the electricity bill was ${isNotProvided ? 'not provided' : 'checked'}.`;
 
           return '<div style="text-align: justify; padding: 5px;">' + p1 + '<br/><br/>' + p2 + '<br/><br/>' + p3 + '<br/><br/><span style="color: gray;">(All the above details are confirm verbally)</span></div>';
         })()}
@@ -619,7 +619,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="2">${(data as any).businessElectricityDetails !== 'Not provided' ? (data as any).businessElectricityDetails : ((data as any).residenceElectricityDetails !== 'Not provided' ? (data as any).residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
+      <td colspan="2">${isProvided((data as any).businessElectricityDetails) ? (data as any).businessElectricityDetails : (isProvided((data as any).residenceElectricityDetails) ? (data as any).residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>

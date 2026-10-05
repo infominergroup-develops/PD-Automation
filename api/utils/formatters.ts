@@ -21,8 +21,8 @@ export function parseNumericValue(value: unknown): number | null {
   if (typeof value === 'number') return isNaN(value) ? null : value;
   
   if (typeof value === 'string') {
-    // Remove ₹, commas, INR, spaces, quotes
-    const cleaned = value.replace(/[₹,INR\s"']/gi, '').trim();
+    // Remove currency markers (₹, INR, Rs.), thousands separators, spaces and quotes
+    const cleaned = value.replace(/₹|INR|Rs\.?|[,\s"']/gi, '').trim();
     if (cleaned === '' || cleaned === '-' || cleaned.toLowerCase() === 'na' || cleaned.toLowerCase() === 'null') {
       return null;
     }

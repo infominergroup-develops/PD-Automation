@@ -4,6 +4,16 @@
 import { coverLogoBase64 as coverLogo } from '../images/logoBase64';
 
 
+/** True when a report field holds real content rather than being empty or the "Not provided" placeholder. */
+export const isProvided = (value: unknown): value is string =>
+  typeof value === 'string' && value.trim() !== '' && value !== 'Not provided';
+
+/** Customer / supplier form rows → report rows. The form stores the remark as `feedback`; templates read `remark`. */
+export const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
+  rows
+    .filter(row => row.name?.trim())
+    .map(row => ({ name: row.name!, phone: row.phone || '', remark: row.feedback || row.remark || '' }));
+
 export function getUniversalCoverPageCSS(): string {
   return `
     .exec-page { position: relative; background: #ffffff; padding: 25px 35px 80px 35px; page-break-after: always; min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start; box-sizing: border-box; overflow: visible; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }

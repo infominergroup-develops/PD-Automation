@@ -1,4 +1,4 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 import { coverLogoBase64 as coverLogo } from '../../images/logoBase64';
 
@@ -257,7 +257,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
     </tr>
     <tr>
       <td class="bg-green">Other Source of Income</td>
-      <td>${data.otherSourceIncomeDetails !== 'Not provided' ? data.otherSourceIncomeDetails : ''}</td>
+      <td>${isProvided(data.otherSourceIncomeDetails) ? data.otherSourceIncomeDetails : ''}</td>
     </tr>
     <tr>
       <td class="bg-green">Financial details</td>
