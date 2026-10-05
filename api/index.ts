@@ -2,6 +2,7 @@ console.log("--- STARTING TSX EXECUTION ---");
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
+import crypto from "crypto";
 import path from "path";
 import fs from "fs";
 import { Firestore } from "@google-cloud/firestore";
@@ -15,6 +16,10 @@ import multer from "multer";
 import { pdfService } from "./pdfService.js";
 import { ParserFactory } from "./parsers/ParserFactory.js";
 import { parseExcelTemplate, generateExcelReport } from "./excelTemplateService.js";
+import {
+  AuthUser, MANAGEMENT_ROLES, MIN_PASSWORD_LENGTH,
+  hashPassword, verifyPassword, signToken, toPublicUser, requireAuth, requireRole
+} from "./auth.js";
 
 const upload = multer({ storage: multer.memoryStorage() });
 console.log("Starting PD System Server init...");
@@ -67,14 +72,14 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // Helper to map Firestore docs to standard objects with _id
 const mapDocs = (snapshot: any) => snapshot.docs.map((doc: any) => ({ _id: doc.id, ...doc.data() }));
 
-async function addAuditLog(userName: string, userRole: any, action: string, resource: string, resourceId: string, details: string) {
+async function addAuditLog(actor: AuthUser, action: string, resource: string, resourceId: string, details: string) {
   if (!db) return;
   const log: AuditLogEntry = {
     id: "LOG-" + Math.floor(1000 + Math.random() * 9000),
     timestamp: new Date().toISOString(),
-    userId: "USR-SESSION",
-    userName,
-    userRole,
+    userId: actor.id,
+    userName: actor.name,
+    userRole: actor.role,
     action,
     resource,
     resourceId,
@@ -99,6 +104,10 @@ app.get("/health", (req, res) => {
 app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
 });
+
+// Every API route below requires a signed-in user, except login itself
+const PUBLIC_API_PATHS = new Set(["/health", "/auth/login"]);
+app.use("/api", (req, res, next) => (PUBLIC_API_PATHS.has(req.path) ? next() : requireAuth(req, res, next)));
 
 // Excel Template Parsing & Generation
 app.post("/api/parse-excel-template", upload.single("file"), async (req, res) => {
@@ -139,7 +148,7 @@ app.get("/api/clients", async (req, res) => {
   }
 });
 
-app.post("/api/clients", async (req, res) => {
+app.post("/api/clients", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const newClient = { ...req.body, createdAt: new Date().toISOString() };
@@ -164,9 +173,14 @@ app.get("/api/clients/:clientId/applicants", async (req, res) => {
 app.post("/api/clients/:clientId/applicants", async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
+    const { preparedBy, preparedById, preparedByEmail, ...body } = req.body;
     const newApplicant = {
-      ...req.body,
+      ...body,
       clientId: req.params.clientId,
+      // The preparing employee comes from the session, never from the request body
+      preparedBy: req.user!.name,
+      preparedById: req.user!.id,
+      preparedByEmail: req.user!.email,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -181,7 +195,11 @@ app.post("/api/clients/:clientId/applicants", async (req, res) => {
 app.patch("/api/clients/:clientId/applicants/:appId", async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
-    const { _id, clientId, ...updateData } = req.body;
+    const { _id, clientId, preparedBy, preparedById, preparedByEmail, ...updateData } = req.body;
+    // Closing / re-opening a case is a management action
+    if (!MANAGEMENT_ROLES.includes(req.user!.role)) {
+      for (const field of ["isClosed", "status", "caseDeliveryStatus", "closedAt", "closedBy"]) delete updateData[field];
+    }
     updateData.updatedAt = new Date().toISOString();
     
     const docRef = db.collection("applicants").doc(req.params.appId);
@@ -199,7 +217,7 @@ app.patch("/api/clients/:clientId/applicants/:appId", async (req, res) => {
   }
 });
 
-app.delete("/api/clients/:clientId/applicants/:appId", async (req, res) => {
+app.delete("/api/clients/:clientId/applicants/:appId", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const docRef = db.collection("applicants").doc(req.params.appId);
@@ -215,7 +233,7 @@ app.delete("/api/clients/:clientId/applicants/:appId", async (req, res) => {
 });
 
 // Bulk Delete All Applicants (across ALL clients)
-app.delete("/api/applicants/all", async (req, res) => {
+app.delete("/api/applicants/all", requireRole("ADMIN"), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("applicants").get();
@@ -248,46 +266,28 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const { email, password } = req.body;
-    const snapshot = await db.collection("users").where("email", "==", email?.toLowerCase()).where("password", "==", password).get();
-    if (snapshot.empty) return res.status(401).json({ error: "Invalid email or password" });
-    
-    const existingUser = snapshot.docs[0].data();
+    if (typeof email !== "string" || typeof password !== "string") {
+      return res.status(400).json({ error: "Email and password are required" });
+    }
+    const snapshot = await db.collection("users").where("email", "==", email.toLowerCase()).limit(1).get();
+    const userDoc = snapshot.docs[0];
+    const { ok, needsRehash } = await verifyPassword(password, userDoc?.data().password);
+    if (!userDoc || !ok) return res.status(401).json({ error: "Invalid email or password" });
+
+    const existingUser = userDoc.data();
+    if (existingUser.status === "INACTIVE") {
+      return res.status(403).json({ error: "This account has been deactivated. Contact your administrator." });
+    }
     if (req.body.role && existingUser.role !== req.body.role) {
       return res.status(401).json({ error: "Role mismatch. Please ensure you select your correct role to login." });
     }
+    if (needsRehash) await userDoc.ref.update({ password: await hashPassword(password) });
 
-    addAuditLog(existingUser.name, existingUser.role, "USER_LOGIN", "Authentication", existingUser.id, `Logged in successfully`);
-    res.json({ success: true, user: existingUser, token: `jwt_session_${Date.now()}` });
+    const authUser: AuthUser = { id: existingUser.id, name: existingUser.name, email: existingUser.email, role: existingUser.role };
+    addAuditLog(authUser, "USER_LOGIN", "Authentication", authUser.id, `Logged in successfully`);
+    res.json({ success: true, user: toPublicUser(existingUser), token: signToken(authUser) });
   } catch (err) {
     res.status(500).json({ error: "Login failed" });
-  }
-});
-
-app.post("/api/auth/signup", async (req, res) => {
-  try {
-    if (!db) return res.status(500).json({ error: "Database not connected" });
-    const { name, email, role, designation, agency, password } = req.body;
-    if (!name || !email || !password || !role) {
-      return res.status(400).json({ error: "Name, email, password, and role are required" });
-    }
-
-    const snapshot = await db.collection("users").where("email", "==", email.toLowerCase()).get();
-    if (!snapshot.empty) return res.status(400).json({ error: "An employee with this email address is already registered. Please login instead." });
-
-    const newUser = {
-      id: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
-      name, email: email.toLowerCase(), password, role,
-      designation: designation || "Employee",
-      agency: agency || "PD Automation",
-      createdAt: new Date().toISOString(),
-      status: "ACTIVE"
-    };
-
-    await db.collection("users").add(newUser);
-    addAuditLog(newUser.name, newUser.role, "USER_REGISTERED", "Authentication", newUser.id, `Self-registered new account`);
-    res.json({ success: true, user: newUser, token: `jwt_session_${Date.now()}` });
-  } catch (err) {
-    res.status(500).json({ error: "Signup failed" });
   }
 });
 
@@ -296,55 +296,70 @@ app.get("/api/employees", async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("users").get();
-    res.json({ employees: snapshot.docs.map(d => d.data()) });
+    res.json({ employees: snapshot.docs.map(d => toPublicUser(d.data())) });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch users" });
   }
 });
 
-app.post("/api/employees", async (req, res) => {
+app.post("/api/employees", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
-    const { id, name, email, role, designation, agency, status, password } = req.body;
+    const { id, name, role, designation, agency, status, password } = req.body;
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
     if (!name || !email || !role || !designation) {
       return res.status(400).json({ error: "Name, email, role, and designation are mandatory" });
     }
-
-    if (id) {
-      const snapshot = await db.collection("users").where("id", "==", id).get();
-      if (!snapshot.empty) {
-        const docRef = snapshot.docs[0].ref;
-        const updateData: any = { name, email, role, designation, agency: agency || snapshot.docs[0].data().agency, status };
-        if (password) updateData.password = password;
-        await docRef.update(updateData);
-        addAuditLog("Admin Manager", "ADMIN", "EMPLOYEE_UPDATED", "EmployeeDirectory", id, `Updated employee ${name}`);
-        return res.json({ success: true, employee: { ...snapshot.docs[0].data(), ...updateData }, message: "Employee profile updated" });
-      }
+    if (password && String(password).length < MIN_PASSWORD_LENGTH) {
+      return res.status(400).json({ error: `Password must be at least ${MIN_PASSWORD_LENGTH} characters` });
     }
-    
+
+    const existingSnap = id ? await db.collection("users").where("id", "==", id).limit(1).get() : null;
+    const existingDoc = existingSnap?.docs[0];
+
+    // Only an Admin may create, edit or grant the Admin role
+    if (req.user!.role !== "ADMIN" && (role === "ADMIN" || existingDoc?.data().role === "ADMIN")) {
+      return res.status(403).json({ error: "Only an Admin can manage Admin accounts" });
+    }
+
+    const emailSnap = await db.collection("users").where("email", "==", email).limit(1).get();
+    if (!emailSnap.empty && emailSnap.docs[0].id !== existingDoc?.id) {
+      return res.status(400).json({ error: "An employee with this email address already exists" });
+    }
+
+    if (existingDoc) {
+      const updateData: Record<string, unknown> = { name, email, role, designation, agency: agency || existingDoc.data().agency, status };
+      if (password) updateData.password = await hashPassword(password);
+      await existingDoc.ref.update(updateData);
+      addAuditLog(req.user!, "EMPLOYEE_UPDATED", "EmployeeDirectory", id, `Updated employee ${name}`);
+      return res.json({ success: true, employee: toPublicUser({ ...existingDoc.data(), ...updateData }), message: "Employee profile updated" });
+    }
+
+    if (!password) return res.status(400).json({ error: "A password is required for new employees" });
     const newEmp = {
-      id: `EMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      id: `EMP-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
       name, email, role, designation,
       agency: agency || "PD Automation",
-      password: password || "password123",
+      password: await hashPassword(password),
       createdAt: new Date().toISOString(),
       status: status || "ACTIVE"
     };
     await db.collection("users").add(newEmp);
-    addAuditLog("Admin Manager", "ADMIN", "EMPLOYEE_ADDED", "EmployeeDirectory", newEmp.id, `Added new employee ${name}`);
-    res.json({ success: true, employee: newEmp, message: "New employee created successfully" });
+    addAuditLog(req.user!, "EMPLOYEE_ADDED", "EmployeeDirectory", newEmp.id, `Added new employee ${name}`);
+    res.json({ success: true, employee: toPublicUser(newEmp), message: "New employee created successfully" });
   } catch (err) {
     res.status(500).json({ error: "Operation failed" });
   }
 });
 
-app.delete("/api/employees/:id", async (req, res) => {
+app.delete("/api/employees/:id", requireRole("ADMIN"), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
+    if (req.params.id === req.user!.id) return res.status(400).json({ error: "You cannot remove your own account" });
     const snapshot = await db.collection("users").where("id", "==", req.params.id).get();
     if (snapshot.empty) return res.status(404).json({ error: "Employee not found in registry" });
     await snapshot.docs[0].ref.delete();
-    addAuditLog("Admin Manager", "ADMIN", "EMPLOYEE_REMOVED", "EmployeeDirectory", req.params.id, `Removed employee ${req.params.id}`);
+    addAuditLog(req.user!, "EMPLOYEE_REMOVED", "EmployeeDirectory", req.params.id, `Removed employee ${req.params.id}`);
     res.json({ success: true, message: `Employee ${req.params.id} removed from registry` });
   } catch (err) {
     res.status(500).json({ error: "Delete failed" });
@@ -379,20 +394,20 @@ app.post("/api/categories", async (req, res) => {
     } else {
       await db.collection("categories").add(newCat);
     }
-    addAuditLog("Admin User", "ADMIN", "CATEGORY_SAVED", "BusinessCategory", newCat.id, `Saved category ${newCat.name}`);
+    addAuditLog(req.user!, "CATEGORY_SAVED", "BusinessCategory", newCat.id, `Saved category ${newCat.name}`);
     res.json({ success: true, category: newCat });
   } catch (err) {
     res.status(500).json({ error: "Failed to save category" });
   }
 });
 
-app.delete("/api/categories/:id", async (req, res) => {
+app.delete("/api/categories/:id", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("categories").where("id", "==", req.params.id).get();
     if (snapshot.empty) return res.status(404).json({ error: "Category not found" });
     await snapshot.docs[0].ref.delete();
-    addAuditLog("Admin User", "ADMIN", "CATEGORY_DELETED", "BusinessCategory", req.params.id, `Deleted category ${req.params.id}`);
+    addAuditLog(req.user!, "CATEGORY_DELETED", "BusinessCategory", req.params.id, `Deleted category ${req.params.id}`);
     res.json({ success: true, message: `Category ${req.params.id} deleted` });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete category" });
@@ -432,20 +447,20 @@ app.post("/api/products", async (req, res) => {
     } else {
       await db.collection("products").add(newProd);
     }
-    addAuditLog("Admin User", "ADMIN", "PRODUCT_SAVED", "CategoryProduct", newProd.id, `Saved product ${newProd.productName}`);
+    addAuditLog(req.user!, "PRODUCT_SAVED", "CategoryProduct", newProd.id, `Saved product ${newProd.productName}`);
     res.json({ success: true, product: newProd });
   } catch (err) {
     res.status(500).json({ error: "Failed to save product" });
   }
 });
 
-app.delete("/api/products/:id", async (req, res) => {
+app.delete("/api/products/:id", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("products").where("id", "==", req.params.id).get();
     if (snapshot.empty) return res.status(404).json({ error: "Product not found" });
     await snapshot.docs[0].ref.delete();
-    addAuditLog("Admin User", "ADMIN", "PRODUCT_DELETED", "CategoryProduct", req.params.id, `Deleted product ${req.params.id}`);
+    addAuditLog(req.user!, "PRODUCT_DELETED", "CategoryProduct", req.params.id, `Deleted product ${req.params.id}`);
     res.json({ success: true, message: `Product ${req.params.id} deleted` });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete product" });
@@ -500,7 +515,7 @@ app.post("/api/reports", async (req, res) => {
         version: (existingDoc.version || 1) + 1
       };
       await existingRef.update(updatedReport);
-      addAuditLog(reportData.assignedCreditManager || "Credit Manager", "MANAGER", "REPORT_UPDATED", "PDReport", reportData.id, `Updated report for ${reportData.applicantName}`);
+      addAuditLog(req.user!, "REPORT_UPDATED", "PDReport", reportData.id, `Updated report for ${reportData.applicantName}`);
       return res.json({ success: true, report: { _id: existingRef.id, ...updatedReport } });
     } else {
       const newReport = {
@@ -511,7 +526,7 @@ app.post("/api/reports", async (req, res) => {
         updatedAt: new Date().toISOString()
       };
       const docRef = await db.collection("reports").add(newReport);
-      addAuditLog(reportData.assignedCreditManager || "Credit Manager", "MANAGER", "REPORT_CREATED", "PDReport", newReport.id, `Created new PD report for ${newReport.applicantName}`);
+      addAuditLog(req.user!, "REPORT_CREATED", "PDReport", newReport.id, `Created new PD report for ${newReport.applicantName}`);
       return res.json({ success: true, report: { _id: docRef.id, ...newReport } });
     }
   } catch (err) {
@@ -519,7 +534,7 @@ app.post("/api/reports", async (req, res) => {
   }
 });
 
-app.patch("/api/reports/:id/status", async (req, res) => {
+app.patch("/api/reports/:id/status", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   const { status, reviewerNotes } = req.body;
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
@@ -528,20 +543,20 @@ app.patch("/api/reports/:id/status", async (req, res) => {
     const docRef = snapshot.docs[0].ref;
     const updatedAt = new Date().toISOString();
     await docRef.update({ status, updatedAt });
-    addAuditLog("Vikram Malhotra", "MANAGER", "REPORT_STATUS_CHANGED", "PDReport", req.params.id, `Status updated to ${status}. Notes: ${reviewerNotes || 'None'}`);
+    addAuditLog(req.user!, "REPORT_STATUS_CHANGED", "PDReport", req.params.id, `Status updated to ${status}. Notes: ${reviewerNotes || 'None'}`);
     res.json({ success: true, report: { _id: docRef.id, ...snapshot.docs[0].data(), status, updatedAt } });
   } catch (err) {
     res.status(500).json({ error: "Failed to update report status" });
   }
 });
 
-app.delete("/api/reports/:id", async (req, res) => {
+app.delete("/api/reports/:id", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("reports").where("id", "==", req.params.id).get();
     if (snapshot.empty) return res.status(404).json({ error: "Report not found" });
     await snapshot.docs[0].ref.delete();
-    addAuditLog("Vikram Malhotra", "MANAGER", "REPORT_DELETED", "PDReport", req.params.id, `Deleted report ${req.params.id}`);
+    addAuditLog(req.user!, "REPORT_DELETED", "PDReport", req.params.id, `Deleted report ${req.params.id}`);
     res.json({ success: true, message: `Report ${req.params.id} deleted` });
   } catch (err) {
     res.status(500).json({ error: "Failed to delete report" });
@@ -564,7 +579,7 @@ app.post("/api/upload/photo", (req, res) => {
     categoryTag: "Signboard/Premises",
     isAiVerified: true
   };
-  addAuditLog("Field Officer", "FIELD_OFFICER", "PHOTO_UPLOADED", "PhotoAsset", photoId, `Uploaded photo ${fileName || photoId} with EXIF GPS tagging`);
+  addAuditLog(req.user!, "PHOTO_UPLOADED", "PhotoAsset", photoId, `Uploaded photo ${fileName || photoId} with EXIF GPS tagging`);
   res.json({ success: true, photo: simulatedExif });
 });
 
@@ -698,7 +713,7 @@ app.post("/api/parse-credit-report", upload.single("report"), async (req, res) =
 
 app.post("/api/html-tool/validate", (req, res) => {
   const run = runHtmlToolValidationSuite();
-  addAuditLog("QA Specialist", "AUDITOR", "HTML_TOOL_VALIDATED", "HTMLPDTool", run.runId, `Validated HTML PD Tool - Score: ${run.overallScore}% (${run.passedCount}/${run.totalTests} passed)`);
+  addAuditLog(req.user!, "HTML_TOOL_VALIDATED", "HTMLPDTool", run.runId, `Validated HTML PD Tool - Score: ${run.overallScore}% (${run.passedCount}/${run.totalTests} passed)`);
   res.json({ validationRun: run });
 });
 
@@ -744,7 +759,7 @@ app.get("/api/dashboard", async (req, res) => {
   }
 });
 
-app.get("/api/audit", async (req, res) => {
+app.get("/api/audit", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
     const snapshot = await db.collection("auditLogs").orderBy("timestamp", "desc").get();

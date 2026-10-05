@@ -3,11 +3,31 @@ import { ClientBank, CLIENT_BANKS } from '../data/clientBanksData';
 
 export interface EmployeeRecord extends User {
   designation: string;
+  password?: string; // write-only: sent when creating an employee or resetting a password
   createdAt?: string;
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
 const BASE_URL = '';
+
+// Session token lives in memory only, so a page refresh signs the user out (as before)
+let authToken: string | null = null;
+let onUnauthorized: (() => void) | null = null;
+
+export const setAuthToken = (token: string | null) => { authToken = token; };
+export const setUnauthorizedHandler = (handler: (() => void) | null) => { onUnauthorized = handler; };
+
+/** fetch() for this app's own API: adds the session token and ends the session on a 401. */
+export async function authFetch(input: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  if (authToken) headers.set('Authorization', `Bearer ${authToken}`);
+  const response = await fetch(input, { ...init, headers });
+  if (response.status === 401 && authToken) {
+    setAuthToken(null);
+    onUnauthorized?.();
+  }
+  return response;
+}
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
@@ -20,27 +40,29 @@ async function handleResponse<T>(response: Response): Promise<T> {
 
 export const api = {
   // Auth
-  login: async (credentials: { email?: string; role: UserRole; password?: string }): Promise<{ user: EmployeeRecord; token: string }> => {
-    return handleResponse<{ user: EmployeeRecord; token: string }>(
+  login: async (credentials: { email: string; role: UserRole; password: string }): Promise<EmployeeRecord> => {
+    const data = await handleResponse<{ user: EmployeeRecord; token: string }>(
       await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials)
       })
     );
+    setAuthToken(data.token);
+    return data.user;
   },
 
   // Employees Management
   getEmployees: async (): Promise<EmployeeRecord[]> => {
     const data = await handleResponse<{ employees: EmployeeRecord[] }>(
-      await fetch(`${BASE_URL}/api/employees`)
+      await authFetch(`${BASE_URL}/api/employees`)
     );
     return data.employees;
   },
 
   saveEmployee: async (employeeData: Partial<EmployeeRecord>): Promise<EmployeeRecord> => {
     const data = await handleResponse<{ employee: EmployeeRecord }>(
-      await fetch(`${BASE_URL}/api/employees`, {
+      await authFetch(`${BASE_URL}/api/employees`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(employeeData)
@@ -51,7 +73,7 @@ export const api = {
 
   deleteEmployee: async (id: string): Promise<boolean> => {
     await handleResponse(
-      await fetch(`${BASE_URL}/api/employees/${id}`, { method: 'DELETE' })
+      await authFetch(`${BASE_URL}/api/employees/${id}`, { method: 'DELETE' })
     );
     return true;
   },
@@ -61,7 +83,7 @@ export const api = {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
-      const response = await fetch(`${BASE_URL}/api/clients`, { signal: controller.signal });
+      const response = await authFetch(`${BASE_URL}/api/clients`, { signal: controller.signal });
       clearTimeout(timeoutId);
       
       const data = await handleResponse<{ clients: ClientBank[] }>(response);
@@ -78,7 +100,7 @@ export const api = {
 
   saveClient: async (clientData: Partial<ClientBank>): Promise<ClientBank> => {
     const data = await handleResponse<{ client: ClientBank }>(
-      await fetch(`${BASE_URL}/api/clients`, {
+      await authFetch(`${BASE_URL}/api/clients`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(clientData)
@@ -89,14 +111,14 @@ export const api = {
 
   getApplicants: async (clientId: string): Promise<any[]> => {
     const data = await handleResponse<{ applicants: any[] }>(
-      await fetch(`${BASE_URL}/api/clients/${clientId}/applicants`)
+      await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`)
     );
     return data.applicants;
   },
 
   createApplicant: async (clientId: string, newApplicantData: any): Promise<any> => {
     const data = await handleResponse<{ applicant: any }>(
-      await fetch(`${BASE_URL}/api/clients/${clientId}/applicants`, {
+      await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newApplicantData)
@@ -107,7 +129,7 @@ export const api = {
 
   updateApplicant: async (clientId: string, appId: string, updateData: any): Promise<any> => {
     const data = await handleResponse<{ applicant: any }>(
-      await fetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, {
+      await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updateData)
@@ -118,28 +140,28 @@ export const api = {
 
   deleteApplicant: async (clientId: string, appId: string): Promise<boolean> => {
     await handleResponse(
-      await fetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, { method: 'DELETE' })
+      await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`, { method: 'DELETE' })
     );
     return true;
   },
 
   deleteAllApplicants: async (): Promise<{ deletedCount: number }> => {
     return handleResponse<{ deletedCount: number }>(
-      await fetch(`${BASE_URL}/api/applicants/all`, { method: 'DELETE' })
+      await authFetch(`${BASE_URL}/api/applicants/all`, { method: 'DELETE' })
     );
   },
 
   // Categories
   getCategories: async (): Promise<BusinessCategory[]> => {
     const data = await handleResponse<{ categories: BusinessCategory[] }>(
-      await fetch(`${BASE_URL}/api/categories`)
+      await authFetch(`${BASE_URL}/api/categories`)
     );
     return data.categories;
   },
 
   saveCategory: async (category: Partial<BusinessCategory>): Promise<BusinessCategory> => {
     const data = await handleResponse<{ category: BusinessCategory }>(
-      await fetch(`${BASE_URL}/api/categories`, {
+      await authFetch(`${BASE_URL}/api/categories`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(category)
@@ -152,14 +174,14 @@ export const api = {
   getProducts: async (categoryId?: string): Promise<CategoryProduct[]> => {
     const url = categoryId ? `${BASE_URL}/api/products?categoryId=${categoryId}` : `${BASE_URL}/api/products`;
     const data = await handleResponse<{ products: CategoryProduct[] }>(
-      await fetch(url)
+      await authFetch(url)
     );
     return data.products;
   },
 
   saveProduct: async (product: Partial<CategoryProduct>): Promise<CategoryProduct> => {
     const data = await handleResponse<{ product: CategoryProduct }>(
-      await fetch(`${BASE_URL}/api/products`, {
+      await authFetch(`${BASE_URL}/api/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -171,7 +193,7 @@ export const api = {
   // Photo Upload with Server EXIF processing
   uploadPhoto: async (fileName: string, base64Data: string, lat?: number, lng?: number): Promise<any> => {
     const data = await handleResponse<{ photo: any }>(
-      await fetch(`${BASE_URL}/api/upload/photo`, {
+      await authFetch(`${BASE_URL}/api/upload/photo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ fileName, base64Data, latitude: lat, longitude: lng })

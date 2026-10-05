@@ -3,6 +3,7 @@ import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { CreditAccount, ApplicantInfo, CreditSummary } from '../types/creditTypes';
 import { parseNumericValue } from '../utils/creditFormatters';
+import { authFetch } from './api';
 
 // Configure worker using local Vite asset URL
 try {
@@ -75,7 +76,7 @@ export async function extractTextFromPdfFile(file: File): Promise<string> {
   try {
     const formData = new FormData();
     formData.append('file', file);
-    const response = await fetch('/api/reports/extract-text', {
+    const response = await authFetch('/api/reports/extract-text', {
       method: 'POST',
       body: formData,
     });

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole } from './types';
-import { EmployeeRecord } from './services/api';
+import { EmployeeRecord, setAuthToken, setUnauthorizedHandler } from './services/api';
 import { ClientBank } from './data/clientBanksData';
 import { Header } from './components/Header';
 import { AuthView } from './components/AuthView';
@@ -47,6 +47,17 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
+  // An expired or rejected session token sends the user back to the login screen
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setCurrentUser(null);
+      setIsCompanySelected(false);
+      setIsClientSelected(false);
+      window.history.pushState({ step: 'auth' }, '');
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
+
   const handleLoginSuccess = (user: EmployeeRecord) => {
     setCurrentUser(user);
     setIsCompanySelected(false);
@@ -55,6 +66,7 @@ export default function App() {
   };
 
   const handleLogout = () => {
+    setAuthToken(null);
     setCurrentUser(null);
     setIsCompanySelected(false);
     setIsClientSelected(false);

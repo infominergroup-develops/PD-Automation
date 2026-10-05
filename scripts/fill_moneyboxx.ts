@@ -1,7 +1,8 @@
+import 'dotenv/config';
 import fs from 'fs';
 import { MongoClient } from 'mongodb';
 
-const uri = "mongodb+srv://infominergroupdev_db_user:ah9lwaTpGOM3mKja@cluster0.ea2qhi2.mongodb.net/?appName=Cluster0";
+const uri = process.env.MONGODB_URI!;
 
 function generateDummyData(applicant: any, index: number) {
   const pan = `ABCDE${1000 + index}F`;
