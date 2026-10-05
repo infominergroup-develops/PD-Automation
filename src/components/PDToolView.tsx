@@ -1,5 +1,4 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import exifr from 'exifr';
 import { INITIAL_CATEGORIES } from '../data/categoriesData';
 import { INITIAL_PRODUCTS } from '../data/productsData';
 
@@ -9,7 +8,7 @@ import { Company } from './CompanySelectionView';
 import { BusinessCategory, CategoryProduct, FamilyMember } from '../types';
 import type { ParsedCreditReport } from '../types/creditTypes';
 import type { ApplicantRecord, CoApplicant, GalleryApplicant } from '../types/applicant';
-import { Field, SUB_LABEL, removeListItem, updateListItem } from './pd/formControls';
+import { Field, SUB_LABEL, updateListItem } from './pd/formControls';
 import { CaseGalleryModal } from './pd/CaseGalleryModal';
 import { sortLatestFirst } from './pd/caseList';
 import { PdTabBar, PdTabFooter, isPdTabId, type PdTabId } from './pd/PdTabs';
@@ -24,11 +23,16 @@ import {
 import { DecisionSection } from './pd/DecisionSection';
 import { CustomerSupplierSection } from './pd/customerSupplier/CustomerSupplierSection';
 import { useCustomerSupplierDetails } from './pd/customerSupplier/useCustomerSupplierDetails';
+import { CoApplicantBusinessSection } from './pd/coApplicantBusiness/CoApplicantBusinessSection';
+import { toCoApplicantBusinessReport, useCoApplicantBusiness } from './pd/coApplicantBusiness/useCoApplicantBusiness';
+import { FieldInvestigationSection } from './pd/fieldInvestigation/FieldInvestigationSection';
+import { photoLocation } from './pd/fieldInvestigation/photoEvidence';
+import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
 import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
   Store, User, DollarSign, Sparkles, CheckCircle2, MapPin, Plus, Trash2, ArrowRight, Building,
-  Search, X, Check, Calculator, FileText, Upload, Briefcase, Building2, Zap, Printer, ChevronLeft,
+  Search, X, Calculator, FileText, Upload, Briefcase, Building2, Zap, Printer, ChevronLeft,
   ChevronRight, Settings, Cloud, CheckCheck
 } from 'lucide-react';
 import {
@@ -373,8 +377,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const isManagement = currentUser?.role === 'ADMIN' || currentUser?.role === 'MANAGER';
   const isAdmin = currentUser?.role === 'ADMIN';
 
-  const [photos, setPhotos] = useState<any[]>([]);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  // Tab 5: Field Investigation photo evidence
+  const photoEvidence = usePhotoEvidence();
+  const { photos, exifGpsLat, exifGpsLng } = photoEvidence;
   const [isGoogleDriveModalOpen, setIsGoogleDriveModalOpen] = useState(false);
 
   // Credit Report Extraction State
@@ -601,21 +606,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
   
   // Co-Applicant Business Details States
-  const [coApplicantBusinessName, setCoApplicantBusinessName] = useState('');
-  const [coApplicantBriefBusinessProfile, setCoApplicantBriefBusinessProfile] = useState('');
-  const [coApplicantBusinessVintage, setCoApplicantBusinessVintage] = useState('');
-  const [coApplicantPreviousOccupation, setCoApplicantPreviousOccupation] = useState('Not Applicable');
-  const [coApplicantReasonToLeave, setCoApplicantReasonToLeave] = useState('');
-  const [coApplicantStaffCount, setCoApplicantStaffCount] = useState('');
-  const [coApplicantBusinessPremiseOwnership, setCoApplicantBusinessPremiseOwnership] = useState('Self-Owned');
-  const [coApplicantFactoryInfrastructure, setCoApplicantFactoryInfrastructure] = useState('');
-  const [coApplicantStockDetailsValue, setCoApplicantStockDetailsValue] = useState('');
-  const [coApplicantFixedAndCurrentAssetAnalysis, setCoApplicantFixedAndCurrentAssetAnalysis] = useState('');
-  const [coApplicantAssetCreationThroughBusiness, setCoApplicantAssetCreationThroughBusiness] = useState('');
-  const [coApplicantInitialBusinessInvestment, setCoApplicantInitialBusinessInvestment] = useState('');
-  const [coApplicantAgriculturalIncomeDetails, setCoApplicantAgriculturalIncomeDetails] = useState('');
-  const [coApplicantOtherSourceIncomeDetails, setCoApplicantOtherSourceIncomeDetails] = useState('');
-  const [coApplicantOperationalSavingAnalysis, setCoApplicantOperationalSavingAnalysis] = useState('');
+  const coApplicantBusiness = useCoApplicantBusiness();
 
   const [businessVintageText, setBusinessVintageText] = useState('');
   const [staffCountText, setStaffCountText] = useState('');
@@ -1275,8 +1266,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [neighborName, setNeighborName] = useState('');
   const [neighborFeedback, setNeighborFeedback] = useState('');
   const [landlordFeedback, setLandlordFeedback] = useState('');
-  const [exifGpsLat, setExifGpsLat] = useState('');
-  const [exifGpsLng, setExifGpsLng] = useState('');
 
   // Form Fields - Loan Scheme & Facilities
   const [appliedAmount, setAppliedAmount] = useState(0);
@@ -1542,8 +1531,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setNeighborName(app.neighborName || '');
     setNeighborFeedback(app.neighborFeedback || '');
     setLandlordFeedback(app.landlordFeedback || '');
-    setExifGpsLat(app.exifGpsLat || '');
-    setExifGpsLng(app.exifGpsLng || '');
     if (app.aataChakkiData) {
       setAataChakkiData(app.aataChakkiData);
     }
@@ -1564,7 +1551,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setSolarPurposeUsage(app.solarPurposeUsage || '');
     setRiskFactor(app.riskFactor || '');
 
-    setPhotos(app.photos || []);
 
     setIncomeLines(app.incomeLines || []);
     setExpenseLines(app.expenseLines || []);
@@ -1697,6 +1683,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setResidenceStatusReason(app.residenceStatusReason || '');
 
     customerSupplier.load(app);
+    photoEvidence.load(app);
+    coApplicantBusiness.load(app);
     setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
     setProfitMargin(app.profitMargin !== undefined ? app.profitMargin : '');
     setBusinessNeighbourName(app.businessNeighbourName || '');
@@ -1709,21 +1697,6 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
 
     setBriefBusinessProfile(app.briefBusinessProfile || '');
-    setCoApplicantBusinessName(app.coApplicantBusinessName || '');
-    setCoApplicantBriefBusinessProfile(app.coApplicantBriefBusinessProfile || '');
-    setCoApplicantBusinessVintage(app.coApplicantBusinessVintage || '');
-    setCoApplicantPreviousOccupation(app.coApplicantPreviousOccupation || 'Not Applicable');
-    setCoApplicantReasonToLeave(app.coApplicantReasonToLeave || '');
-    setCoApplicantStaffCount(app.coApplicantStaffCount || '');
-    setCoApplicantBusinessPremiseOwnership(app.coApplicantBusinessPremiseOwnership || 'Self-Owned');
-    setCoApplicantFactoryInfrastructure(app.coApplicantFactoryInfrastructure || '');
-    setCoApplicantStockDetailsValue(app.coApplicantStockDetailsValue || '');
-    setCoApplicantFixedAndCurrentAssetAnalysis(app.coApplicantFixedAndCurrentAssetAnalysis || '');
-    setCoApplicantAssetCreationThroughBusiness(app.coApplicantAssetCreationThroughBusiness || '');
-    setCoApplicantInitialBusinessInvestment(app.coApplicantInitialBusinessInvestment || '');
-    setCoApplicantAgriculturalIncomeDetails(app.coApplicantAgriculturalIncomeDetails || '');
-    setCoApplicantOtherSourceIncomeDetails(app.coApplicantOtherSourceIncomeDetails || '');
-    setCoApplicantOperationalSavingAnalysis(app.coApplicantOperationalSavingAnalysis || '');
 
     setBusinessVintageText(app.businessVintageText || '');
     setStaffCountText(app.staffCountText || '');
@@ -1770,10 +1743,10 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     applicantName, mobileNumber, alternateMobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
     dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
-    landlordFeedback, exifGpsLat, exifGpsLng, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
     existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
-    photos, incomeLines, expenseLines, productsList,
+    incomeLines, expenseLines, productsList,
     caseInitiationDate, visitDate, reportDate, coApplicants,
     hasFemaleCandidate, femaleCandidateName, femaleCandidateRelation, femaleCandidateOtherRelation, loanType, otherLoanType,
     powerSource, otherPowerSource, monthlyEnergyExpense, solarPurposes, otherSolarPurpose, solarPurposeGeneratedText, loanPurpose,
@@ -1801,11 +1774,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     briefBusinessProfile, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
     stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
     solarSavingText, projectedIncomeText, statusOfCase,
-    coApplicantBusinessName, coApplicantBriefBusinessProfile, coApplicantBusinessVintage, coApplicantPreviousOccupation,
-    coApplicantReasonToLeave, coApplicantStaffCount, coApplicantBusinessPremiseOwnership, coApplicantFactoryInfrastructure,
-    coApplicantStockDetailsValue, coApplicantFixedAndCurrentAssetAnalysis, coApplicantAssetCreationThroughBusiness,
-    coApplicantInitialBusinessInvestment, coApplicantAgriculturalIncomeDetails, coApplicantOtherSourceIncomeDetails,
-    coApplicantOperationalSavingAnalysis,
+    ...coApplicantBusiness.values,
     coAppIncomeLines, coAppExpenseLines, coAppStatedMonthlySales, coAppSalariesExpense, coAppRentExpense,
     coAppUtilitiesExpense, coAppMiscExpense,
     officeAccessibility, tenorRequested, marginsAssessed, customerGstNo, industryType, productType, onLoanStructure,
@@ -2474,21 +2443,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
       
       hasCoApplicantBusiness: hasCoAppInBusiness,
-      coApplicantBusinessName: coApplicantBusinessName || 'Not provided',
-      coApplicantBriefBusinessProfile: coApplicantBriefBusinessProfile || 'Not provided',
-      coApplicantBusinessVintage: coApplicantBusinessVintage || 'Not provided',
-      coApplicantPreviousOccupation: coApplicantPreviousOccupation || 'Not provided',
-      coApplicantReasonToLeave: coApplicantReasonToLeave || 'Not provided',
-      coApplicantStaffCount: coApplicantStaffCount || 'Not provided',
-      coApplicantBusinessPremiseOwnership: coApplicantBusinessPremiseOwnership || 'Not provided',
-      coApplicantFactoryInfrastructure: coApplicantFactoryInfrastructure || 'Not provided',
-      coApplicantStockDetailsValue: coApplicantStockDetailsValue || 'Not provided',
-      coApplicantFixedAndCurrentAssetAnalysis: coApplicantFixedAndCurrentAssetAnalysis || 'Not provided',
-      coApplicantAssetCreationThroughBusiness: coApplicantAssetCreationThroughBusiness || 'Not provided',
-      coApplicantInitialBusinessInvestment: coApplicantInitialBusinessInvestment || 'Not provided',
-      coApplicantAgriculturalIncomeDetails: coApplicantAgriculturalIncomeDetails || 'Not provided',
-      coApplicantOtherSourceIncomeDetails: coApplicantOtherSourceIncomeDetails || 'Not provided',
-      coApplicantOperationalSavingAnalysis: coApplicantOperationalSavingAnalysis || 'Not provided',
+      ...toCoApplicantBusinessReport(coApplicantBusiness.values),
 
       businessVintage: businessVintageText || fbBusinessVintage,
       previousOccupation: previousOccupation === 'Other' ? (previousOccupationOther || 'Not provided') : (previousOccupation || 'Not provided'),
@@ -2668,14 +2623,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       riskFactor: riskFactor,
       proposedEmi: proposedEmi,
       postLoanSurplus: postLoanSurplus,
-      photos: photos.map(p => ({
-        id: p.id || Math.random().toString(),
-        name: p.caption || 'Field Photo',
-        dataUrl: p.url,
-        category: p.categoryTag || 'Field Proof',
-        mimeType: 'image/jpeg',
-        gps: { lat: p.gpsLat || 0, lng: p.gpsLng || 0 }
-      })),
+      photos: photos.map(p => {
+        const location = photoLocation(p);
+        return {
+          id: p.id,
+          name: p.caption || 'Field Photo',
+          dataUrl: p.url,
+          category: p.categoryTag || 'Field Proof',
+          ...(location && { gps: { lat: location.point.latitude, lng: location.point.longitude } }),
+        };
+      }),
       aiExecutiveSummary: executiveSummaryHtml,
       parsedCreditReport: parsedCreditReport
     };
@@ -5058,297 +5015,12 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       )}
 
       {activeTab === 'field' && (
-        <div className="space-y-6">
-
-
-          {/* EXIF GPS Photos */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-[#eb8a23]" />
-                GPS Geotagged Field Inspection Proofs
-              </h3>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Extracted GPS Latitude">
-                <input
-                  type="text"
-                  value={exifGpsLat}
-                  onChange={(e) => setExifGpsLat(e.target.value)}
-                  placeholder="e.g. 26.9124"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </Field>
-              <Field label="Extracted GPS Longitude">
-                <input
-                  type="text"
-                  value={exifGpsLng}
-                  onChange={(e) => setExifGpsLng(e.target.value)}
-                  placeholder="e.g. 75.7873"
-                  className="w-full p-2.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                />
-              </Field>
-            </div>
-
-            {['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map((categoryName) => (
-              <div key={categoryName} className="space-y-3">
-                <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200">
-                  <h4 className="text-xs font-bold text-slate-700">{categoryName}</h4>
-                  <label className="flex items-center gap-1.5 px-3 py-1.5 bg-[#eb8a23] hover:bg-[#d97917] text-white rounded text-[10px] font-bold transition shadow-sm cursor-pointer">
-                    {isUploadingPhoto ? (
-                      <span className="animate-pulse">Uploading...</span>
-                    ) : (
-                      <>
-                        <Upload className="w-3 h-3 text-white" />
-                        Upload {categoryName}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          className="hidden"
-                          onChange={async (e) => {
-                            const fileList = e.target.files;
-                            if (!fileList || fileList.length === 0) return;
-                            const files = Array.from(fileList) as File[];
-                            setIsUploadingPhoto(true);
-
-                            for (const file of files) {
-                              let latToUse = parseFloat(exifGpsLat) || 26.9124;
-                              let lngToUse = parseFloat(exifGpsLng) || 75.7873;
-
-                              try {
-                                const gps = await exifr.gps(file);
-                                if (gps && gps.latitude && gps.longitude) {
-                                  latToUse = gps.latitude;
-                                  lngToUse = gps.longitude;
-                                  setExifGpsLat(`${latToUse.toFixed(4)}° N`);
-                                  setExifGpsLng(`${lngToUse.toFixed(4)}° E`);
-                                }
-                              } catch (exifErr) {
-                                console.error('EXIF extraction failed', exifErr);
-                              }
-
-                              const reader = new FileReader();
-                              const readerPromise = new Promise((resolve) => {
-                                reader.onloadend = async () => {
-                                  try {
-                                    const base64Data = reader.result as string;
-                                    let res;
-                                    try {
-                                      res = await api.uploadPhoto(file.name, base64Data, latToUse, lngToUse);
-                                    } catch (apiErr) {
-                                      res = {
-                                        id: Math.random().toString(),
-                                        url: base64Data,
-                                        caption: file.name,
-                                        gpsCoordinates: { latitude: latToUse, longitude: lngToUse },
-                                        gps: { lat: latToUse, lng: lngToUse }
-                                      };
-                                    }
-                                    if (res) {
-                                      setPhotos(prev => [...prev, { ...res, categoryTag: categoryName }]);
-                                    }
-                                  } catch (err) {
-                                    console.error(err);
-                                  } finally {
-                                    resolve(true);
-                                  }
-                                };
-                              });
-                              reader.readAsDataURL(file);
-                              await readerPromise;
-                            }
-                            setIsUploadingPhoto(false);
-                          }}
-                        />
-                      </>
-                    )}
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {photos.filter(p => p.categoryTag === categoryName).length === 0 ? (
-                    <div className="col-span-full p-4 text-center border-2 border-dashed border-slate-200 rounded-xl">
-                      <p className="text-xs text-slate-500 font-bold">No {categoryName.toLowerCase()} uploaded yet</p>
-                    </div>
-                  ) : (
-                    photos.filter(p => p.categoryTag === categoryName).map((photo, idx) => (
-                      <div key={idx} className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50 relative group">
-                        <img
-                          src={photo.url}
-                          alt={photo.caption}
-                          className="w-full h-32 object-cover"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setPhotos(prev => prev.filter(p => p.id !== photo.id))}
-                          className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-red-600"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                        <div className="p-2 flex flex-col gap-1 text-[10px]">
-                          <div className="font-bold text-[#2d3e50] truncate">{photo.caption}</div>
-                          <div className="text-slate-500 flex items-center justify-between">
-                            <span className="flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-rose-500" />
-                              GPS: {photo.gpsCoordinates?.latitude?.toFixed(4) || photo.gps?.lat?.toFixed(4)}, {photo.gpsCoordinates?.longitude?.toFixed(4) || photo.gps?.lng?.toFixed(4)}
-                            </span>
-                            <span className="font-bold px-1.5 py-0.5 bg-emerald-100 text-emerald-800 rounded">
-                              VERIFIED
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-          {tabFooter}
-        </div>
+        <FieldInvestigationSection evidence={photoEvidence} footer={tabFooter} />
       )}
 
       {/* TAB 5.1: CO-APPLICANT BUSINESS */}
       {activeTab === 'coapp_business' && (
-        <div className="space-y-6">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
-            <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
-              <Briefcase className="w-4 h-4 text-[#eb8a23]" />
-              Co-Applicant Business Visit Details
-            </h3>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Firm / Trade Name">
-                <input
-                  type="text"
-                  value={coApplicantBusinessName}
-                  onChange={(e) => setCoApplicantBusinessName(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Premises Ownership">
-                <select
-                  value={coApplicantBusinessPremiseOwnership}
-                  onChange={(e) => setCoApplicantBusinessPremiseOwnership(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                >
-                  <option value="">Select Ownership</option>
-                  <option value="RENTED">Rented Premises</option>
-                  <option value="OWN">Self Owned Premises</option>
-                  <option value="FAMILY">Family / Ancestral Owned</option>
-                  <option value="RESIDENCE_CUM_BUSINESS">Residence cum Business</option>
-                </select>
-              </Field>
-
-              <Field label="Vintage of Business">
-                <input
-                  type="text"
-                  value={coApplicantBusinessVintage}
-                  onChange={(e) => setCoApplicantBusinessVintage(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                  placeholder="e.g. 5 Years"
-                />
-              </Field>
-
-              <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary</label>
-                <textarea
-                  value={coApplicantBriefBusinessProfile}
-                  onChange={(e) => setCoApplicantBriefBusinessProfile(e.target.value)}
-                  rows={4}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                  placeholder="Enter detailed business profile and executive summary..."
-                />
-              </div>
-              
-              <Field label="Number of Staffs">
-                <input
-                  type="text"
-                  value={coApplicantStaffCount}
-                  onChange={(e) => setCoApplicantStaffCount(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Factory / Office Infrastructure">
-                <input
-                  type="text"
-                  value={coApplicantFactoryInfrastructure}
-                  onChange={(e) => setCoApplicantFactoryInfrastructure(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Stock Details with Estimated Value">
-                <input
-                  type="text"
-                  value={coApplicantStockDetailsValue}
-                  onChange={(e) => setCoApplicantStockDetailsValue(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Fixed & Current Asset Analysis</label>
-                <input
-                  type="text"
-                  value={coApplicantFixedAndCurrentAssetAnalysis}
-                  onChange={(e) => setCoApplicantFixedAndCurrentAssetAnalysis(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </div>
-
-              <Field label="Asset Creation Through Business">
-                <input
-                  type="text"
-                  value={coApplicantAssetCreationThroughBusiness}
-                  onChange={(e) => setCoApplicantAssetCreationThroughBusiness(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Business Investment">
-                <input
-                  type="text"
-                  value={coApplicantInitialBusinessInvestment}
-                  onChange={(e) => setCoApplicantInitialBusinessInvestment(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Agricultural Income Details">
-                <input
-                  type="text"
-                  value={coApplicantAgriculturalIncomeDetails}
-                  onChange={(e) => setCoApplicantAgriculturalIncomeDetails(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Other Source Income Details">
-                <input
-                  type="text"
-                  value={coApplicantOtherSourceIncomeDetails}
-                  onChange={(e) => setCoApplicantOtherSourceIncomeDetails(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-
-              <Field label="Solar Saving Analysis">
-                <input
-                  type="text"
-                  value={coApplicantOperationalSavingAnalysis}
-                  onChange={(e) => setCoApplicantOperationalSavingAnalysis(e.target.value)}
-                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold"
-                />
-              </Field>
-            </div>
-          </div>
-          {tabFooter}
-        </div>
+        <CoApplicantBusinessSection form={coApplicantBusiness} footer={tabFooter} />
       )}
 
       {/* TAB 4: FINANCIAL ANALYSIS & ITEMIZED PRICE x QTY x DAYS CALCULATOR */}

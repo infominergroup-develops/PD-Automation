@@ -563,24 +563,23 @@ app.delete("/api/reports/:id", requireRole(...MANAGEMENT_ROLES), async (req, res
   }
 });
 
+// Photos are stored with the applicant; this endpoint only assigns an id and records the upload.
+// Coordinates are echoed back only when the client read or was given them; none are made up here.
 app.post("/api/upload/photo", (req, res) => {
-  const { fileName, fileType, base64Data, latitude, longitude } = req.body;
-  const photoId = "IMG-" + Math.floor(10000 + Math.random() * 90000);
-  const simulatedExif = {
-    id: photoId,
-    url: base64Data || "https://images.unsplash.com/photo-1578575437130-527eed3abbec?auto=format&fit=crop&w=800&q=80",
+  const { fileName, base64Data, latitude, longitude } = req.body;
+  if (typeof base64Data !== "string" || !base64Data.startsWith("data:image/")) {
+    return res.status(400).json({ error: "An image is required" });
+  }
+  const hasGps = Number.isFinite(latitude) && Number.isFinite(longitude);
+  const photo = {
+    id: "IMG-" + crypto.randomUUID().slice(0, 8).toUpperCase(),
+    url: base64Data,
     caption: fileName || "Site Visit Photo",
     timestamp: new Date().toISOString(),
-    gpsCoordinates: {
-      latitude: latitude || 28.6139 + (Math.random() - 0.5) * 0.05,
-      longitude: longitude || 77.2090 + (Math.random() - 0.5) * 0.05,
-      accuracyMeters: 4.2
-    },
-    categoryTag: "Signboard/Premises",
-    isAiVerified: true
+    gpsCoordinates: hasGps ? { latitude, longitude } : null,
   };
-  addAuditLog(req.user!, "PHOTO_UPLOADED", "PhotoAsset", photoId, `Uploaded photo ${fileName || photoId} with EXIF GPS tagging`);
-  res.json({ success: true, photo: simulatedExif });
+  addAuditLog(req.user!, "PHOTO_UPLOADED", "PhotoAsset", photo.id, `Uploaded photo ${photo.caption}${hasGps ? " with GPS" : " without GPS"}`);
+  res.json({ success: true, photo });
 });
 
 app.post("/api/validate", async (req, res) => {

@@ -9,6 +9,15 @@ export interface EmployeeRecord extends User {
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
+/** Photo as stored by the API; coordinates are present only when the client supplied them. */
+export interface UploadedPhoto {
+  id: string;
+  url: string;
+  caption: string;
+  timestamp: string;
+  gpsCoordinates: { latitude: number; longitude: number } | null;
+}
+
 const BASE_URL = '';
 
 // Session token lives in memory only, so a page refresh signs the user out (as before)
@@ -192,8 +201,8 @@ export const api = {
   },
 
   // Photo Upload with Server EXIF processing
-  uploadPhoto: async (fileName: string, base64Data: string, lat?: number, lng?: number): Promise<any> => {
-    const data = await handleResponse<{ photo: any }>(
+  uploadPhoto: async (fileName: string, base64Data: string, lat?: number, lng?: number): Promise<UploadedPhoto> => {
+    const data = await handleResponse<{ photo: UploadedPhoto }>(
       await authFetch(`${BASE_URL}/api/upload/photo`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
