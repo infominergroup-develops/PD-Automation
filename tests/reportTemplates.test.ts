@@ -214,3 +214,19 @@ describe('Tata / SBFC net profit (A − B)', () => {
     },
   );
 });
+
+describe('Abhiyan met person during visit', () => {
+  it('shows the persons-met value from the form verbatim, not applicant & co-applicant', () => {
+    const data = {
+      ...fullReport,
+      applicantName: 'Asha Verma',
+      coApplicantName: 'Ramesh Verma',
+      coApplicantRelation: 'Husband',
+      metPersonName: 'Sunita Devi (Mother) & Asha Verma (Self)',
+    } as PDReportPrintData;
+    const html = generateAbhiyanPDReportHTML(data);
+    expect(html).toContain('Sunita Devi (Mother) & Asha Verma (Self)');
+    // The old hardcoded "Applicant & CoApplicant ( Relation )" form must be gone
+    expect(html).not.toContain('Asha Verma & Ramesh Verma ( Husband )');
+  });
+});

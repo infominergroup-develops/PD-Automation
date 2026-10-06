@@ -291,7 +291,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td>Met person during visit time.</td>
-      <td colspan="3">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
+      <td colspan="3">${data.metPersonName || '-'}</td>
     </tr>
     <tr>
       <td>Met person identity proof</td>
@@ -309,7 +309,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td style="width: 25%;">Met person during visit time.</td>
-      <td style="width: 75%;">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
+      <td style="width: 75%;">${data.metPersonName || '-'}</td>
     </tr>
     <tr>
       <td>Address of the meeting</td>
