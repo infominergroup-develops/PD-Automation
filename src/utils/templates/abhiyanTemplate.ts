@@ -731,7 +731,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
       <td class="text-left bold">Less: Existing EMI</td>
       <td>${loansList.length > 0 ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )` : (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td></td>
+      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>

@@ -253,6 +253,10 @@ describe('Abhiyan net disposal income', () => {
     expect(npRow).toContain('81,300');
     expect(npRow).toContain('9,75,600');
     expect(npRow).not.toContain('18,00,000');
+    // The Less: Existing EMI row must show both monthly and yearly, so the subtraction reads completely
+    const emiRow = html.slice(html.indexOf('Less: Existing EMI'), html.indexOf('Less: Existing EMI') + 400);
+    expect(emiRow).toContain('10,000');
+    expect(emiRow).toContain('1,20,000');
     const ndRow = html.slice(html.indexOf('Net Disposal Income'), html.indexOf('Net Disposal Income') + 400);
     expect(ndRow).toContain('51,300'); // 81,300 − 10,000 EMI − 20,000 household
     expect(ndRow).toContain('6,15,600'); // 9,75,600 − 1,20,000 − 2,40,000
