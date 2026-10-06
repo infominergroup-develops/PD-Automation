@@ -27,6 +27,10 @@ export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
     newAccounts[index] = { ...newAccounts[index], [field]: value };
     onAccountsChange(newAccounts);
   };
+  const handleDelete = (index: number) => {
+    if (!onAccountsChange) return;
+    onAccountsChange(accounts.filter((_, i) => i !== index));
+  };
   const formatCurrency = (val?: number | null) => {
     if (val === undefined || val === null) return '—';
     return new Intl.NumberFormat('en-IN', {
@@ -71,6 +75,7 @@ export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
                 <th className="py-3 px-4 text-center">ROI</th>
                 <th className="py-3 px-4">Last Paid</th>
                 <th className="py-3 px-4">As On</th>
+                {isEditing && <th className="py-3 px-4 w-10 text-center">Del</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
@@ -214,6 +219,19 @@ export const AccountDetailsTable: React.FC<AccountDetailsTableProps> = ({
                         acc.asOnDate || '—'
                       )}
                     </td>
+
+                    {isEditing && (
+                      <td className="py-3 px-4 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(idx)}
+                          title="Delete this account"
+                          className="text-red-600 hover:text-white hover:bg-red-600 border border-red-300 rounded px-2 py-0.5 text-[11px] font-bold transition-colors"
+                        >
+                          ✕
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}

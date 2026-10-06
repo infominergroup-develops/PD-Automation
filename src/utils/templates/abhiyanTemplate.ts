@@ -77,7 +77,8 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
   const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  const netProfY = data.netProfitYearly || (totalSalesY > 0 ? (totalSalesY - totalExpY) : 0);
+  // Net profit is A − B of the rows printed above, not the Financials tab's separately derived figure
+  const netProfY = totalSalesY > 0 ? totalSalesY - totalExpY : 0;
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(
@@ -123,7 +124,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     : (Number(data.coApplicantTotalExpensesYearly) || coAppTotalExpM * 12);
 
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
-  const coAppNetProfY = data.coApplicantNetProfitYearly || (coAppTotalSalesY > 0 ? (coAppTotalSalesY - coAppTotalExpY) : 0);
+  const coAppNetProfY = coAppTotalSalesY > 0 ? coAppTotalSalesY - coAppTotalExpY : 0;
 
   const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
   const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
@@ -291,7 +292,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td>Met person during visit time.</td>
-      <td colspan="3">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
+      <td colspan="3">${data.metPersonName || '-'}</td>
     </tr>
     <tr>
       <td>Met person identity proof</td>
@@ -309,7 +310,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
     </tr>
     <tr>
       <td style="width: 25%;">Met person during visit time.</td>
-      <td style="width: 75%;">${data.applicantName || '-'} & ${data.coApplicantName || '-'} ( ${data.coApplicantRelation || '-'} )</td>
+      <td style="width: 75%;">${data.metPersonName || '-'}</td>
     </tr>
     <tr>
       <td>Address of the meeting</td>

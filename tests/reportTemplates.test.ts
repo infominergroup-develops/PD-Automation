@@ -214,3 +214,47 @@ describe('Tata / SBFC net profit (A − B)', () => {
     },
   );
 });
+
+describe('Abhiyan met person during visit', () => {
+  it('shows the persons-met value from the form verbatim, not applicant & co-applicant', () => {
+    const data = {
+      ...fullReport,
+      applicantName: 'Asha Verma',
+      coApplicantName: 'Ramesh Verma',
+      coApplicantRelation: 'Husband',
+      metPersonName: 'Sunita Devi (Mother) & Asha Verma (Self)',
+    } as PDReportPrintData;
+    const html = generateAbhiyanPDReportHTML(data);
+    expect(html).toContain('Sunita Devi (Mother) & Asha Verma (Self)');
+    // The old hardcoded "Applicant & CoApplicant ( Relation )" form must be gone
+    expect(html).not.toContain('Asha Verma & Ramesh Verma ( Husband )');
+  });
+});
+
+describe('Abhiyan net disposal income', () => {
+  it('derives net profit and net disposal from printed rows, not the Financials tab figure', () => {
+    const data = {
+      ...fullReport,
+      itemizedSales: [{ particulars: 'Turnover', monthly: 590000, yearly: 7080000 }],
+      itemizedExpenses: [
+        { particulars: 'Materials & labour', monthly: 430700, yearly: 5168400 },
+        { particulars: 'Electricity', monthly: 4500, yearly: 54000 },
+        { particulars: 'Salaries', monthly: 70000, yearly: 840000 },
+        { particulars: 'Travel', monthly: 3500, yearly: 42000 },
+      ],
+      existingEmiMonthly: 10000,
+      existingEmiYearly: 120000,
+      monthlyHouseholdExpensesAmount: 20000,
+      // The Financials tab's separately derived figure must not leak in
+      netProfitYearly: 1800000,
+    } as PDReportPrintData;
+    const html = generateAbhiyanPDReportHTML(data);
+    const npRow = html.slice(html.indexOf('Net Profit Per month(A- B)'), html.indexOf('Net Profit Per month(A- B)') + 400);
+    expect(npRow).toContain('81,300');
+    expect(npRow).toContain('9,75,600');
+    expect(npRow).not.toContain('18,00,000');
+    const ndRow = html.slice(html.indexOf('Net Disposal Income'), html.indexOf('Net Disposal Income') + 400);
+    expect(ndRow).toContain('51,300'); // 81,300 − 10,000 EMI − 20,000 household
+    expect(ndRow).toContain('6,15,600'); // 9,75,600 − 1,20,000 − 2,40,000
+  });
+});
