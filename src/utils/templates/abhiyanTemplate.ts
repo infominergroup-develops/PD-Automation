@@ -126,13 +126,12 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
   const coAppNetProfY = coAppTotalSalesY > 0 ? coAppTotalSalesY - coAppTotalExpY : 0;
 
-  const combinedNetProfM = netProfM + (hasCoAppAssessment ? coAppNetProfM : 0);
-  const combinedNetProfY = netProfY + (hasCoAppAssessment ? coAppNetProfY : 0);
-
   const hhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 0;
   const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || hhExpM;
-  const netDisposalM = combinedNetProfM - existEmiM - hhExpM;
-  const netDisposalY = (combinedNetProfY - existEmiY - (hhExpM * 12));
+  // Net Disposal must reconcile with the rows printed directly above it: the applicant's
+  // own Net Profit (A − B) less EMI and household. The co-applicant has its own section.
+  const netDisposalM = netProfM - existEmiM - hhExpM;
+  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0
     ? data.prominentCustomers.map((c: any) => ({
@@ -731,7 +730,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderName: string
       <td class="text-left bold">Less: Existing EMI</td>
       <td>${loansList.length > 0 ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )` : (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
-      <td></td>
+      <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>

@@ -245,6 +245,11 @@ describe('Abhiyan net disposal income', () => {
       existingEmiMonthly: 10000,
       existingEmiYearly: 120000,
       monthlyHouseholdExpensesAmount: 20000,
+      // A co-applicant business must NOT inflate the applicant's own net disposal row
+      hasCoApplicantBusiness: true,
+      coApplicantName: 'Ramesh',
+      coApplicantItemizedSales: [{ particulars: 'Shop', monthly: 100000, yearly: 1200000 }],
+      coApplicantItemizedExpenses: [{ particulars: 'Costs', monthly: 40000, yearly: 480000 }],
       // The Financials tab's separately derived figure must not leak in
       netProfitYearly: 1800000,
     } as PDReportPrintData;
@@ -253,8 +258,14 @@ describe('Abhiyan net disposal income', () => {
     expect(npRow).toContain('81,300');
     expect(npRow).toContain('9,75,600');
     expect(npRow).not.toContain('18,00,000');
+    // The Less: Existing EMI row must show both monthly and yearly, so the subtraction reads completely
+    const emiRow = html.slice(html.indexOf('Less: Existing EMI'), html.indexOf('Less: Existing EMI') + 400);
+    expect(emiRow).toContain('10,000');
+    expect(emiRow).toContain('1,20,000');
     const ndRow = html.slice(html.indexOf('Net Disposal Income'), html.indexOf('Net Disposal Income') + 400);
-    expect(ndRow).toContain('51,300'); // 81,300 − 10,000 EMI − 20,000 household
+    // Applicant-only: 81,300 − 10,000 EMI − 20,000 household (co-applicant's 60,000 must not be added)
+    expect(ndRow).toContain('51,300');
     expect(ndRow).toContain('6,15,600'); // 9,75,600 − 1,20,000 − 2,40,000
+    expect(ndRow).not.toContain('1,11,300'); // would be the inflated figure if co-applicant were included
   });
 });
