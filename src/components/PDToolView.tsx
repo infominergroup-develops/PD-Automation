@@ -94,7 +94,6 @@ const slimIncomeDefaults = (): ItemizedCalculationLine[] => [
   { id: 'slim-inc-sales', particulars: 'Sales/receipt', monthlyAmount: 0 },
 ];
 const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
-  { id: 'slim-exp-purchase', particulars: 'Purchase', monthlyAmount: 0 },
   { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', monthlyAmount: 0 },
   { id: 'slim-exp-salary', particulars: 'Salary of employees', monthlyAmount: 0 },
   { id: 'slim-exp-other', particulars: 'Other expenses', monthlyAmount: 0 },
@@ -1267,6 +1266,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Form Fields - Financial Analysis & Waterfall Numbers
   const [statedMonthlySales, setStatedMonthlySales] = useState(0);
   const [cogsMarginPct, setCogsMarginPct] = useState(0); // COGS %
+  const [grossProfitPct, setGrossProfitPct] = useState(0); // Gross profit % (Tata/SBFC): purchases = sales × (1 − GP%)
   const [salariesExpense, setSalariesExpense] = useState(0);
   const [utilitiesExpense, setUtilitiesExpense] = useState(0);
   const [transportExpense, setTransportExpense] = useState(0);
@@ -1492,6 +1492,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setInterestRatePct(app.interestRatePct !== undefined ? app.interestRatePct : 12);
     setStatedMonthlySales(app.statedMonthlySales !== undefined ? app.statedMonthlySales : 0);
     setCogsMarginPct(app.cogsMarginPct !== undefined ? app.cogsMarginPct : 0);
+    setGrossProfitPct(app.grossProfitPct !== undefined ? app.grossProfitPct : 0);
     setSalariesExpense(app.salariesExpense !== undefined ? app.salariesExpense : 0);
     setUtilitiesExpense(app.utilitiesExpense !== undefined ? app.utilitiesExpense : 0);
     setTransportExpense(app.transportExpense !== undefined ? app.transportExpense : 0);
@@ -1697,7 +1698,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
     dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
-    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct, grossProfitPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
     existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
     incomeLines, expenseLines, productsList,
@@ -1961,10 +1962,11 @@ ${qaPairs.join('\n\n')}`;
     return Math.max(baseSales, itemizedMonthlyIncomeTotal || 0);
   }, [statedMonthlySales, crossCheckMonthlySales, itemizedMonthlyIncomeTotal]);
 
-  // Calculated COGS & Gross Profit
+  // Calculated COGS & Gross Profit. Tata/SBFC enter a Gross Profit %, so purchases = Sales − Gross Profit.
   const cogsAmount = useMemo(() => {
+    if (isSlimForm) return Math.max(0, adoptedMonthlySales - Math.round(adoptedMonthlySales * (grossProfitPct / 100)));
     return Math.round(adoptedMonthlySales * (cogsMarginPct / 100));
-  }, [adoptedMonthlySales, cogsMarginPct]);
+  }, [adoptedMonthlySales, cogsMarginPct, isSlimForm, grossProfitPct]);
 
   const grossProfit = useMemo(() => {
     return adoptedMonthlySales - cogsAmount;
@@ -1974,11 +1976,16 @@ ${qaPairs.join('\n\n')}`;
     return adoptedMonthlySales > 0 ? Math.round((grossProfit / adoptedMonthlySales) * 100) : 0;
   }, [grossProfit, adoptedMonthlySales]);
 
-  // Total Operating Expenses
+  // Total Operating Expenses. For Tata/SBFC these come from the itemized expense lines (excluding any purchase line).
   const rentEffective = shopOwnership === 'RENTED' ? monthlyRent : 0;
   const totalOperatingExpenses = useMemo(() => {
+    if (isSlimForm) {
+      return expenseLines
+        .filter(l => !/purchase|cost of goods|cogs/i.test(l.particulars || ''))
+        .reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0);
+    }
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
-  }, [salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
+  }, [isSlimForm, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
 
   // Tata/SBFC: keep the "Business premises Rent" expense line present only while the premises is rented.
   useEffect(() => {
@@ -2338,12 +2345,14 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
-    // Tata/SBFC income sheet: the "Purchase" expense line is the cost-of-goods (B); the rest are operating expenses (C)
+    // Tata/SBFC income sheet: the user enters a Gross Profit %, so purchases (B) = Sales − Gross Profit.
+    // Operating expenses (C) are the itemized expense lines (electricity, salary, rent, other).
     const isPurchaseLine = (p?: string) => /purchase|cost of goods|cogs/i.test(p || '');
     const filledExpenseLines = expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '');
     const opexLines = isSlimForm ? filledExpenseLines.filter(l => !isPurchaseLine(l.particulars)) : filledExpenseLines;
+    const slimGrossProfitMonthly = Math.round(adoptedMonthlySales * (grossProfitPct / 100));
     const purchaseMonthly = isSlimForm
-      ? filledExpenseLines.filter(l => isPurchaseLine(l.particulars)).reduce((s, l) => s + (Number(l.monthlyAmount) || 0), 0)
+      ? Math.max(0, adoptedMonthlySales - slimGrossProfitMonthly)
       : cogsAmount;
     const toExpenseRow = (l: ItemizedCalculationLine) => ({
       particulars: l.particulars.trim(),
@@ -5266,6 +5275,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </Field>
 
+              {!isSlimForm && (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">COGS / Stock Purchase % ({cogsMarginPct}%)</label>
                 <input
@@ -5277,6 +5287,23 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full accent-[#eb8a23]"
                 />
               </div>
+              )}
+
+              {isSlimForm && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Gross Profit % (of Sales)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={grossProfitPct}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 100) setGrossProfitPct(v); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
+                  placeholder="e.g. 20"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Purchases (B) auto-calculated as Sales − Gross Profit. Gross Profit = Sales × {grossProfitPct || 0}%.</p>
+              </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
