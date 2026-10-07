@@ -207,10 +207,37 @@ describe('Tata / SBFC net profit (A − B)', () => {
     '%s prints sales minus the listed expenses for both month and year',
     (_name, generate) => {
       const html = generate(data);
-      const row = html.slice(html.indexOf('Net Profit Per month(A- B)'), html.indexOf('Net Profit Per month(A- B)') + 600);
+      const row = html.slice(html.indexOf('Net Profit Per month (A - B - C)'), html.indexOf('Net Profit Per month (A - B - C)') + 600);
+      // No purchases in this data, so net profit = sales − operating expenses
       expect(row).toContain('₹81,300');
       expect(row).toContain('₹9,75,600');
       expect(row).not.toContain('₹18,00,000');
+    },
+  );
+});
+
+describe('Tata / SBFC income sheet: gross profit from purchases', () => {
+  const data = {
+    ...fullReport,
+    itemizedSales: [{ particulars: 'Turnover', monthly: 500000, yearly: 6000000 }],
+    itemizedExpenses: [{ particulars: 'Salary, rent & utilities', monthly: 100000, yearly: 1200000 }],
+    totalPurchasesMonthly: 200000,
+    totalPurchasesYearly: 2400000,
+  } as PDReportPrintData;
+
+  it.each([['tata', generateTataCapitalPDReportHTML], ['sbfc', generateSbfcPDReportHTML]])(
+    '%s shows purchases, gross profit with margin, and net profit with net margin',
+    (_name, generate) => {
+      const html = generate(data);
+      const gp = html.slice(html.indexOf('Gross Profit (A - B)'), html.indexOf('Gross Profit (A - B)') + 600);
+      expect(gp).toContain('₹3,00,000'); // 500,000 − 200,000
+      expect(gp).toContain('₹36,00,000'); // 6,000,000 − 2,400,000
+      expect(gp).toContain('Gross Margin: 60%');
+      const purch = html.slice(html.indexOf('Purchases / Cost of Goods Sold (B)'), html.indexOf('Purchases / Cost of Goods Sold (B)') + 600);
+      expect(purch).toContain('₹2,00,000');
+      const np = html.slice(html.indexOf('Net Profit Per month (A - B - C)'), html.indexOf('Net Profit Per month (A - B - C)') + 600);
+      expect(np).toContain('₹2,00,000'); // 300,000 gross − 100,000 expenses
+      expect(np).toContain('Net Margin: 40%');
     },
   );
 });
@@ -267,5 +294,20 @@ describe('Abhiyan net disposal income', () => {
     expect(ndRow).toContain('51,300');
     expect(ndRow).toContain('6,15,600'); // 9,75,600 − 1,20,000 − 2,40,000
     expect(ndRow).not.toContain('1,11,300'); // would be the inflated figure if co-applicant were included
+  });
+});
+
+describe('Tata / SBFC business proof details', () => {
+  it('renders user-entered proof text with line breaks preserved', () => {
+    const data = {
+      ...fullReport,
+      businessProofDetails: 'GSTIN/UIN: 23AKVPG6612M1ZS\nLegal Name of Business: Mr. Chand Hussain\nTrade Name: Siya Trader',
+    } as PDReportPrintData;
+    const html = generateTataCapitalPDReportHTML(data);
+    expect(html).toContain('GSTIN/UIN: 23AKVPG6612M1ZS<br/>Legal Name of Business: Mr. Chand Hussain<br/>Trade Name: Siya Trader');
+  });
+  it('falls back to the default proof line when none is given', () => {
+    const html = generateSbfcPDReportHTML(fullReport);
+    expect(html).toContain('Applicant has shared Udyam / GST / Utility bills as proof of business.');
   });
 });

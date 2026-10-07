@@ -88,8 +88,22 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
   monthlyAmount: 0
 });
 
+// Default income/expense lines seeded for Tata/SBFC (slim form); the user just fills the amounts.
+// The business-premises rent line is added only when the premises is rented (see the rent-sync effect).
+const slimIncomeDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'slim-inc-sales', particulars: 'Sales/receipt', businessNotes: 'The applicant generates monthly sales from his business, with the annual sales details mentioned below. (As verbally confirmed by the applicant.)', monthlyAmount: 0 },
+];
+const SLIM_RENT_NOTE = 'The rent and annual rent of the business premises is mentioned below.';
+const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', businessNotes: 'The applicant pays the electricity bill on a monthly basis, as verbally confirmed by the applicant.', monthlyAmount: 0 },
+  { id: 'slim-exp-salary', particulars: 'Salary of employees', businessNotes: 'The employee salaries and annual expenses are mentioned below.', monthlyAmount: 0 },
+  { id: 'slim-exp-other', particulars: 'Other expenses', businessNotes: 'Other expenses relating to his business like- Travel expence', monthlyAmount: 0 },
+];
+
 // Case status wording differs by lender; options are listed positive → negative → conditional
 const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
+// Lenders whose report uses only a subset of the form; the rest of the fields are hidden for them
+const SLIM_FORM_CLIENTS = ['tata', 'sbfc'];
 const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
 const getCaseStatusOptions = (clientId?: string) =>
@@ -579,7 +593,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Editable QnA fields
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
-  
+  const [businessProofDetails, setBusinessProofDetails] = useState('');
+
   // Co-Applicant Business Details States
   const coApplicantBusiness = useCoApplicantBusiness();
 
@@ -1209,6 +1224,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessStatus(val);
   };
 
+  // Tata / SBFC use a slimmed-down form: only the fields their shared report prints are shown
+  const isSlimForm = SLIM_FORM_CLIENTS.includes((selectedClient?.id || '').toLowerCase());
+
   // Keep the saved status within the selected lender's options (e.g. Recommended → Positive for Tata / SBFC)
   const caseStatusOptions = getCaseStatusOptions(selectedClient?.id);
   useEffect(() => {
@@ -1250,6 +1268,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Form Fields - Financial Analysis & Waterfall Numbers
   const [statedMonthlySales, setStatedMonthlySales] = useState(0);
   const [cogsMarginPct, setCogsMarginPct] = useState(0); // COGS %
+  const [grossProfitPct, setGrossProfitPct] = useState(0); // Gross profit % (Tata/SBFC): purchases = sales × (1 − GP%)
   const [salariesExpense, setSalariesExpense] = useState(0);
   const [utilitiesExpense, setUtilitiesExpense] = useState(0);
   const [transportExpense, setTransportExpense] = useState(0);
@@ -1475,6 +1494,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setInterestRatePct(app.interestRatePct !== undefined ? app.interestRatePct : 12);
     setStatedMonthlySales(app.statedMonthlySales !== undefined ? app.statedMonthlySales : 0);
     setCogsMarginPct(app.cogsMarginPct !== undefined ? app.cogsMarginPct : 0);
+    setGrossProfitPct(app.grossProfitPct !== undefined ? app.grossProfitPct : 0);
     setSalariesExpense(app.salariesExpense !== undefined ? app.salariesExpense : 0);
     setUtilitiesExpense(app.utilitiesExpense !== undefined ? app.utilitiesExpense : 0);
     setTransportExpense(app.transportExpense !== undefined ? app.transportExpense : 0);
@@ -1488,8 +1508,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setRiskFactor(app.riskFactor || '');
 
 
-    setIncomeLines(app.incomeLines || []);
-    setExpenseLines(app.expenseLines || []);
+    setIncomeLines(app.incomeLines || (isSlimForm ? slimIncomeDefaults() : []));
+    setExpenseLines(app.expenseLines || (isSlimForm ? slimExpenseDefaults() : []));
     if (app.productsList && Array.isArray(app.productsList)) {
       setProductsList(app.productsList);
     }
@@ -1634,6 +1654,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
 
     setBriefBusinessProfile(app.briefBusinessProfile || '');
+    setBusinessProofDetails(app.businessProofDetails || '');
 
     setBusinessVintageText(app.businessVintageText || '');
     setStaffCountText(app.staffCountText || '');
@@ -1680,7 +1701,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
     dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
-    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct,
+    landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct, grossProfitPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
     existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
     incomeLines, expenseLines, productsList,
@@ -1708,7 +1729,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     businessNeighbourName,
     businessNeighbourFeedback, businessStatus,
     hasAdditionalBusiness, additionalBusinessAddress, additionalBusinessIncomeAssessment,
-    briefBusinessProfile, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
+    briefBusinessProfile, businessProofDetails, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
     stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
     solarSavingText, projectedIncomeText, statusOfCase,
     ...coApplicantBusiness.values,
@@ -1944,10 +1965,11 @@ ${qaPairs.join('\n\n')}`;
     return Math.max(baseSales, itemizedMonthlyIncomeTotal || 0);
   }, [statedMonthlySales, crossCheckMonthlySales, itemizedMonthlyIncomeTotal]);
 
-  // Calculated COGS & Gross Profit
+  // Calculated COGS & Gross Profit. Tata/SBFC enter a Gross Profit %, so purchases = Sales − Gross Profit.
   const cogsAmount = useMemo(() => {
+    if (isSlimForm) return Math.max(0, adoptedMonthlySales - Math.round(adoptedMonthlySales * (grossProfitPct / 100)));
     return Math.round(adoptedMonthlySales * (cogsMarginPct / 100));
-  }, [adoptedMonthlySales, cogsMarginPct]);
+  }, [adoptedMonthlySales, cogsMarginPct, isSlimForm, grossProfitPct]);
 
   const grossProfit = useMemo(() => {
     return adoptedMonthlySales - cogsAmount;
@@ -1957,11 +1979,44 @@ ${qaPairs.join('\n\n')}`;
     return adoptedMonthlySales > 0 ? Math.round((grossProfit / adoptedMonthlySales) * 100) : 0;
   }, [grossProfit, adoptedMonthlySales]);
 
-  // Total Operating Expenses
+  // Total Operating Expenses. For Tata/SBFC these come from the itemized expense lines (excluding any purchase line).
   const rentEffective = shopOwnership === 'RENTED' ? monthlyRent : 0;
   const totalOperatingExpenses = useMemo(() => {
+    if (isSlimForm) {
+      return expenseLines
+        .filter(l => !/purchase|cost of goods|cogs/i.test(l.particulars || ''))
+        .reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0);
+    }
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
-  }, [salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
+  }, [isSlimForm, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
+
+  // Tata/SBFC: seed the default income/expense lines in the Waterfall section whenever they are empty,
+  // so the user always starts from Sales/receipt + Electricity/Salary/Other (and Rent when rented).
+  useEffect(() => {
+    if (!isSlimForm) return;
+    setIncomeLines(prev => (prev.length === 0 ? slimIncomeDefaults() : prev));
+    setExpenseLines(prev => (prev.length === 0 ? slimExpenseDefaults() : prev));
+  }, [isSlimForm]);
+
+  // Tata/SBFC: keep the "Business premises Rent" expense line present only while the premises is rented.
+  useEffect(() => {
+    if (!isSlimForm) return;
+    setExpenseLines(prev => {
+      const rentIdx = prev.findIndex(l => l.id === 'slim-exp-rent');
+      if (shopOwnership === 'RENTED') {
+        if (rentIdx >= 0) return prev;
+        const rentLine: ItemizedCalculationLine = { id: 'slim-exp-rent', particulars: 'Business premises Rent', businessNotes: SLIM_RENT_NOTE, monthlyAmount: 0 };
+        const otherIdx = prev.findIndex(l => l.id === 'slim-exp-other');
+        if (otherIdx >= 0) { const copy = [...prev]; copy.splice(otherIdx, 0, rentLine); return copy; }
+        return [...prev, rentLine];
+      }
+      // Not rented: drop the auto rent line only if the user never entered an amount
+      if (rentIdx >= 0 && (Number(prev[rentIdx].monthlyAmount) || 0) === 0) {
+        return prev.filter(l => l.id !== 'slim-exp-rent');
+      }
+      return prev;
+    });
+  }, [isSlimForm, shopOwnership]);
 
   // Net Business Operating Income
   const netBusinessIncome = useMemo(() => {
@@ -2301,6 +2356,21 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
+    // Tata/SBFC income sheet: the user enters a Gross Profit %, so purchases (B) = Sales − Gross Profit.
+    // Operating expenses (C) are the itemized expense lines (electricity, salary, rent, other).
+    const isPurchaseLine = (p?: string) => /purchase|cost of goods|cogs/i.test(p || '');
+    const filledExpenseLines = expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '');
+    const opexLines = isSlimForm ? filledExpenseLines.filter(l => !isPurchaseLine(l.particulars)) : filledExpenseLines;
+    const slimGrossProfitMonthly = Math.round(adoptedMonthlySales * (grossProfitPct / 100));
+    const purchaseMonthly = isSlimForm
+      ? Math.max(0, adoptedMonthlySales - slimGrossProfitMonthly)
+      : cogsAmount;
+    const toExpenseRow = (l: ItemizedCalculationLine) => ({
+      particulars: l.particulars.trim(),
+      businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+      monthly: Number(l.monthlyAmount) || 0,
+      yearly: (Number(l.monthlyAmount) || 0) * 12,
+    });
 
     return {
       companyHeader: {
@@ -2373,6 +2443,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'Not provided'} regarding their behaviour.` : 'Not provided',
 
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
+      businessProofDetails: businessProofDetails || '',
       
       hasCoApplicantBusiness: hasCoAppInBusiness,
       ...toCoApplicantBusinessReport(coApplicantBusiness.values),
@@ -2426,28 +2497,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           monthly: Number(l.monthlyAmount) || 0,
           yearly: (Number(l.monthlyAmount) || 0) * 12,
         })),
-      itemizedExpenses: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').map(l => ({
-            particulars: l.particulars.trim(),
-            businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
-            monthly: Number(l.monthlyAmount) || 0,
-            yearly: (Number(l.monthlyAmount) || 0) * 12,
-          }))
-        : [
+      itemizedExpenses: opexLines.length > 0
+        ? opexLines.map(toExpenseRow)
+        : (isSlimForm ? [] : [
             ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
             ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
             ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
-          ],
+          ]),
 
       totalSalesMonthly: adoptedMonthlySales,
       totalSalesYearly: adoptedMonthlySales * 12,
+      totalPurchasesMonthly: purchaseMonthly,
+      totalPurchasesYearly: purchaseMonthly * 12,
       workingDays: workingDays,
-      totalExpensesMonthly: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (salariesExpense + rentEffective + utilitiesExpense),
-      totalExpensesYearly: (expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (salariesExpense + rentEffective + utilitiesExpense)) * 12,
+      totalExpensesMonthly: opexLines.length > 0
+        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense)),
+      totalExpensesYearly: (opexLines.length > 0
+        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense))) * 12,
 
       // Co-Applicant Financial Assessment
       coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
@@ -3247,11 +3315,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Enter detailed business profile and executive summary..."
                 />
               </div>
+
+              {isSlimForm && (
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Proof Details (GST / Udyam / registration — paste point-wise)</label>
+                <textarea
+                  value={businessProofDetails}
+                  onChange={(e) => setBusinessProofDetails(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold whitespace-pre-wrap"
+                  placeholder={"Paste point-wise, e.g.\nGSTIN/UIN: 23AKVPG6612M1ZS\nLegal Name of Business: Mr. Chand Hussain\nTrade Name: Siya Trader\nConstitution: Proprietorship\n...\nShown in the report exactly as typed, line by line."}
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Appears in the report's "Business Proof details" row, preserving your line breaks.</p>
+              </div>
+              )}
             </div>
           </div>
 
           {/* AATA CHAKKI DYNAMIC SETUP */}
-          {(currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
+          {!isSlimForm && (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#eb8a23]" />
@@ -3512,6 +3594,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 8. Female Candidate */}
+            {!isSlimForm && (
             <Field label="8. Female candidate is on loan / application" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -3546,6 +3629,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
             </Field>
+            )}
 
             {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3593,7 +3677,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 11. Solar Purpose & Usage */}
-            {loanType === 'Commercial Solar Loan' && (
+            {!isSlimForm && loanType === 'Commercial Solar Loan' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
 
@@ -4048,6 +4132,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 4. Details of Office / Factory Infrastructure */}
+            {!isSlimForm && (
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">4. Details of Office / Factory Infrastructure (Assets)</h4>
@@ -4088,6 +4173,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 )}
               </div>
             </div>
+            )}
 
             {/* 5. Stock Details */}
             <div className="mt-6">
@@ -4144,6 +4230,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
             </div>
 
+            {/* 6-11: fields not used by Tata/SBFC reports */}
+            {!isSlimForm && (<>
             {/* 6. Details and confirmation of business by neighbor */}
             <Field label="6. Details and confirmation of business by neighbor" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <Field label="Neighbor Name" labelClassName={SUB_LABEL}>
@@ -4407,6 +4495,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             </Field>
+            </>)}
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -4651,6 +4740,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </Field>
 
+            {/* 19A-21: electricity & neighbor fields not used by Tata/SBFC reports */}
+            {!isSlimForm && (<>
             {/* 19A. Residence Electricity Connection Details */}
             <Field label="19A. Residence Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
@@ -4783,6 +4874,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
             </Field>
+            </>)}
 
             {/* 22. Latitude & Longitude */}
             <div>
@@ -5209,6 +5301,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </Field>
 
+              {!isSlimForm && (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">COGS / Stock Purchase % ({cogsMarginPct}%)</label>
                 <input
@@ -5220,6 +5313,23 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full accent-[#eb8a23]"
                 />
               </div>
+              )}
+
+              {isSlimForm && (
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Gross Profit % (of Sales)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={grossProfitPct}
+                  onChange={(e) => { const v = Number(e.target.value); if (v >= 0 && v <= 100) setGrossProfitPct(v); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
+                  placeholder="e.g. 20"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Purchases (B) auto-calculated as Sales − Gross Profit. Gross Profit = Sales × {grossProfitPct || 0}%.</p>
+              </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
@@ -5297,6 +5407,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* LIVE FINANCIAL RATIOS CARD */}
+            {!isSlimForm && (
             <div className="bg-[#384c5e] text-white rounded-xl p-5 shadow-md flex flex-wrap items-center justify-between gap-6">
               <div>
                 <div className="text-xs text-amber-300 font-bold uppercase tracking-wider">Automated Debt Service Coverage Ratios</div>
@@ -5334,6 +5445,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </span>
               </div>
             </div>
+            )}
           </div>
           {tabFooter}
         </div>

@@ -248,6 +248,8 @@ export interface PDReportPrintData {
 
   // Business Visit
   briefBusinessProfile?: string;
+  // Business proof / registration details (GST, Udyam, etc.), user-entered point-wise; line breaks preserved
+  businessProofDetails?: string;
   businessVintage?: string;
   previousOccupation?: string;
   reasonToLeave?: string;
@@ -317,6 +319,9 @@ export interface PDReportPrintData {
   }>;
   totalSalesMonthly?: number;
   totalSalesYearly?: number;
+  // Purchases / cost of goods sold, subtracted from sales to give gross profit (Tata/SBFC income sheet)
+  totalPurchasesMonthly?: number;
+  totalPurchasesYearly?: number;
   workingDays?: number;
 
   itemizedExpenses?: Array<{
