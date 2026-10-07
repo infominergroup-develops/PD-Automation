@@ -267,7 +267,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   <table class="report-table">
     <tr>
       <td colspan="2" class="sec-head" style="width:30%; text-align:left;">Business Proof details (like S & E/GST Certificate/Electricity Bills)</td>
-      <td colspan="4" style="width:70%;">Applicant has shared Udyam / GST / Utility bills as proof of business.</td>
+      <td colspan="4" style="width:70%; white-space: pre-line;">${(data.businessProofDetails && data.businessProofDetails.trim() !== '' ? data.businessProofDetails : 'Applicant has shared Udyam / GST / Utility bills as proof of business.').replace(/\\n|\n/g, '<br/>')}</td>
     </tr>
     <tr><td colspan="2">Number of staffs</td><td colspan="4">${data.staffCount || 'He is self-employed and operates the business by himself.'}</td></tr>
     <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="4">Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup.</td></tr>
@@ -395,7 +395,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
           </tr>
         </table>
       </td>
-      <td style="font-size: 9px;">Cost of raw material / stock purchased</td>
+      <td style="font-size: 9px;">The applicant makes monthly purchases for business purposes, with the annual purchase details mentioned below. (As verbally confirmed by the applicant.)</td>
     </tr>
     <tr style="font-weight: bold; background-color: #f1f5f9;">
       <td>Gross Profit (A - B)</td>

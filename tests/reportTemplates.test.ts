@@ -296,3 +296,18 @@ describe('Abhiyan net disposal income', () => {
     expect(ndRow).not.toContain('1,11,300'); // would be the inflated figure if co-applicant were included
   });
 });
+
+describe('Tata / SBFC business proof details', () => {
+  it('renders user-entered proof text with line breaks preserved', () => {
+    const data = {
+      ...fullReport,
+      businessProofDetails: 'GSTIN/UIN: 23AKVPG6612M1ZS\nLegal Name of Business: Mr. Chand Hussain\nTrade Name: Siya Trader',
+    } as PDReportPrintData;
+    const html = generateTataCapitalPDReportHTML(data);
+    expect(html).toContain('GSTIN/UIN: 23AKVPG6612M1ZS<br/>Legal Name of Business: Mr. Chand Hussain<br/>Trade Name: Siya Trader');
+  });
+  it('falls back to the default proof line when none is given', () => {
+    const html = generateSbfcPDReportHTML(fullReport);
+    expect(html).toContain('Applicant has shared Udyam / GST / Utility bills as proof of business.');
+  });
+});

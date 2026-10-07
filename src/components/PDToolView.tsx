@@ -91,13 +91,13 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
 // Default income/expense lines seeded for Tata/SBFC (slim form); the user just fills the amounts.
 // The business-premises rent line is added only when the premises is rented (see the rent-sync effect).
 const slimIncomeDefaults = (): ItemizedCalculationLine[] => [
-  { id: 'slim-inc-sales', particulars: 'Sales/receipt', businessNotes: 'Monthly sales / business receipts as assessed during the visit.', monthlyAmount: 0 },
+  { id: 'slim-inc-sales', particulars: 'Sales/receipt', businessNotes: 'The applicant generates monthly sales from his business, with the annual sales details mentioned below. (As verbally confirmed by the applicant.)', monthlyAmount: 0 },
 ];
-const SLIM_RENT_NOTE = 'Monthly rent paid for the business premises.';
+const SLIM_RENT_NOTE = 'The rent and annual rent of the business premises is mentioned below.';
 const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
-  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', businessNotes: 'Monthly electricity charges for the business premises.', monthlyAmount: 0 },
-  { id: 'slim-exp-salary', particulars: 'Salary of employees', businessNotes: 'Monthly wages / salary paid to the staff employed.', monthlyAmount: 0 },
-  { id: 'slim-exp-other', particulars: 'Other expenses', businessNotes: 'Other miscellaneous monthly business expenses.', monthlyAmount: 0 },
+  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', businessNotes: 'The applicant pays the electricity bill on a monthly basis, as verbally confirmed by the applicant.', monthlyAmount: 0 },
+  { id: 'slim-exp-salary', particulars: 'Salary of employees', businessNotes: 'The employee salaries and annual expenses are mentioned below.', monthlyAmount: 0 },
+  { id: 'slim-exp-other', particulars: 'Other expenses', businessNotes: 'Other expenses relating to his business like- Travel expence', monthlyAmount: 0 },
 ];
 
 // Case status wording differs by lender; options are listed positive → negative → conditional
@@ -593,7 +593,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Editable QnA fields
   const [briefBusinessProfile, setBriefBusinessProfile] = useState('');
-  
+  const [businessProofDetails, setBusinessProofDetails] = useState('');
+
   // Co-Applicant Business Details States
   const coApplicantBusiness = useCoApplicantBusiness();
 
@@ -1653,6 +1654,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setAdditionalBusinessIncomeAssessment(app.additionalBusinessIncomeAssessment || '');
 
     setBriefBusinessProfile(app.briefBusinessProfile || '');
+    setBusinessProofDetails(app.businessProofDetails || '');
 
     setBusinessVintageText(app.businessVintageText || '');
     setStaffCountText(app.staffCountText || '');
@@ -1727,7 +1729,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     businessNeighbourName,
     businessNeighbourFeedback, businessStatus,
     hasAdditionalBusiness, additionalBusinessAddress, additionalBusinessIncomeAssessment,
-    briefBusinessProfile, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
+    briefBusinessProfile, businessProofDetails, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
     stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
     solarSavingText, projectedIncomeText, statusOfCase,
     ...coApplicantBusiness.values,
@@ -2441,6 +2443,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       residenceNeighborFeedback: neighborVerificationConducted ? `Neighbour verification was conducted, wherein neighbours ${neighborResidenceConfirmed === 'Confirmed' ? 'confirmed' : neighborResidenceConfirmed.toLowerCase()} that both the applicant and co-applicant have been residing at the given address. The feedback received was ${neighborBehaviourFeedback || 'Not provided'} regarding their behaviour.` : 'Not provided',
 
       briefBusinessProfile: briefBusinessProfile || 'Not provided',
+      businessProofDetails: businessProofDetails || '',
       
       hasCoApplicantBusiness: hasCoAppInBusiness,
       ...toCoApplicantBusinessReport(coApplicantBusiness.values),
@@ -3312,6 +3315,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   placeholder="Enter detailed business profile and executive summary..."
                 />
               </div>
+
+              {isSlimForm && (
+              <div className="md:col-span-3">
+                <label className="block text-xs font-bold text-slate-700 mb-1">Business Proof Details (GST / Udyam / registration — paste point-wise)</label>
+                <textarea
+                  value={businessProofDetails}
+                  onChange={(e) => setBusinessProofDetails(e.target.value)}
+                  rows={8}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold whitespace-pre-wrap"
+                  placeholder={"Paste point-wise, e.g.\nGSTIN/UIN: 23AKVPG6612M1ZS\nLegal Name of Business: Mr. Chand Hussain\nTrade Name: Siya Trader\nConstitution: Proprietorship\n...\nShown in the report exactly as typed, line by line."}
+                />
+                <p className="text-[10px] text-slate-500 mt-1">Appears in the report's "Business Proof details" row, preserving your line breaks.</p>
+              </div>
+              )}
             </div>
           </div>
 

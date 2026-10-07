@@ -248,6 +248,8 @@ export interface PDReportPrintData {
 
   // Business Visit
   briefBusinessProfile?: string;
+  // Business proof / registration details (GST, Udyam, etc.), user-entered point-wise; line breaks preserved
+  businessProofDetails?: string;
   businessVintage?: string;
   previousOccupation?: string;
   reasonToLeave?: string;
