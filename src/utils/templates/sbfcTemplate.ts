@@ -75,9 +75,15 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     ? expenseItems.reduce((acc, i) => acc + (Number(i.yearly) || (Number(i.monthly) || 0) * 12), 0)
     : (Number(data.totalExpensesYearly) || totalExpM * 12);
 
-  const netProfM = totalSalesM > 0 ? (totalSalesM - totalExpM) : 0;
-  // Net profit is A − B of the rows printed above, not the Financials tab's separately derived figure
-  const netProfY = totalSalesY > 0 ? totalSalesY - totalExpY : 0;
+  // Income sheet: Sales − Purchases = Gross Profit, then − Other Expenses = Net Profit
+  const purchasesM = Number(data.totalPurchasesMonthly) || 0;
+  const purchasesY = Number(data.totalPurchasesYearly) || purchasesM * 12;
+  const grossProfitM = totalSalesM - purchasesM;
+  const grossProfitY = totalSalesY - purchasesY;
+  const grossMarginPctVal = totalSalesM > 0 ? Math.round((grossProfitM / totalSalesM) * 100) : 0;
+  const netProfM = grossProfitM - totalExpM;
+  const netProfY = grossProfitY - totalExpY;
+  const netMarginPctVal = totalSalesM > 0 ? Math.round((netProfM / totalSalesM) * 100) : 0;
 
   // Co-Applicant Income Assessment Calculations
   const hasCoAppAssessment = Boolean(data.hasCoApplicantBusiness);
@@ -379,6 +385,30 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       </td>
       <td></td>
     </tr>
+    <tr>
+      <td>Less: Purchases / Cost of Goods Sold (B)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(purchasesM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(purchasesY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">Cost of raw material / stock purchased</td>
+    </tr>
+    <tr style="font-weight: bold; background-color: #f1f5f9;">
+      <td>Gross Profit (A - B)</td>
+      <td>
+        <table style="width:100%; border-collapse:collapse; height:100%;">
+          <tr>
+            <td style="width:50%; text-align:center; border:none; border-right:1px solid #000;">₹${Number(grossProfitM).toLocaleString('en-IN')}</td>
+            <td style="width:50%; text-align:center; border:none;">₹${Number(grossProfitY).toLocaleString('en-IN')}</td>
+          </tr>
+        </table>
+      </td>
+      <td style="font-size: 9px;">Gross Margin: ${grossMarginPctVal}%</td>
+    </tr>
     ${expenseItems.map(item => `
     <tr>
       <td>${item.particulars}</td>
@@ -394,7 +424,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     </tr>
     `).join('')}
     <tr>
-      <td class="sec-head" style="text-align:left;">Total Expenses (B)</td>
+      <td class="sec-head" style="text-align:left;">Total Operating Expenses (C)</td>
       <td class="sec-head">
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
@@ -403,10 +433,10 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
           </tr>
         </table>
       </td>
-      <td>Total Monthly Expenses</td>
+      <td>Electricity, salary, bonus, rent & misc.</td>
     </tr>
     <tr>
-      <td class="sec-head" style="text-align:left;">Net Profit Per month(A- B)</td>
+      <td class="sec-head" style="text-align:left;">Net Profit Per month (A - B - C)</td>
       <td>
         <table style="width:100%; border-collapse:collapse; height:100%;">
           <tr>
@@ -415,7 +445,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
           </tr>
         </table>
       </td>
-      <td></td>
+      <td style="font-size: 9px;">Net Margin: ${netMarginPctVal}%</td>
     </tr>
 
   </table>

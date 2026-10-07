@@ -317,6 +317,9 @@ export interface PDReportPrintData {
   }>;
   totalSalesMonthly?: number;
   totalSalesYearly?: number;
+  // Purchases / cost of goods sold, subtracted from sales to give gross profit (Tata/SBFC income sheet)
+  totalPurchasesMonthly?: number;
+  totalPurchasesYearly?: number;
   workingDays?: number;
 
   itemizedExpenses?: Array<{

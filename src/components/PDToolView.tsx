@@ -2446,6 +2446,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
       totalSalesMonthly: adoptedMonthlySales,
       totalSalesYearly: adoptedMonthlySales * 12,
+      totalPurchasesMonthly: cogsAmount,
+      totalPurchasesYearly: cogsAmount * 12,
       workingDays: workingDays,
       totalExpensesMonthly: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
         ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
