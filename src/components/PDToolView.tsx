@@ -90,6 +90,8 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
 
 // Case status wording differs by lender; options are listed positive → negative → conditional
 const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
+// Lenders whose report uses only a subset of the form; the rest of the fields are hidden for them
+const SLIM_FORM_CLIENTS = ['tata', 'sbfc'];
 const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
 const getCaseStatusOptions = (clientId?: string) =>
@@ -1208,6 +1210,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setStatusOfCase(val);
     setBusinessStatus(val);
   };
+
+  // Tata / SBFC use a slimmed-down form: only the fields their shared report prints are shown
+  const isSlimForm = SLIM_FORM_CLIENTS.includes((selectedClient?.id || '').toLowerCase());
 
   // Keep the saved status within the selected lender's options (e.g. Recommended → Positive for Tata / SBFC)
   const caseStatusOptions = getCaseStatusOptions(selectedClient?.id);
@@ -3251,7 +3256,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           </div>
 
           {/* AATA CHAKKI DYNAMIC SETUP */}
-          {(currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
+          {!isSlimForm && (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#eb8a23]" />
@@ -3512,6 +3517,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 8. Female Candidate */}
+            {!isSlimForm && (
             <Field label="8. Female candidate is on loan / application" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -3546,6 +3552,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
             </Field>
+            )}
 
             {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -3593,7 +3600,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 11. Solar Purpose & Usage */}
-            {loanType === 'Commercial Solar Loan' && (
+            {!isSlimForm && loanType === 'Commercial Solar Loan' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
 
@@ -4048,6 +4055,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 4. Details of Office / Factory Infrastructure */}
+            {!isSlimForm && (
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">4. Details of Office / Factory Infrastructure (Assets)</h4>
@@ -4088,6 +4096,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 )}
               </div>
             </div>
+            )}
 
             {/* 5. Stock Details */}
             <div className="mt-6">
@@ -4144,6 +4153,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
             </div>
 
+            {/* 6-11: fields not used by Tata/SBFC reports */}
+            {!isSlimForm && (<>
             {/* 6. Details and confirmation of business by neighbor */}
             <Field label="6. Details and confirmation of business by neighbor" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <Field label="Neighbor Name" labelClassName={SUB_LABEL}>
@@ -4407,6 +4418,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             </Field>
+            </>)}
 
             {/* 12. Address of additional business with or without income assessment */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
@@ -4651,6 +4663,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </Field>
 
+            {/* 19A-21: electricity & neighbor fields not used by Tata/SBFC reports */}
+            {!isSlimForm && (<>
             {/* 19A. Residence Electricity Connection Details */}
             <Field label="19A. Residence Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
@@ -4783,6 +4797,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
             </Field>
+            </>)}
 
             {/* 22. Latitude & Longitude */}
             <div>
@@ -5297,6 +5312,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* LIVE FINANCIAL RATIOS CARD */}
+            {!isSlimForm && (
             <div className="bg-[#384c5e] text-white rounded-xl p-5 shadow-md flex flex-wrap items-center justify-between gap-6">
               <div>
                 <div className="text-xs text-amber-300 font-bold uppercase tracking-wider">Automated Debt Service Coverage Ratios</div>
@@ -5334,6 +5350,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </span>
               </div>
             </div>
+            )}
           </div>
           {tabFooter}
         </div>
