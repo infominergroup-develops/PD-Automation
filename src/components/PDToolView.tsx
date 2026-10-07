@@ -91,12 +91,13 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
 // Default income/expense lines seeded for Tata/SBFC (slim form); the user just fills the amounts.
 // The business-premises rent line is added only when the premises is rented (see the rent-sync effect).
 const slimIncomeDefaults = (): ItemizedCalculationLine[] => [
-  { id: 'slim-inc-sales', particulars: 'Sales/receipt', monthlyAmount: 0 },
+  { id: 'slim-inc-sales', particulars: 'Sales/receipt', businessNotes: 'Monthly sales / business receipts as assessed during the visit.', monthlyAmount: 0 },
 ];
+const SLIM_RENT_NOTE = 'Monthly rent paid for the business premises.';
 const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
-  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', monthlyAmount: 0 },
-  { id: 'slim-exp-salary', particulars: 'Salary of employees', monthlyAmount: 0 },
-  { id: 'slim-exp-other', particulars: 'Other expenses', monthlyAmount: 0 },
+  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', businessNotes: 'Monthly electricity charges for the business premises.', monthlyAmount: 0 },
+  { id: 'slim-exp-salary', particulars: 'Salary of employees', businessNotes: 'Monthly wages / salary paid to the staff employed.', monthlyAmount: 0 },
+  { id: 'slim-exp-other', particulars: 'Other expenses', businessNotes: 'Other miscellaneous monthly business expenses.', monthlyAmount: 0 },
 ];
 
 // Case status wording differs by lender; options are listed positive → negative → conditional
@@ -1994,7 +1995,7 @@ ${qaPairs.join('\n\n')}`;
       const rentIdx = prev.findIndex(l => l.id === 'slim-exp-rent');
       if (shopOwnership === 'RENTED') {
         if (rentIdx >= 0) return prev;
-        const rentLine: ItemizedCalculationLine = { id: 'slim-exp-rent', particulars: 'Business premises Rent', monthlyAmount: 0 };
+        const rentLine: ItemizedCalculationLine = { id: 'slim-exp-rent', particulars: 'Business premises Rent', businessNotes: SLIM_RENT_NOTE, monthlyAmount: 0 };
         const otherIdx = prev.findIndex(l => l.id === 'slim-exp-other');
         if (otherIdx >= 0) { const copy = [...prev]; copy.splice(otherIdx, 0, rentLine); return copy; }
         return [...prev, rentLine];
