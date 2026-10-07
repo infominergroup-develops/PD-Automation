@@ -104,6 +104,14 @@ const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
 const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
 // Lenders whose report uses only a subset of the form; the rest of the fields are hidden for them
 const SLIM_FORM_CLIENTS = ['tata', 'sbfc'];
+// One-click office/factory infrastructure options for Tata/SBFC
+const SLIM_FACTORY_ASSET_OPTIONS = ['Desk', 'Chairs', 'Fans', 'Weighing scales', 'Furniture / racks', 'Computer / Printer', 'CCTV cameras', 'Storage / Almirah'];
+const buildSlimFactorySummary = (assets: string[], other: string): string => {
+  const items = [...assets];
+  if (other.trim()) items.push(other.trim());
+  if (items.length === 0) return '';
+  return `${items.join(', ')}, and other similar assets were observed in the applicant's business setup.`;
+};
 const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
 const getCaseStatusOptions = (clientId?: string) =>
@@ -602,6 +610,9 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [staffCountText, setStaffCountText] = useState('');
   const [premiseOwnershipText, setPremiseOwnershipText] = useState('');
   const [factoryInfrastructureText, setFactoryInfrastructureText] = useState('');
+  // Tata/SBFC: one-click office/factory infrastructure assets + an optional "Other" entry
+  const [slimFactoryAssets, setSlimFactoryAssets] = useState<string[]>([]);
+  const [slimFactoryOther, setSlimFactoryOther] = useState('');
   const [stockDetailsValueText, setStockDetailsValueText] = useState('');
   const [fixedAndCurrentAssetAnalysisText, setFixedAndCurrentAssetAnalysisText] = useState('');
   const [assetCreationText, setAssetCreationText] = useState('');
@@ -1655,11 +1666,15 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     setBriefBusinessProfile(app.briefBusinessProfile || '');
     setBusinessProofDetails(app.businessProofDetails || '');
+    setCreditReportType(app.creditReportType || 'NONE');
+    setParsedCreditReport(app.parsedCreditReport || null);
 
     setBusinessVintageText(app.businessVintageText || '');
     setStaffCountText(app.staffCountText || '');
     setPremiseOwnershipText(app.premiseOwnershipText || '');
     setFactoryInfrastructureText(app.factoryInfrastructureText || '');
+    setSlimFactoryAssets(app.slimFactoryAssets || []);
+    setSlimFactoryOther(app.slimFactoryOther || '');
     setStockDetailsValueText(app.stockDetailsValueText || '');
     setFixedAndCurrentAssetAnalysisText(app.fixedAndCurrentAssetAnalysisText || '');
     setAssetCreationText(app.assetCreationText || '');
@@ -1730,6 +1745,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     businessNeighbourFeedback, businessStatus,
     hasAdditionalBusiness, additionalBusinessAddress, additionalBusinessIncomeAssessment,
     briefBusinessProfile, businessProofDetails, businessVintageText, staffCountText, premiseOwnershipText, factoryInfrastructureText,
+    slimFactoryAssets, slimFactoryOther,
     stockDetailsValueText, fixedAndCurrentAssetAnalysisText, assetCreationText, businessInvestmentText, agriculturalIncomeText,
     solarSavingText, projectedIncomeText, statusOfCase,
     ...coApplicantBusiness.values,
@@ -1737,6 +1753,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     coAppUtilitiesExpense, coAppMiscExpense,
     ...godrej.values,
     categoryId: selectedCategoryId,
+    // Persist the extracted CRIF/CIBIL report so it reloads with the applicant
+    creditReportType, parsedCreditReport,
     // Always persist these top-level indexing fields so gallery/search works correctly
     applicationNumber: activeAppNumber,
     financialInstitute: selectedClient?.name || '',
@@ -2453,7 +2471,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       reasonToLeave: reasonToLeave || 'Not provided',
       staffCount: staffCountText || fbStaffCount,
       businessPremiseOwnership: premiseOwnershipText || fbPremiseOwnership,
-      factoryInfrastructure: factoryInfrastructureText || fbFactoryInfra,
+      factoryInfrastructure: (isSlimForm && buildSlimFactorySummary(slimFactoryAssets, slimFactoryOther)) || factoryInfrastructureText || fbFactoryInfra,
       stockDetailsValue: stockDetailsValueText || fbStockDetails,
       fixedAndCurrentAssetAnalysis: fixedAndCurrentAssetAnalysisText || fbAssetAnalysis,
       assetCreationThroughBusiness: assetCreationText || fbAssetCreation,
@@ -4171,6 +4189,42 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <textarea value={factoryInfrastructureText || `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.`} onChange={(e) => setFactoryInfrastructureText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                   </div>
                 )}
+              </div>
+            </div>
+            )}
+
+            {/* 4. Office / Factory Infrastructure — one-click (Tata/SBFC) */}
+            {isSlimForm && (
+            <div className="mt-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
+              <h4 className="text-xs font-bold text-slate-700">4. Details of Office / Factory Infrastructure (Assets)</h4>
+              <p className="text-[10px] text-slate-500">Tap the assets observed; the report summary updates automatically.</p>
+              <div className="flex flex-wrap gap-2">
+                {SLIM_FACTORY_ASSET_OPTIONS.map(opt => {
+                  const active = slimFactoryAssets.includes(opt);
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setSlimFactoryAssets(prev => active ? prev.filter(a => a !== opt) : [...prev, opt])}
+                      className={`px-3 py-1.5 text-[10px] font-bold rounded-lg border transition ${active ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300 hover:border-[#eb8a23]'}`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">Other (specify)</label>
+                <input
+                  type="text"
+                  value={slimFactoryOther}
+                  onChange={(e) => setSlimFactoryOther(e.target.value)}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
+                  placeholder="e.g. Delivery vehicle, generator"
+                />
+              </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-[11px] text-blue-900 font-semibold">
+                {buildSlimFactorySummary(slimFactoryAssets, slimFactoryOther) || 'Select the assets above to generate the report summary.'}
               </div>
             </div>
             )}

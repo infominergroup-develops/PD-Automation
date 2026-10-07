@@ -270,7 +270,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       <td colspan="4" style="width:70%; white-space: pre-line;">${(data.businessProofDetails && data.businessProofDetails.trim() !== '' ? data.businessProofDetails : 'Applicant has shared Udyam / GST / Utility bills as proof of business.').replace(/\\n|\n/g, '<br/>')}</td>
     </tr>
     <tr><td colspan="2">Number of staffs</td><td colspan="4">${data.staffCount || 'He is self-employed and operates the business by himself.'}</td></tr>
-    <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="4">Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup.</td></tr>
+    <tr><td colspan="2">Details of Office / Factory infrastructure</td><td colspan="4">${data.factoryInfrastructure && data.factoryInfrastructure.trim() !== '' && data.factoryInfrastructure !== 'Not provided' ? data.factoryInfrastructure : "Desk, chairs, fans, weight scales, furniture racks, and other similar assets were observed in the applicant's business setup."}</td></tr>
     <tr><td colspan="2">Other source income</td><td colspan="4">The applicant does not have any other source of income.</td></tr>
     
     <tr class="sec-head">

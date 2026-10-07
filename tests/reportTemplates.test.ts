@@ -311,3 +311,15 @@ describe('Tata / SBFC business proof details', () => {
     expect(html).toContain('Applicant has shared Udyam / GST / Utility bills as proof of business.');
   });
 });
+
+describe('Tata / SBFC office/factory infrastructure', () => {
+  it('uses the provided infrastructure summary when given', () => {
+    const data = { ...fullReport, factoryInfrastructure: 'Desk, Chairs, CCTV cameras, and other similar assets were observed in the applicant\'s business setup.' } as PDReportPrintData;
+    const html = generateTataCapitalPDReportHTML(data);
+    expect(html).toContain('Desk, Chairs, CCTV cameras, and other similar assets were observed');
+  });
+  it('falls back to the default infrastructure line when not provided', () => {
+    const html = generateSbfcPDReportHTML({ ...fullReport, factoryInfrastructure: undefined } as PDReportPrintData);
+    expect(html).toContain('Desk, chairs, fans, weight scales, furniture racks');
+  });
+});
