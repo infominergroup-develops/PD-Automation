@@ -88,6 +88,18 @@ const newItemizedLine = (id: string, unit: string, workingDays: number): Itemize
   monthlyAmount: 0
 });
 
+// Default income/expense lines seeded for Tata/SBFC (slim form); the user just fills the amounts.
+// The business-premises rent line is added only when the premises is rented (see the rent-sync effect).
+const slimIncomeDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'slim-inc-sales', particulars: 'Sales/receipt', monthlyAmount: 0 },
+];
+const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'slim-exp-purchase', particulars: 'Purchase', monthlyAmount: 0 },
+  { id: 'slim-exp-electricity', particulars: 'Monthly Electricity expense', monthlyAmount: 0 },
+  { id: 'slim-exp-salary', particulars: 'Salary of employees', monthlyAmount: 0 },
+  { id: 'slim-exp-other', particulars: 'Other expenses', monthlyAmount: 0 },
+];
+
 // Case status wording differs by lender; options are listed positive → negative → conditional
 const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
 // Lenders whose report uses only a subset of the form; the rest of the fields are hidden for them
@@ -1493,8 +1505,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setRiskFactor(app.riskFactor || '');
 
 
-    setIncomeLines(app.incomeLines || []);
-    setExpenseLines(app.expenseLines || []);
+    setIncomeLines(app.incomeLines || (isSlimForm ? slimIncomeDefaults() : []));
+    setExpenseLines(app.expenseLines || (isSlimForm ? slimExpenseDefaults() : []));
     if (app.productsList && Array.isArray(app.productsList)) {
       setProductsList(app.productsList);
     }
@@ -1968,6 +1980,26 @@ ${qaPairs.join('\n\n')}`;
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
   }, [salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
 
+  // Tata/SBFC: keep the "Business premises Rent" expense line present only while the premises is rented.
+  useEffect(() => {
+    if (!isSlimForm) return;
+    setExpenseLines(prev => {
+      const rentIdx = prev.findIndex(l => l.id === 'slim-exp-rent');
+      if (shopOwnership === 'RENTED') {
+        if (rentIdx >= 0) return prev;
+        const rentLine: ItemizedCalculationLine = { id: 'slim-exp-rent', particulars: 'Business premises Rent', monthlyAmount: 0 };
+        const otherIdx = prev.findIndex(l => l.id === 'slim-exp-other');
+        if (otherIdx >= 0) { const copy = [...prev]; copy.splice(otherIdx, 0, rentLine); return copy; }
+        return [...prev, rentLine];
+      }
+      // Not rented: drop the auto rent line only if the user never entered an amount
+      if (rentIdx >= 0 && (Number(prev[rentIdx].monthlyAmount) || 0) === 0) {
+        return prev.filter(l => l.id !== 'slim-exp-rent');
+      }
+      return prev;
+    });
+  }, [isSlimForm, shopOwnership]);
+
   // Net Business Operating Income
   const netBusinessIncome = useMemo(() => {
     return Math.max(0, grossProfit - totalOperatingExpenses);
@@ -2306,6 +2338,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
+    // Tata/SBFC income sheet: the "Purchase" expense line is the cost-of-goods (B); the rest are operating expenses (C)
+    const isPurchaseLine = (p?: string) => /purchase|cost of goods|cogs/i.test(p || '');
+    const filledExpenseLines = expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '');
+    const opexLines = isSlimForm ? filledExpenseLines.filter(l => !isPurchaseLine(l.particulars)) : filledExpenseLines;
+    const purchaseMonthly = isSlimForm
+      ? filledExpenseLines.filter(l => isPurchaseLine(l.particulars)).reduce((s, l) => s + (Number(l.monthlyAmount) || 0), 0)
+      : cogsAmount;
+    const toExpenseRow = (l: ItemizedCalculationLine) => ({
+      particulars: l.particulars.trim(),
+      businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
+      monthly: Number(l.monthlyAmount) || 0,
+      yearly: (Number(l.monthlyAmount) || 0) * 12,
+    });
 
     return {
       companyHeader: {
@@ -2431,30 +2476,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           monthly: Number(l.monthlyAmount) || 0,
           yearly: (Number(l.monthlyAmount) || 0) * 12,
         })),
-      itemizedExpenses: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').map(l => ({
-            particulars: l.particulars.trim(),
-            businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
-            monthly: Number(l.monthlyAmount) || 0,
-            yearly: (Number(l.monthlyAmount) || 0) * 12,
-          }))
-        : [
+      itemizedExpenses: opexLines.length > 0
+        ? opexLines.map(toExpenseRow)
+        : (isSlimForm ? [] : [
             ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
             ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
             ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
-          ],
+          ]),
 
       totalSalesMonthly: adoptedMonthlySales,
       totalSalesYearly: adoptedMonthlySales * 12,
-      totalPurchasesMonthly: cogsAmount,
-      totalPurchasesYearly: cogsAmount * 12,
+      totalPurchasesMonthly: purchaseMonthly,
+      totalPurchasesYearly: purchaseMonthly * 12,
       workingDays: workingDays,
-      totalExpensesMonthly: expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (salariesExpense + rentEffective + utilitiesExpense),
-      totalExpensesYearly: (expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').length > 0
-        ? expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '').reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (salariesExpense + rentEffective + utilitiesExpense)) * 12,
+      totalExpensesMonthly: opexLines.length > 0
+        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense)),
+      totalExpensesYearly: (opexLines.length > 0
+        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
+        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense))) * 12,
 
       // Co-Applicant Financial Assessment
       coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
