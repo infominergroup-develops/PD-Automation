@@ -1988,6 +1988,14 @@ ${qaPairs.join('\n\n')}`;
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
   }, [isSlimForm, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
 
+  // Tata/SBFC: seed the default income/expense lines in the Waterfall section whenever they are empty,
+  // so the user always starts from Sales/receipt + Electricity/Salary/Other (and Rent when rented).
+  useEffect(() => {
+    if (!isSlimForm) return;
+    setIncomeLines(prev => (prev.length === 0 ? slimIncomeDefaults() : prev));
+    setExpenseLines(prev => (prev.length === 0 ? slimExpenseDefaults() : prev));
+  }, [isSlimForm]);
+
   // Tata/SBFC: keep the "Business premises Rent" expense line present only while the premises is rented.
   useEffect(() => {
     if (!isSlimForm) return;
