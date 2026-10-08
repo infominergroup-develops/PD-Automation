@@ -79,6 +79,14 @@ export function execHeaderLogoHTML(data: PDReportPrintData): string {
       </div>`;
 }
 
+// Formats a YYYY-MM-DD value (from the form's <input type="date">) as DD-MM-YYYY for reports.
+// Already-formatted strings, defaults and empty values pass through unchanged, so it is safe on any date field.
+export function formatReportDate(d?: string): string {
+  if (!d) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(d.trim());
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : d;
+}
+
 export function getUniversalCoverPageHTML(data: PDReportPrintData, appNo: string, reportDate: string, caseStatus: string): string {
   const clientName = data.clientBankName || data.companyHeader?.name || 'INFOMINER SERVICES PVT. LTD.';
   return `

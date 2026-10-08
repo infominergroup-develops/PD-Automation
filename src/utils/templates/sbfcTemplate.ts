@@ -1,5 +1,5 @@
 import { PDReportPrintData } from '../pdReportPrinter';
-import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
+import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate } from '../pdReportPrinter';
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'SBFC Finance LTD';
@@ -13,7 +13,9 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
 // Shared layout for SBFC and Tata Capital; only the lender names differ.
 function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string): string {
   const appNo = data.applicationNumber || 'Not Provided';
-  const reportDate = data.visitDate || '-';
+  const initiationDate = formatReportDate(data.caseInitiationDate) || '-';
+  const visitDate = formatReportDate(data.visitDate) || '-';
+  const reportDate = formatReportDate(data.reportDate || data.visitDate) || '-';
   const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
   
   let photosHtml = '';
@@ -181,7 +183,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     <tr>
       <td colspan="2" style="width: 50%;">${bankName}</td>
       <td style="width: 25%;">Initiated Date</td>
-      <td style="width: 25%;">${data.visitDate || '-'}</td>
+      <td style="width: 25%;">${initiationDate}</td>
     </tr>
     <tr>
       <td colspan="2">Dear Sir/Madam,</td>
@@ -201,9 +203,9 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       <td colspan="2" style="padding:0;">
         <table style="width:100%; height:100%; border-collapse:collapse;">
           <tr>
-            <td style="width:50%; border:none; border-right:1px solid #000;">${data.visitDate || '-'}</td>
+            <td style="width:50%; border:none; border-right:1px solid #000;">${visitDate}</td>
             <td style="width:50%; border:none;" class="sec-head">Report date</td>
-            <td style="width:50%; border:none; border-left:1px solid #000;">${data.visitDate || '-'}</td>
+            <td style="width:50%; border:none; border-left:1px solid #000;">${reportDate}</td>
           </tr>
         </table>
       </td>
