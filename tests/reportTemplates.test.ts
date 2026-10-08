@@ -335,3 +335,15 @@ describe('Tata / SBFC report dates', () => {
     expect(html).not.toContain('>Report date</td>\n            <td style="width:50%; border:none; border-left:1px solid #000;">05-10-2026');
   });
 });
+
+describe('Ambit / Abhiyan lender name on the report', () => {
+  it('Ambit report addresses "Ambit Finvest", not "Ambit Capital Private Limited"', () => {
+    const html = generateAmbitPDReportHTML(fullReport);
+    expect(html).toContain('To,<br/>Ambit Finvest<br/>');
+    expect(html).not.toContain('Ambit Capital Private Limited');
+  });
+  it('Abhiyan report keeps "Abhiyan Capital Private Limited"', () => {
+    const html = generateAbhiyanPDReportHTML(fullReport);
+    expect(html).toContain('To,<br/>Abhiyan Capital Private Limited<br/>');
+  });
+});
