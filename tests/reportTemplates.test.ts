@@ -323,3 +323,15 @@ describe('Tata / SBFC office/factory infrastructure', () => {
     expect(html).toContain('Desk, chairs, fans, weight scales, furniture racks');
   });
 });
+
+describe('Tata / SBFC report dates', () => {
+  it('shows the selected initiation, visit and report dates (formatted DD-MM-YYYY)', () => {
+    const data = { ...fullReport, caseInitiationDate: '2026-10-01', visitDate: '2026-10-05', reportDate: '2026-10-08' } as PDReportPrintData;
+    const html = generateTataCapitalPDReportHTML(data);
+    expect(html).toContain('01-10-2026'); // initiation
+    expect(html).toContain('05-10-2026'); // visit
+    expect(html).toContain('08-10-2026'); // report
+    // The visit date must not stand in for the report date anymore
+    expect(html).not.toContain('>Report date</td>\n            <td style="width:50%; border:none; border-left:1px solid #000;">05-10-2026');
+  });
+});
