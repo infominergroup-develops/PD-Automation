@@ -210,7 +210,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
         </table>
       </td>
     </tr>
-    <tr><td colspan="2">Name & Relation of person met</td><td colspan="2">${data.metPersonName || '-'} (${data.metPersonIdProof ? 'Owner' : 'Self'})</td></tr>
+    <tr><td colspan="2">Name & Relation of person met</td><td colspan="2">${data.metPersonName || '-'}</td></tr>
     <tr><td colspan="2">Contact Number</td><td colspan="2">${data.applicantPhone || '-'}</td></tr>
     <tr><td colspan="2">Applicant Qualification</td><td colspan="2">${data.applicantQualification || '12th passed'}</td></tr>
     <tr><td colspan="2">Firm's Name</td><td colspan="2">${data.firmName || '-'}</td></tr>
@@ -525,7 +525,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       <td>Relation</td>
       <td>Age</td>
       <td>Occupation</td>
-      <td>Staying with Applicant or Not</td>
+      <td>Dependent</td>
     </tr>
     ${familyList.map((f: any, i: number) => `
       <tr>
