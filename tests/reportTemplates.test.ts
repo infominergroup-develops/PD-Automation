@@ -373,11 +373,10 @@ describe('Tata / SBFC sharing pattern', () => {
 });
 
 describe('SBFC distance line', () => {
-  it('omits the lender name on SBFC but keeps it on Tata', () => {
+  it('omits the whole distance row on SBFC but keeps it on Tata', () => {
     const sbfc = generateSbfcPDReportHTML(fullReport);
     const tata = generateTataCapitalPDReportHTML(fullReport);
-    expect(sbfc).toContain('Distance from Office (In Km');
-    expect(sbfc).not.toContain('Distance from SBFC');
+    expect(sbfc).not.toContain('Distance from');
     expect(tata).toContain('Distance from Tata Capital Office');
   });
 });
