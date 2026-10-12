@@ -3,7 +3,7 @@ import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate }
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'SBFC Finance LTD';
-  // SBFC's report omits the lender name from the "Distance from Office" line.
+  // SBFC's report omits the "Distance from ... Office" line entirely.
   return generateSbfcLayoutPDReportHTML(data, bankName, bankName, false);
 }
 
@@ -12,8 +12,8 @@ export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string
 }
 
 // Shared layout for SBFC and Tata Capital; only the lender names differ.
-// showOfficeNameInDistance controls whether the "Distance from ... Office" line names the lender.
-function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string, showOfficeNameInDistance: boolean = true): string {
+// showDistanceRow controls whether the "Distance from <lender> Office" row is shown (Tata) or omitted (SBFC).
+function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string, showDistanceRow: boolean = true): string {
   const appNo = data.applicationNumber || 'Not Provided';
   const initiationDate = formatReportDate(data.caseInitiationDate) || '-';
   const visitDate = formatReportDate(data.visitDate) || '-';
@@ -577,10 +577,10 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       <td class="sec-head" style="text-align:left;">Executive Name</td>
       <td>${data.executiveName || '-'}</td>
     </tr>
-    <tr>
-      <td class="sec-head" style="text-align:left;">• Distance from ${showOfficeNameInDistance ? `${officeName} ` : ''}Office (In Km’s):</td>
+    ${showDistanceRow ? `<tr>
+      <td class="sec-head" style="text-align:left;">• Distance from ${officeName} Office (In Km’s):</td>
       <td>${data.tataCapitalDistance || '5-10 Km (Approx)'}</td>
-    </tr>
+    </tr>` : ''}
     <tr>
       <td colspan="2" style="font-size:8pt; text-align:justify; color:#555; background-color:#e2e8f0;">
         <span style="text-decoration: underline; font-weight: bold; color: #000;">Disclamer :-</span><br/>
