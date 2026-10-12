@@ -359,3 +359,15 @@ describe('Ambit / Abhiyan household expenses note', () => {
     expect(html).toContain('earning members, and the total monthly household expenses are');
   });
 });
+
+describe('Tata / SBFC sharing pattern', () => {
+  it('shows the user-entered sharing pattern for non-proprietorship', () => {
+    const html = generateTataCapitalPDReportHTML({ ...fullReport, sharingPattern: 'Partner A 60% / Partner B 40%' } as PDReportPrintData);
+    expect(html).toContain('Sharing pattern');
+    expect(html).toContain('Partner A 60% / Partner B 40%');
+  });
+  it('defaults to 100% when no sharing pattern is provided', () => {
+    const html = generateSbfcPDReportHTML({ ...fullReport, sharingPattern: undefined } as PDReportPrintData);
+    expect(html).toContain('>100%</td>');
+  });
+});
