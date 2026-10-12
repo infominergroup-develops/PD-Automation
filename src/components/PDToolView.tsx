@@ -113,7 +113,7 @@ const buildSlimFactorySummary = (assets: string[], other: string): string => {
   return `${items.join(', ')}, and other similar assets were observed in the applicant's business setup.`;
 };
 const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
-const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit'];
+const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit','Fraud'];
 const getCaseStatusOptions = (clientId?: string) =>
   POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
 
@@ -495,6 +495,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   } = godrej.values;
   const { setGodrejStrengths, setGodrejWeaknesses } = godrej;
   const [partnersDirectorsDetails, setPartnersDirectorsDetails] = useState('Not applicable');
+  // Tata/SBFC: ownership sharing pattern. Sole proprietorship is always 100%; other constitutions are user-entered.
+  const [sharingPattern, setSharingPattern] = useState('');
   const [profitMargin, setProfitMargin] = useState<number | ''>('');
 
   // Observation Fields
@@ -1654,6 +1656,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     photoEvidence.load(app);
     coApplicantBusiness.load(app);
     setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
+    setSharingPattern(app.sharingPattern || '');
     setProfitMargin(app.profitMargin !== undefined ? app.profitMargin : '');
     setBusinessNeighbourName(app.businessNeighbourName || '');
     const initialStatus = app.statusOfCase || app.businessStatus || 'Recommended';
@@ -1714,7 +1717,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Keep the ref updated with the latest state without triggering re-renders
   updateDataRef.current = {
     applicantName, mobileNumber, panNumber, residenceAddress, residenceOwnership, yearsAtResidence, familyMembers,
-    dependentsCount, firmName, noFormalBusinessName, constitution, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
+    dependentsCount, firmName, noFormalBusinessName, constitution, sharingPattern, partnersDirectorsDetails, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
     landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct, grossProfitPct,
     salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
@@ -2501,6 +2504,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       businessStatus: businessStatus || statusOfCase || 'Recommended',
       constitution,
       partnersDirectorsDetails,
+      sharingPattern: constitution === 'Proprietorship' ? '100%' : (sharingPattern.trim() || '100%'),
       profitMargin,
       monthlyRent,
       shopAreaSqFt,
@@ -3181,6 +3185,16 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
                 <Field label="Details of Partners/Directors">
                   <input type="text" value={partnersDirectorsDetails} onChange={(e) => setPartnersDirectorsDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Not applicable" />
+                </Field>
+              )}
+
+              {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
+                <Field label="Sharing Pattern">
+                  {constitution === 'Proprietorship' ? (
+                    <input type="text" value="100%" disabled className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-500 font-semibold" title="Sole proprietorship is always 100%" />
+                  ) : (
+                    <input type="text" value={sharingPattern} onChange={(e) => setSharingPattern(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. Partner A 60% / Partner B 40%" />
+                  )}
                 </Field>
               )}
 

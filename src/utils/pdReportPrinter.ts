@@ -254,6 +254,8 @@ export interface PDReportPrintData {
   residenceGpsCoords?: string;
   residenceStatus?: string;
 
+  // Ownership sharing pattern (Tata/SBFC): "100%" for sole proprietorship, else user-entered
+  sharingPattern?: string;
   // Business Visit
   briefBusinessProfile?: string;
   // Business proof / registration details (GST, Udyam, etc.), user-entered point-wise; line breaks preserved

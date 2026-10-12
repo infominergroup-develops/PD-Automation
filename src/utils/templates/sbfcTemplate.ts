@@ -225,7 +225,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     <tr><td colspan="2">Purpose of Loan (as per applicant)</td><td colspan="2">${data.purpose || data.loanPurpose || '-'}</td></tr>
     <tr><td colspan="2">Is it Prop. / Partnership / Pvt Ltd/Ltd</td><td colspan="2">${data.constitution || 'Proprietorship'}</td></tr>
     <tr><td colspan="2">Details of Partners/Directors</td><td colspan="2">${data.partnersDirectorsDetails || 'Not applicable'}</td></tr>
-    <tr><td colspan="2">Sharing pattern</td><td colspan="2">100%</td></tr>
+    <tr><td colspan="2">Sharing pattern</td><td colspan="2">${data.sharingPattern || '100%'}</td></tr>
     <tr><td colspan="2">Locating Premises</td><td colspan="2">${data.locatingPremisesType || 'The business premises located at residential // commercial area'}</td></tr>
     <tr><td colspan="2">Nature of Business</td><td colspan="2">${data.businessNature || '-'}</td></tr>
     
