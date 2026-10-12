@@ -1,6 +1,6 @@
 /** Field photos and where their location came from. Pure helpers, shared by the tab and the report. */
 
-export const PHOTO_CATEGORIES = ['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'];
+export const PHOTO_CATEGORIES = ['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS','Collateral Photos'];
 
 export interface GpsPoint {
   latitude: number;

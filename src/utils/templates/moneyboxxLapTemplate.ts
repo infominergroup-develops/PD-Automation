@@ -220,7 +220,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
         : `The applicant currently has 0 running obligations.`);
 
   const earningCount = familyList.filter((f: any) => {
-    const occ = String(f.occupation || '').toLowerCase();
+    const occ = String(f.occupation || f.profession || '').toLowerCase();
     return occ && !occ.includes('student') && !occ.includes('housewife') && !occ.includes('none') && !occ.includes('-') && !occ.includes('child');
   }).length || 1;
 
@@ -474,8 +474,8 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
         <td style="border: 1px solid #000; padding: 4px; font-weight: bold;">${f.name || '-'}</td>
         <td style="border: 1px solid #000; padding: 4px;">${f.age ? (String(f.age).toLowerCase().includes('year') ? f.age : `${f.age} Years`) : '-'}</td>
         <td style="border: 1px solid #000; padding: 4px;">${f.relationship || f.relation || '-'}</td>
-        <td style="border: 1px solid #000; padding: 4px;">${f.qualification || '-'}</td>
-        <td style="border: 1px solid #000; padding: 4px;">${f.occupation || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.qualification || f.education || '-'}</td>
+        <td style="border: 1px solid #000; padding: 4px;">${f.occupation || f.profession || '-'}</td>
         <td style="border: 1px solid #000; padding: 4px;">${(f.dependent === true || f.isDependent === true || f.dependent === 'Yes' || f.isDependent === 'Yes') ? 'Yes' : 'No'}</td>
       </tr>
     `).join('')}
