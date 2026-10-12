@@ -16,6 +16,12 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
   const reportDate = data.reportDate || data.visitDate || '-';
   const visitDate = data.visitDate || reportDate || '-';
   const initiationDate = data.caseInitiationDate || visitDate || '-';
+  // When the business and residence are at the same address, one electricity meter serves both and the
+  // two placements cross-fill. When the addresses differ, each section shows only its own meter details.
+  const normAddr = (s?: string) => String(s || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  const bAddr = normAddr(data.businessAddress);
+  const rAddr = normAddr(data.residenceAddress);
+  const sameAddress = bAddr !== '' && rAddr !== '' && bAddr !== 'not provided' && rAddr !== 'not provided' && bAddr === rAddr;
   const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended';
   
   let photosHtml = '';
@@ -366,7 +372,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="5">${isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : (isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
+      <td colspan="5">${isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : (sameAddress && isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : 'During verification, the electricity bill/meter was checked and found to be in the name of applicant/co-applicant')}</td>
     </tr>
     
     <tr>
@@ -618,7 +624,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     </tr>
     <tr>
       <td colspan="2" class="bold">Electricity Connection Details</td>
-      <td colspan="2">${isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : (isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
+      <td colspan="2">${isProvided(data.businessElectricityDetails) ? data.businessElectricityDetails : (sameAddress && isProvided(data.residenceElectricityDetails) ? data.residenceElectricityDetails : 'A separate electricity meter is not required, as the applicant is operating the business from the residence.')}</td>
     </tr>
     <tr>
       <td colspan="2" class="bold">Neighbour Name</td>
