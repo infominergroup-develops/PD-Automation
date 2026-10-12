@@ -371,3 +371,36 @@ describe('Tata / SBFC sharing pattern', () => {
     expect(html).toContain('>100%</td>');
   });
 });
+
+describe('SBFC distance line', () => {
+  it('omits the lender name on SBFC but keeps it on Tata', () => {
+    const sbfc = generateSbfcPDReportHTML(fullReport);
+    const tata = generateTataCapitalPDReportHTML(fullReport);
+    expect(sbfc).toContain('Distance from Office (In Km');
+    expect(sbfc).not.toContain('Distance from SBFC');
+    expect(tata).toContain('Distance from Tata Capital Office');
+  });
+});
+
+describe('Ambit electricity plotting by address', () => {
+  it('does NOT cross-fill when business and residence addresses differ', () => {
+    const data = { ...fullReport,
+      businessAddress: '12 Market Road, Agra', residenceAddress: '88 Civil Lines, Agra',
+      businessElectricityDetails: 'Electricity verified (Supplier: UPPCL, Consumer No: B-111), Monthly Bill: ₹3,000',
+      residenceElectricityDetails: 'Not provided',
+    } as PDReportPrintData;
+    const html = generateAmbitPDReportHTML(data);
+    // residence section must NOT borrow the business meter
+    expect(html).not.toContain('Consumer No: B-111), Monthly Bill: ₹3,000</td>\n    </tr>\n    \n    <tr>');
+    expect(html).toContain('UPPCL, Consumer No: B-111'); // business section still shows it
+  });
+  it('cross-fills when addresses are the same', () => {
+    const data = { ...fullReport,
+      businessAddress: '12 Market Road, Agra', residenceAddress: '12 Market Road, Agra',
+      businessElectricityDetails: 'Electricity verified (Supplier: UPPCL, Consumer No: SAME-1), Monthly Bill: ₹2,000',
+      residenceElectricityDetails: 'Not provided',
+    } as PDReportPrintData;
+    const html = generateAmbitPDReportHTML(data);
+    expect((html.match(/SAME-1/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});

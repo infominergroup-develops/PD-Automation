@@ -3,15 +3,17 @@ import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate }
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'SBFC Finance LTD';
-  return generateSbfcLayoutPDReportHTML(data, bankName, bankName);
+  // SBFC's report omits the lender name from the "Distance from Office" line.
+  return generateSbfcLayoutPDReportHTML(data, bankName, bankName, false);
 }
 
 export function generateTataCapitalPDReportHTML(data: PDReportPrintData): string {
-  return generateSbfcLayoutPDReportHTML(data, 'Tata Capital Limited', 'Tata Capital');
+  return generateSbfcLayoutPDReportHTML(data, 'Tata Capital Limited', 'Tata Capital', true);
 }
 
 // Shared layout for SBFC and Tata Capital; only the lender names differ.
-function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string): string {
+// showOfficeNameInDistance controls whether the "Distance from ... Office" line names the lender.
+function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: string, officeName: string, showOfficeNameInDistance: boolean = true): string {
   const appNo = data.applicationNumber || 'Not Provided';
   const initiationDate = formatReportDate(data.caseInitiationDate) || '-';
   const visitDate = formatReportDate(data.visitDate) || '-';
@@ -576,7 +578,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
       <td>${data.executiveName || '-'}</td>
     </tr>
     <tr>
-      <td class="sec-head" style="text-align:left;">• Distance from ${officeName} Office (In Km’s):</td>
+      <td class="sec-head" style="text-align:left;">• Distance from ${showOfficeNameInDistance ? `${officeName} ` : ''}Office (In Km’s):</td>
       <td>${data.tataCapitalDistance || '5-10 Km (Approx)'}</td>
     </tr>
     <tr>
