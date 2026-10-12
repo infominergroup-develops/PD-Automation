@@ -735,7 +735,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td>The applicant’s family has ${familyList.filter((f: any) => f.occupation !== 'Student' && f.occupation !== 'Housewife' && f.occupation).length || 2} earning members, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.</td>
+      <td>${(data.householdExpensesNotes && data.householdExpensesNotes.trim() !== '') ? data.householdExpensesNotes : `The applicant’s family has ${familyList.filter((f: any) => f.occupation !== 'Student' && f.occupation !== 'Housewife' && f.occupation).length || 2} earning members, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`}</td>
       <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(hhExpM * 12).toLocaleString('en-IN')}</td>
     </tr>

@@ -347,3 +347,15 @@ describe('Ambit / Abhiyan lender name on the report', () => {
     expect(html).toContain('To,<br/>Abhiyan Capital Private Limited<br/>');
   });
 });
+
+describe('Ambit / Abhiyan household expenses note', () => {
+  it('uses the user-entered household expenses note from the Waterfall section', () => {
+    const data = { ...fullReport, householdExpensesNotes: '1 earning member; monthly household expenses ₹12,000.' } as PDReportPrintData;
+    const html = generateAmbitPDReportHTML(data);
+    expect(html).toContain('1 earning member; monthly household expenses ₹12,000.');
+  });
+  it('falls back to the generated sentence when no note is given', () => {
+    const html = generateAmbitPDReportHTML({ ...fullReport, householdExpensesNotes: '' } as PDReportPrintData);
+    expect(html).toContain('earning members, and the total monthly household expenses are');
+  });
+});
