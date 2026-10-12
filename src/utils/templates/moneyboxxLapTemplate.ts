@@ -92,7 +92,14 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
 
   const existEmiM = Number(data.existingEmiMonthly) || 0;
   const existEmiY = Number(data.existingEmiYearly) || (existEmiM * 12);
-  const hhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 10000;
+  const hhExpM = (data.householdExpensesMonthly !== undefined && data.householdExpensesMonthly !== null)
+    ? Number(data.householdExpensesMonthly)
+    : ((data.householdExpenses !== undefined && data.householdExpenses !== null)
+        ? Number(data.householdExpenses)
+        : (Number(data.monthlyHouseholdExpensesAmount) || 0));
+  const hhExpY = (data.householdExpensesYearly !== undefined && data.householdExpensesYearly !== null && !isNaN(Number(data.householdExpensesYearly)) && Number(data.householdExpensesYearly) > 0)
+    ? Number(data.householdExpensesYearly)
+    : (hhExpM * 12);
   const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || hhExpM;
 
   const residenceElectricityDetails = data.residenceElectricityDetails || `During verification, the electricity bill/meter was checked and found to be in the name of ${primaryCoAppName || applicantName}, with account number under electricity board.`;
@@ -206,7 +213,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const netProfY = totalSalesY - totalExpY;
 
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
+  const netDisposalY = netProfY - existEmiY - hhExpY;
 
   const crifAccounts = data.parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
@@ -224,7 +231,9 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     return occ && !occ.includes('student') && !occ.includes('housewife') && !occ.includes('none') && !occ.includes('-') && !occ.includes('child');
   }).length || 1;
 
-  const householdExpensesNote = `The applicant’s family has ${earningCount} earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`;
+  const householdExpensesNote = (data.householdExpensesNotes && data.householdExpensesNotes.trim() !== '')
+    ? data.householdExpensesNotes.trim()
+    : `The applicant’s family has ${earningCount} earning member, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`;
 
   const comfortableEmiLeftText = data.comfortableEmiNotes?.trim() || 'Comfortable Monthly EMI Post all expenses (Business and Household):-';
   const comfortableEmiRightText = `As per ${bankName}`;
@@ -741,7 +750,7 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
       <td style="border: 1px solid #000; padding: 4px; text-align: left; font-weight: bold;">Less: Existing Household Expenses</td>
       <td style="border: 1px solid #000; padding: 4px; text-align: left;">${householdExpensesNote}</td>
       <td style="border: 1px solid #000; padding: 4px;">${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td style="border: 1px solid #000; padding: 4px;">${Number(hhExpM * 12).toLocaleString('en-IN')}</td>
+      <td style="border: 1px solid #000; padding: 4px;">${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>
     <tr style="text-align: center; font-weight: bold;">
       <td style="border: 1px solid #000; padding: 4px; text-align: left;">Net Disposal Income</td>
