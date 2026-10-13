@@ -16,8 +16,10 @@ interface CustomerSupplierSectionProps {
   details: CustomerSupplierDetails;
   /** Collateral property block (Ambit, Abhiyan, Moneyboxx LAP). */
   showCollateral: boolean;
-  /** Salaried applicant: office staff contacts replace customers/suppliers; no business-premises GPS block. */
-  salaried?: boolean;
+  /** Salaried applicants: office colleagues replace prominent customers/suppliers. */
+  officeStaffContacts: boolean;
+  /** GPS check of the business premises (not used by every lender's report). */
+  showBusinessGps: boolean;
   coApplicants: CoApplicant[];
   setCoApplicants: (coApplicants: CoApplicant[]) => void;
   gpsLat: number | '';
@@ -34,7 +36,8 @@ interface CustomerSupplierSectionProps {
 export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = ({
   details,
   showCollateral,
-  salaried = false,
+  officeStaffContacts: showOfficeStaff,
+  showBusinessGps,
   coApplicants,
   setCoApplicants,
   gpsLat,
@@ -84,12 +87,12 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
         <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2 mb-6">
           <Briefcase className="w-4 h-4 text-[#eb8a23]" />
-          {salaried ? 'Office Staff, Banking & Obligation Details' : 'Customer & Supplier Details'}
+          {showOfficeStaff ? 'Office Staff, Banking & Obligation Details' : 'Customer & Supplier Details'}
         </h3>
 
         {/* A. Applicant's customer and supplier details */}
         <div className="space-y-6">
-          {salaried ? (
+          {showOfficeStaff ? (
             <ContactListTable
               kind="Staff"
               title="Office Staff Contacted"
@@ -544,8 +547,8 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
           </Field>
         )}
 
-        {/* E. Latitude & Longitude Remarks (business premises only) */}
-        {!salaried && (
+        {/* E. Latitude & Longitude Remarks */}
+        {showBusinessGps && (
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
           <label className="block text-xs font-bold text-slate-700">
             Latitude & Longitude of the Business Premises
@@ -632,7 +635,7 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
 
         {/* G. Business Status */}
         <Field
-          label={salaried ? 'Office Status (Recommendation)' : 'Business Status (Recommendation)'}
+          label={showOfficeStaff ? 'Office Status (Recommendation)' : 'Business Status (Recommendation)'}
           labelClassName="block text-xs font-bold text-slate-700"
           className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6"
         >

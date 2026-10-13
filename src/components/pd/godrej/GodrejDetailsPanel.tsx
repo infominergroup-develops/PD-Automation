@@ -13,6 +13,7 @@ interface FieldSpec {
 }
 
 const CASE_FIELDS: FieldSpec[] = [
+  { field: 'businessCity', label: 'City', placeholder: 'e.g. Agra' },
   { field: 'alternateMobileNumber', label: 'Alternate Mobile Number' },
   {
     field: 'applicantQualification',
@@ -78,7 +79,7 @@ const DOCUMENT_FIELDS: FieldSpec[] = [
 
 /** Collapsible "Godrej Specific Details" block on the Business Profile tab. */
 export const GodrejDetailsPanel: React.FC<{ form: GodrejDetailsForm }> = ({ form }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(true);
   const { values, setField } = form;
 
   const control = ({ field, label, placeholder, multiline }: FieldSpec) => (

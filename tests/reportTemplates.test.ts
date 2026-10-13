@@ -474,3 +474,10 @@ describe('Ambit Finvest (Salaried) report', () => {
     expect(text).toContain('The co-applicant currently has 01 running obligations, the amount of which is Rs. 10,594/- per month.');
   });
 });
+
+describe('Godrej report', () => {
+  it('prints the city captured in the Godrej panel', () => {
+    const html = generateGodrejPDReportHTML({ ...fullReport, businessCity: 'Agra' } as PDReportPrintData);
+    expect(visibleText(html)).toMatch(/City\s+Agra/);
+  });
+});

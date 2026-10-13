@@ -381,7 +381,7 @@ export interface PDReportPrintData {
   applicantQualification?: string;
   businessNature?: string; // business category, e.g. "Kirana Store"
   residenceMarketValue?: string;
-  businessCity?: string; // not captured on the form yet
+  businessCity?: string;
 
   // Financial Ratios
   dscrRatio?: number;
