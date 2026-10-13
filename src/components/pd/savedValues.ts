@@ -9,6 +9,12 @@ export type SavedApplicant = Record<string, unknown>;
 export const savedString = (value: unknown, fallback = ''): string =>
   typeof value === 'string' && value !== '' ? value : typeof value === 'number' ? String(value) : fallback;
 
+/** A saved number, or '' when the field was left blank. */
+export const savedNumberOrBlank = (value: unknown): number | '' => {
+  const n = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : NaN;
+  return Number.isFinite(n) ? n : '';
+};
+
 /** A non-empty saved list, or the fallback rows for a blank form. */
 export const savedList = <T>(value: unknown, fallback: T[]): T[] =>
   Array.isArray(value) && value.length > 0 ? (value as T[]) : fallback;

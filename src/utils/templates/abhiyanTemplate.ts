@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
@@ -45,13 +45,16 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     `;
   }
 
-  // Existing EMI: when a CRIF/CIBIL report is attached, its active accounts are the obligations (the
-  // income sheet says "As per CRIF Report"); otherwise the loans entered manually on the form.
+  // Existing EMI, in order of precedence: the running-loan count and total EMI typed on the form; the
+  // active accounts of an attached CRIF/CIBIL report; the loans listed one by one on the form.
+  const enteredNote = enteredObligationNote(data);
   const crifAccounts = data.parsedCreditReport?.accounts || [];
   const activeCrifAccounts = crifAccounts.filter(a => a.status !== 'Closed');
   const crifEmiM = activeCrifAccounts.reduce((sum, a) => sum + (Number(a.instalmentAmount) || 0), 0);
-  const emiFromCrif = crifEmiM > 0;
-  const existEmiM = emiFromCrif ? crifEmiM : Number(data.existingEmiMonthly) || 0;
+  const emiFromCrif = !enteredNote && crifEmiM > 0;
+  const existEmiM = enteredNote
+    ? Number(data.currentObligationEmi) || 0
+    : emiFromCrif ? crifEmiM : Number(data.existingEmiMonthly) || 0;
   const existEmiY = existEmiM * 12;
   const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
@@ -190,9 +193,9 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
       }))
     : (data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : []);
   const obligationCount = emiFromCrif ? activeCrifAccounts.length : loansList.length;
-  const obligationNote = obligationCount > 0 || existEmiM > 0
+  const obligationNote = enteredNote ?? (obligationCount > 0 || existEmiM > 0
     ? `The applicant currently has ${String(obligationCount).padStart(2, '0')} running obligations, the amount of which is Rs. ${existEmiM.toLocaleString('en-IN')}/- per month.${emiFromCrif ? ' ( As per CRIF Report )' : ''}`
-    : 'The applicant currently has no running obligations.';
+    : 'The applicant currently has no running obligations.');
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
 
   const householdExpensesNote = (data.householdExpensesNotes && data.householdExpensesNotes.trim() !== '')

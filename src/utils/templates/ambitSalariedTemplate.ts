@@ -1,6 +1,7 @@
 import type { CreditAccount } from '../../types/creditTypes';
 import {
   PDReportPrintData,
+  enteredObligationNote,
   formatReportDate,
   getUniversalCoverPageCSS,
   getUniversalCoverPageHTML,
@@ -340,7 +341,7 @@ export function generateAmbitSalariedPDReportHTML(data: PDReportPrintData): stri
     <tr>
       <td colspan="3" class="label text-center small">Current Obligation</td>
       <td colspan="8" class="small">
-        ${obligationLine('applicant', crifAccounts.length > 0 ? appAccounts.length : (appEmiM > 0 ? 1 : 0), appEmiM)}
+        ${enteredObligationNote(data) ?? obligationLine('applicant', crifAccounts.length > 0 ? appAccounts.length : (appEmiM > 0 ? 1 : 0), appEmiM)}
         ${coAppName ? `<br/>${obligationLine('co-applicant', coAppAccounts.length, coAppEmiM)}` : ''}
       </td>
     </tr>

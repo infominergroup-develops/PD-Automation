@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { savedList, savedString, type SavedApplicant } from '../savedValues';
+import { savedList, savedNumberOrBlank, savedString, type SavedApplicant } from '../savedValues';
 
 /** A prominent customer or supplier. Older records may hold the remark as `remark`. */
 export interface ContactRow {
@@ -85,6 +85,10 @@ export function useCustomerSupplierDetails() {
 
   const [bankingDetails, setBankingDetails] = useState<BankAccountRow[]>(blankBankAccounts);
   const [existingLoans, setExistingLoans] = useState<ExistingLoanRow[]>(blankLoans);
+  // Running-loan count and total monthly EMI; the report turns them into a fixed sentence
+  const [currentObligationCount, setCurrentObligationCount] = useState<number | ''>('');
+  const [currentObligationEmi, setCurrentObligationEmi] = useState<number | ''>('');
+  // Free-text obligation from older records; kept so it still prints until the numbers are entered
   const [currentObligation, setCurrentObligation] = useState(NO_OBLIGATION);
 
   const [businessLongitudeVerified, setBusinessLongitudeVerified] = useState(false);
@@ -106,6 +110,8 @@ export function useCustomerSupplierDetails() {
     setCollateralRemarks(savedString(app.collateralRemarks));
     setBankingDetails(savedList(app.bankingDetails, blankBankAccounts()));
     setExistingLoans(savedList(app.existingLoans, blankLoans()));
+    setCurrentObligationCount(savedNumberOrBlank(app.currentObligationCount));
+    setCurrentObligationEmi(savedNumberOrBlank(app.currentObligationEmi));
     setCurrentObligation(savedString(app.currentObligation, NO_OBLIGATION));
     setBusinessLongitudeVerified(Boolean(app.businessLongitudeVerified));
     setBusinessLongitudeRemarks(savedString(app.businessLongitudeRemarks, GPS_NOT_REACHED_REMARK));
@@ -125,6 +131,8 @@ export function useCustomerSupplierDetails() {
     collateralRemarks,
     bankingDetails,
     existingLoans,
+    currentObligationCount,
+    currentObligationEmi,
     currentObligation,
     businessLongitudeVerified,
     businessLongitudeRemarks,
@@ -146,7 +154,8 @@ export function useCustomerSupplierDetails() {
     setCollateralRemarks,
     setBankingDetails,
     setExistingLoans,
-    setCurrentObligation,
+    setCurrentObligationCount,
+    setCurrentObligationEmi,
     setBusinessLongitudeVerified,
     setBusinessLongitudeRemarks,
   };
