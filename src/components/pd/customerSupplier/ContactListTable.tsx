@@ -12,6 +12,9 @@ interface ContactListTableProps {
   rows: ContactRow[];
   setRows: (rows: ContactRow[]) => void;
   newRow: () => ContactRow;
+  /** Overrides the default "Prominent {kind}s" heading and name column. */
+  title?: string;
+  nameHeader?: string;
 }
 
 /** Editable list of prominent customers or suppliers: name, phone and feedback remark. */
@@ -22,10 +25,12 @@ export const ContactListTable: React.FC<ContactListTableProps> = ({
   rows,
   setRows,
   newRow,
+  title = `Prominent ${kind}s`,
+  nameHeader = `Prominent ${kind}s (Name)`,
 }) => (
   <div className="border border-slate-200 rounded-xl overflow-hidden">
     <div className="bg-slate-50 px-4 py-3 border-b border-slate-200 flex justify-between items-center">
-      <h5 className="font-bold text-xs text-slate-700">Prominent {kind}s</h5>
+      <h5 className="font-bold text-xs text-slate-700">{title}</h5>
       <button
         type="button"
         onClick={() => setRows([...rows, newRow()])}
@@ -39,7 +44,7 @@ export const ContactListTable: React.FC<ContactListTableProps> = ({
         <thead className="text-[10px] uppercase font-bold text-slate-400 border-b border-slate-100">
           <tr>
             <th className="pb-2 w-10 text-center">Sr. No.</th>
-            <th className="pb-2">Prominent {kind}s (Name)</th>
+            <th className="pb-2">{nameHeader}</th>
             <th className="pb-2">{phoneHeader}</th>
             <th className="pb-2">Feedback (Remark)</th>
             <th className="pb-2 w-10 text-center">Action</th>

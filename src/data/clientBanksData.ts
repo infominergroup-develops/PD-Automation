@@ -50,6 +50,19 @@ export const CLIENT_BANKS: ClientBank[] = [
     tagline: 'Ambit • Micro Credit Portal'
   },
   {
+    id: 'ambit_salaried',
+    name: 'Ambit Finvest (Salaried)',
+    shortCode: 'AMBIT SAL',
+    division: 'Ambit Salaried Lending Division',
+    logoColor: '#F25F22',
+    accentColor: '#eb8a23',
+    borderClass: 'border-[#F25F22]',
+    bgGradient: 'from-[#F25F22]/10 to-orange-50',
+    description: 'Income assessment for salaried applicants (LAP / home loan).',
+    defaultScheme: 'Ambit Salaried',
+    tagline: 'Ambit • Salaried Portal'
+  },
+  {
     id: 'moneyboxx',
     name: 'Moneyboxx Finance Limited',
     shortCode: 'MONEYBOXX',

@@ -8,6 +8,7 @@ export interface NoteItem {
 
 /** Text fields specific to the Godrej Finance report. Keys are the saved field names. */
 export interface GodrejTextFields {
+  businessCity: string;
   alternateMobileNumber: string;
   applicantQualification: string;
   officeAccessibility: string;
@@ -59,6 +60,7 @@ export const DEFAULT_EMPLOYEES_SEEN =
 export const EMPTY_KEY_EMPLOYEE_DETAILS = '✓ .';
 
 const BLANK_TEXT: GodrejTextFields = {
+  businessCity: '',
   alternateMobileNumber: '',
   applicantQualification: '',
   officeAccessibility: '',

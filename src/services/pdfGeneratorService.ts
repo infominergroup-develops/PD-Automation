@@ -1,45 +1,6 @@
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
-import { PDReportPrintData } from '../utils/pdReportPrinter';
-import {
-  generateStandardPDReportHTML,
-  generateMoneyboxxPDReportHTML,
-  generateMoneyboxxLapPDReportHTML,
-  generateSbfcPDReportHTML,
-  generateGodrejPDReportHTML,
-  generateTataCapitalPDReportHTML,
-  generateAbhiyanPDReportHTML,
-  generateAmbitPDReportHTML
-} from '../utils/pdReportPrinter';
-
-/**
- * Returns the appropriate HTML template string based on client bank name
- */
-export function getReportHTMLForData(data: PDReportPrintData): string {
-  const bankName = (data.clientBankName || '').toLowerCase();
-  if (bankName.includes('moneyboxx lap') || bankName.includes('moneyboxxlap')) {
-    return generateMoneyboxxLapPDReportHTML(data);
-  }
-  if (bankName.includes('moneyboxx')) {
-    return generateMoneyboxxPDReportHTML(data);
-  }
-  if (bankName.includes('sbfc')) {
-    return generateSbfcPDReportHTML(data);
-  }
-  if (bankName.includes('godrej')) {
-    return generateGodrejPDReportHTML(data);
-  }
-  if (bankName.includes('tata capital') || bankName.includes('tata')) {
-    return generateTataCapitalPDReportHTML(data);
-  }
-  if (bankName.includes('abhiyan')) {
-    return generateAbhiyanPDReportHTML(data);
-  }
-  if (bankName.includes('ambit')) {
-    return generateAmbitPDReportHTML(data);
-  }
-  return generateStandardPDReportHTML(data);
-}
+import { PDReportPrintData, getReportHTMLForData } from '../utils/pdReportPrinter';
 
 /**
  * Generates a high-quality multi-page PDF Blob from PDReportPrintData

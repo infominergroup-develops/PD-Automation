@@ -294,6 +294,10 @@ export interface PDReportPrintData {
 
   // Customers & Suppliers & Banking & Liabilities
   prominentCustomers?: Array<{ name: string; phone: string; remark: string }>;
+  // Ambit salaried: office colleagues contacted to confirm the applicant's employment
+  officeStaffContacts?: Array<{ name: string; phone: string; remark: string }>;
+  // Ambit salaried: earning members who share the household expenses (household ÷ this = applicant's share)
+  earningMembersCount?: number;
   prominentSuppliers?: Array<{ name: string; phone: string; remark: string }>;
   bankingDetails?: Array<{
     bankName: string;
@@ -377,7 +381,7 @@ export interface PDReportPrintData {
   applicantQualification?: string;
   businessNature?: string; // business category, e.g. "Kirana Store"
   residenceMarketValue?: string;
-  businessCity?: string; // not captured on the form yet
+  businessCity?: string;
 
   // Financial Ratios
   dscrRatio?: number;
@@ -464,6 +468,7 @@ import { generateMoneyboxxLapPDReportHTML } from './templates/moneyboxxLapTempla
 import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from './templates/sbfcTemplate';
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from './templates/abhiyanTemplate';
+import { generateAmbitSalariedPDReportHTML } from './templates/ambitSalariedTemplate';
 
 export {
   generateStandardPDReportHTML,
@@ -473,40 +478,30 @@ export {
   generateGodrejPDReportHTML,
   generateTataCapitalPDReportHTML,
   generateAbhiyanPDReportHTML,
-  generateAmbitPDReportHTML
+  generateAmbitPDReportHTML,
+  generateAmbitSalariedPDReportHTML
 };
 
-export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
+/** Picks the lender's report template from the client name. Used by both print and PDF export. */
+export function getReportHTMLForData(data: PDReportPrintData): string {
   const bankLower = (data.clientBankName || '').toLowerCase();
-  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap') || (bankLower.includes('moneyboxx') && (String(data.loanType || '').toUpperCase().includes('LAP') || String(data.productType || '').toUpperCase().includes('LAP')))) {
-    openPDReportPrintWindow(generateMoneyboxxLapPDReportHTML(data), data.applicationNumber || 'MoneyboxxLAP');
-    return;
+  const isLap = String(data.loanType || '').toUpperCase().includes('LAP') || String(data.productType || '').toUpperCase().includes('LAP');
+  if (bankLower.includes('moneyboxx lap') || bankLower.includes('moneyboxxlap') || (bankLower.includes('moneyboxx') && isLap)) {
+    return generateMoneyboxxLapPDReportHTML(data);
   }
-  if (bankLower.includes('moneyboxx')) {
-    openPDReportPrintWindow(generateMoneyboxxPDReportHTML(data), data.applicationNumber || 'Moneyboxx');
-    return;
-  }
-  if (bankLower.includes('sbfc')) {
-    openPDReportPrintWindow(generateSbfcPDReportHTML(data), data.applicationNumber || 'SBFC');
-    return;
-  }
-  if (bankLower.includes('godrej')) {
-    openPDReportPrintWindow(generateGodrejPDReportHTML(data), data.applicationNumber || 'Godrej');
-    return;
-  }
-  if (bankLower.includes('tata capital') || bankLower.includes('tata')) {
-    openPDReportPrintWindow(generateTataCapitalPDReportHTML(data), data.applicationNumber || 'TataCapital');
-    return;
-  }
-  if (bankLower.includes('abhiyan')) {
-    openPDReportPrintWindow(generateAbhiyanPDReportHTML(data), data.applicationNumber || 'Abhiyan');
-    return;
-  }
-  if (bankLower.includes('ambit')) {
-    openPDReportPrintWindow(generateAmbitPDReportHTML(data), data.applicationNumber || 'Ambit');
-    return;
-  }
-  openPDReportPrintWindow(generateStandardPDReportHTML(data), data.applicationNumber || 'Standard');
+  if (bankLower.includes('moneyboxx')) return generateMoneyboxxPDReportHTML(data);
+  if (bankLower.includes('sbfc')) return generateSbfcPDReportHTML(data);
+  if (bankLower.includes('godrej')) return generateGodrejPDReportHTML(data);
+  if (bankLower.includes('tata')) return generateTataCapitalPDReportHTML(data);
+  if (bankLower.includes('abhiyan')) return generateAbhiyanPDReportHTML(data);
+  // The salaried client's name also contains "ambit", so it must be matched first.
+  if (bankLower.includes('ambit') && bankLower.includes('salaried')) return generateAmbitSalariedPDReportHTML(data);
+  if (bankLower.includes('ambit')) return generateAmbitPDReportHTML(data);
+  return generateStandardPDReportHTML(data);
+}
+
+export function openStandardPDReportPrintWindow(data: PDReportPrintData) {
+  openPDReportPrintWindow(getReportHTMLForData(data), data.applicationNumber || 'PDReport');
 }
 
 export function openPDReportPrintWindow(htmlContent: string, windowName: string) {

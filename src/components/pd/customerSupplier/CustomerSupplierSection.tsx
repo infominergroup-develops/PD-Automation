@@ -16,6 +16,10 @@ interface CustomerSupplierSectionProps {
   details: CustomerSupplierDetails;
   /** Collateral property block (Ambit, Abhiyan, Moneyboxx LAP). */
   showCollateral: boolean;
+  /** Salaried applicants: office colleagues replace prominent customers/suppliers. */
+  officeStaffContacts: boolean;
+  /** GPS check of the business premises (not used by every lender's report). */
+  showBusinessGps: boolean;
   coApplicants: CoApplicant[];
   setCoApplicants: (coApplicants: CoApplicant[]) => void;
   gpsLat: number | '';
@@ -32,6 +36,8 @@ interface CustomerSupplierSectionProps {
 export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = ({
   details,
   showCollateral,
+  officeStaffContacts: showOfficeStaff,
+  showBusinessGps,
   coApplicants,
   setCoApplicants,
   gpsLat,
@@ -48,6 +54,8 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
     setProminentCustomers,
     prominentSuppliers,
     setProminentSuppliers,
+    officeStaffContacts,
+    setOfficeStaffContacts,
     hasCollateral,
     setHasCollateral,
     collateralAddress,
@@ -79,27 +87,42 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
         <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2 mb-6">
           <Briefcase className="w-4 h-4 text-[#eb8a23]" />
-          Customer & Supplier Details
+          {showOfficeStaff ? 'Office Staff, Banking & Obligation Details' : 'Customer & Supplier Details'}
         </h3>
 
         {/* A. Applicant's customer and supplier details */}
         <div className="space-y-6">
-          <ContactListTable
-            kind="Customer"
-            phoneHeader="Customers Ph. No."
-            namePlaceholder="Name"
-            rows={prominentCustomers}
-            setRows={setProminentCustomers}
-            newRow={() => newContact('c')}
-          />
-          <ContactListTable
-            kind="Supplier"
-            phoneHeader="Supplier Ph. No."
-            namePlaceholder="Name or 'Not applicable'"
-            rows={prominentSuppliers}
-            setRows={setProminentSuppliers}
-            newRow={() => newContact('s')}
-          />
+          {showOfficeStaff ? (
+            <ContactListTable
+              kind="Staff"
+              title="Office Staff Contacted"
+              nameHeader="Staff (Name)"
+              phoneHeader="Staff Ph. No."
+              namePlaceholder="Colleague name"
+              rows={officeStaffContacts}
+              setRows={setOfficeStaffContacts}
+              newRow={() => newContact('o')}
+            />
+          ) : (
+            <>
+              <ContactListTable
+                kind="Customer"
+                phoneHeader="Customers Ph. No."
+                namePlaceholder="Name"
+                rows={prominentCustomers}
+                setRows={setProminentCustomers}
+                newRow={() => newContact('c')}
+              />
+              <ContactListTable
+                kind="Supplier"
+                phoneHeader="Supplier Ph. No."
+                namePlaceholder="Name or 'Not applicable'"
+                rows={prominentSuppliers}
+                setRows={setProminentSuppliers}
+                newRow={() => newContact('s')}
+              />
+            </>
+          )}
 
           {/* Collateral Property Details (Ambit / Abhiyan / MoneyBoxx LAP Specific) */}
           {showCollateral && (
@@ -525,6 +548,7 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
         )}
 
         {/* E. Latitude & Longitude Remarks */}
+        {showBusinessGps && (
         <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4 mt-6">
           <label className="block text-xs font-bold text-slate-700">
             Latitude & Longitude of the Business Premises
@@ -607,10 +631,11 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
             />
           </div>
         </div>
+        )}
 
         {/* G. Business Status */}
         <Field
-          label="Business Status (Recommendation)"
+          label={showOfficeStaff ? 'Office Status (Recommendation)' : 'Business Status (Recommendation)'}
           labelClassName="block text-xs font-bold text-slate-700"
           className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3 mt-6"
         >

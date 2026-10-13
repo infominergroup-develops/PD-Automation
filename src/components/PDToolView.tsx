@@ -16,6 +16,7 @@ import {
   EXECUTIVE_SUMMARY_TITLES,
   buildExecutiveSummary,
   describeBusinessVintage,
+  describeOfficeVintage,
   describeStaffing,
   type ExecutiveSummary,
   type ExecutiveSummaryInput,
@@ -30,6 +31,7 @@ import { photoLocation } from './pd/fieldInvestigation/photoEvidence';
 import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
 import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
 import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
+import { formProfileFor } from './pd/formProfiles';
 import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
@@ -100,10 +102,22 @@ const slimExpenseDefaults = (): ItemizedCalculationLine[] => [
   { id: 'slim-exp-other', particulars: 'Other expenses', businessNotes: 'Other expenses relating to his business like- Travel expence', monthlyAmount: 0 },
 ];
 
+// Salaried applicants (Ambit Finvest Salaried): salary is the income line; transport/other are the expenses.
+const salariedIncomeDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'sal-inc-office', particulars: 'Income from office', businessNotes: 'As per verbal confirmation from the applicant, he is working with the employer since the period mentioned. The applicant provided a salary slip as salary proof in support of his current employment and income details.', monthlyAmount: 0 },
+];
+const salariedExpenseDefaults = (): ItemizedCalculationLine[] => [
+  { id: 'sal-exp-transport', particulars: 'Transport Expense', businessNotes: 'As per verbal confirmation provided by the applicant, transportation expenses are incurred on an as-required basis.', monthlyAmount: 0 },
+  { id: 'sal-exp-other', particulars: 'Other expenses', businessNotes: 'Other miscellaneous monthly expenses.', monthlyAmount: 0 },
+];
+// Default remark for the business-neighbour / office-staff confirmation (field 6).
+const BUSINESS_NEIGHBOUR_FEEDBACK = 'Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.';
+const SALARIED_STAFF_FEEDBACK = 'A company employee confirmed that the applicant has been working with the company for a considerable period, indicating long-term employment stability.';
+// Documents typically seen for a salaried applicant (replaces the business document list).
+const SALARIED_DOCUMENT_OPTIONS = ['PAN Card', 'Aadhaar Card', 'Salary Slip', 'Appointment Letter', 'Employee ID Card', 'Form 16', 'Bank Statement', 'Other'];
+
 // Case status wording differs by lender; options are listed positive → negative → conditional
 const POSITIVE_NEGATIVE_STATUS_CLIENTS = ['tata', 'sbfc'];
-// Lenders whose report uses only a subset of the form; the rest of the fields are hidden for them
-const SLIM_FORM_CLIENTS = ['tata', 'sbfc'];
 // One-click office/factory infrastructure options for Tata/SBFC
 const SLIM_FACTORY_ASSET_OPTIONS = ['Desk', 'Chairs', 'Fans', 'Weighing scales', 'Furniture / racks', 'Computer / Printer', 'CCTV cameras', 'Storage / Almirah'];
 const buildSlimFactorySummary = (assets: string[], other: string): string => {
@@ -484,7 +498,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Godrej-specific Business Profile fields
   const godrej = useGodrejDetails();
   const {
-    alternateMobileNumber, applicantQualification, officeAccessibility, tenorRequested, marginsAssessed, customerGstNo,
+    businessCity, alternateMobileNumber, applicantQualification, officeAccessibility, tenorRequested, marginsAssessed, customerGstNo,
     industryType, productType, onLoanStructure, machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText,
     financialDetailsText, otherBusinessPremisesText, otherStateGstText, familyInvolvedText, godrejStockLevel,
     godrejRoughStockValue, godrejLocality, godrejOfficeSetup, godrejActivityLevel, godrejOfficeSize, godrejEmployeesSeen,
@@ -1222,14 +1236,14 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Tab 4: Customer & Supplier Details
   const customerSupplier = useCustomerSupplierDetails();
   const {
-    prominentCustomers, prominentSuppliers, bankingDetails, existingLoans, currentObligation,
+    prominentCustomers, prominentSuppliers, officeStaffContacts, bankingDetails, existingLoans, currentObligation,
     hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage,
     collateralValuation, collateralRemarks, businessLongitudeRemarks,
   } = customerSupplier;
 
   // NEW STATES FOR COLLATERAL PROPERTY (Ambit)
   const [businessNeighbourName, setBusinessNeighbourName] = useState('');
-  const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState('Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.');
+  const [businessNeighbourFeedback, setBusinessNeighbourFeedback] = useState(BUSINESS_NEIGHBOUR_FEEDBACK);
   const [businessStatus, setBusinessStatus] = useState('Recommended');
 
   const handleStatusChange = (val: string) => {
@@ -1237,8 +1251,20 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setBusinessStatus(val);
   };
 
-  // Tata / SBFC use a slimmed-down form: only the fields their shared report prints are shown
-  const isSlimForm = SLIM_FORM_CLIENTS.includes((selectedClient?.id || '').toLowerCase());
+  // The form only asks for what the selected lender's report uses (see pd/formProfiles)
+  const formProfile = formProfileFor(selectedClient?.id);
+  const show = formProfile.sections;
+  // Tata/SBFC and salaried also change calculations and wording, not just which sections are shown
+  const isSlimForm = formProfile.id === 'tataSbfc';
+  const isSalariedForm = formProfile.id === 'salaried';
+  // Both profiles drive the income sheet purely from the itemized income/expense lines
+  const usesItemizedLinesOnly = isSlimForm || isSalariedForm;
+  // A salaried case still holding the business-neighbour default shows the office-staff wording instead
+  const staffOrNeighbourFeedback = isSalariedForm && businessNeighbourFeedback === BUSINESS_NEIGHBOUR_FEEDBACK
+    ? SALARIED_STAFF_FEEDBACK
+    : businessNeighbourFeedback;
+  const defaultIncomeLines = () => (isSlimForm ? slimIncomeDefaults() : isSalariedForm ? salariedIncomeDefaults() : []);
+  const defaultExpenseLines = () => (isSlimForm ? slimExpenseDefaults() : isSalariedForm ? salariedExpenseDefaults() : []);
 
   // Keep the saved status within the selected lender's options (e.g. Recommended → Positive for Tata / SBFC)
   const caseStatusOptions = getCaseStatusOptions(selectedClient?.id);
@@ -1255,6 +1281,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
   // Form Fields - Business
   const [firmName, setFirmName] = useState('');
+  const officeVintageSummary = describeOfficeVintage(businessAgeYears, businessAgeApprox, firmName);
   const [noFormalBusinessName, setNoFormalBusinessName] = useState(false);
   const [constitution, setConstitution] = useState('');
   const [yearsInBusiness, setYearsInBusiness] = useState(0);
@@ -1288,6 +1315,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [miscExpense, setMiscExpense] = useState(0);
   const [otherIncome, setOtherIncome] = useState(0);
   const [householdExpenses, setHouseholdExpenses] = useState(0);
+  // Salaried: earning members sharing the household; the applicant's sheet deducts household ÷ this
+  const [earningMembersCount, setEarningMembersCount] = useState(1);
   const [existingEmiNotes, setExistingEmiNotes] = useState('');
   const [householdExpensesNotes, setHouseholdExpensesNotes] = useState('');
   const [comfortableEmiNotes, setComfortableEmiNotes] = useState('');
@@ -1514,6 +1543,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setMiscExpense(app.miscExpense !== undefined ? app.miscExpense : 0);
     setOtherIncome(app.otherIncome !== undefined ? app.otherIncome : 0);
     setHouseholdExpenses(app.householdExpenses !== undefined ? app.householdExpenses : 0);
+    setEarningMembersCount(Number(app.earningMembersCount) > 0 ? Number(app.earningMembersCount) : 1);
     setExistingEmiNotes(app.existingEmiNotes || '');
     setHouseholdExpensesNotes(app.householdExpensesNotes || '');
     setComfortableEmiNotes(app.comfortableEmiNotes || '');
@@ -1521,8 +1551,8 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     setRiskFactor(app.riskFactor || '');
 
 
-    setIncomeLines(app.incomeLines || (isSlimForm ? slimIncomeDefaults() : []));
-    setExpenseLines(app.expenseLines || (isSlimForm ? slimExpenseDefaults() : []));
+    setIncomeLines(app.incomeLines || defaultIncomeLines());
+    setExpenseLines(app.expenseLines || defaultExpenseLines());
     if (app.productsList && Array.isArray(app.productsList)) {
       setProductsList(app.productsList);
     }
@@ -1720,7 +1750,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     dependentsCount, firmName, noFormalBusinessName, constitution, sharingPattern, partnersDirectorsDetails, yearsInBusiness, shopOwnership, monthlyRent, businessRemark,
     shopAreaSqFt, inventoryValue, dailyFootfall, avgTicketValue, workingDays, neighborName, neighborFeedback,
     landlordFeedback, ...photoEvidence.values, appliedAmount, tenureMonths, interestRatePct, statedMonthlySales, cogsMarginPct, grossProfitPct,
-    salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, existingEmis,
+    salariesExpense, utilitiesExpense, transportExpense, miscExpense, otherIncome, householdExpenses, earningMembersCount, existingEmis,
     existingEmiNotes, householdExpensesNotes, comfortableEmiNotes, solarPurposeUsage, riskFactor,
     incomeLines, expenseLines, productsList,
     caseInitiationDate, visitDate, reportDate, coApplicants,
@@ -1988,9 +2018,10 @@ ${qaPairs.join('\n\n')}`;
 
   // Calculated COGS & Gross Profit. Tata/SBFC enter a Gross Profit %, so purchases = Sales − Gross Profit.
   const cogsAmount = useMemo(() => {
+    if (isSalariedForm) return 0; // salary has no cost of goods
     if (isSlimForm) return Math.max(0, adoptedMonthlySales - Math.round(adoptedMonthlySales * (grossProfitPct / 100)));
     return Math.round(adoptedMonthlySales * (cogsMarginPct / 100));
-  }, [adoptedMonthlySales, cogsMarginPct, isSlimForm, grossProfitPct]);
+  }, [adoptedMonthlySales, cogsMarginPct, isSlimForm, isSalariedForm, grossProfitPct]);
 
   const grossProfit = useMemo(() => {
     return adoptedMonthlySales - cogsAmount;
@@ -2003,21 +2034,22 @@ ${qaPairs.join('\n\n')}`;
   // Total Operating Expenses. For Tata/SBFC these come from the itemized expense lines (excluding any purchase line).
   const rentEffective = shopOwnership === 'RENTED' ? monthlyRent : 0;
   const totalOperatingExpenses = useMemo(() => {
-    if (isSlimForm) {
+    if (usesItemizedLinesOnly) {
       return expenseLines
         .filter(l => !/purchase|cost of goods|cogs/i.test(l.particulars || ''))
         .reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0);
     }
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
-  }, [isSlimForm, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
+  }, [usesItemizedLinesOnly, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
 
-  // Tata/SBFC: seed the default income/expense lines in the Waterfall section whenever they are empty,
-  // so the user always starts from Sales/receipt + Electricity/Salary/Other (and Rent when rented).
+  // Tata/SBFC and salaried: seed the default income/expense lines in the Waterfall section whenever they
+  // are empty, so the user only fills amounts (Tata/SBFC also get a Rent line when rented, see below).
   useEffect(() => {
-    if (!isSlimForm) return;
-    setIncomeLines(prev => (prev.length === 0 ? slimIncomeDefaults() : prev));
-    setExpenseLines(prev => (prev.length === 0 ? slimExpenseDefaults() : prev));
-  }, [isSlimForm]);
+    if (!usesItemizedLinesOnly) return;
+    setIncomeLines(prev => (prev.length === 0 ? defaultIncomeLines() : prev));
+    setExpenseLines(prev => (prev.length === 0 ? defaultExpenseLines() : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the defaults are fixed per client profile
+  }, [isSlimForm, isSalariedForm]);
 
   // Tata/SBFC: keep the "Business premises Rent" expense line present only while the premises is rented.
   useEffect(() => {
@@ -2366,7 +2398,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const finalMeetingAddress = meetingAddress || 'Not provided';
     const formattedGps = gpsLat && gpsLng ? `${gpsLat}, ${gpsLng}` : `${exifGpsLat}, ${exifGpsLng}`;
 
-    const fbBusinessVintage = vintageSummary || 'Not provided';
+    const fbBusinessVintage = (isSalariedForm ? officeVintageSummary : vintageSummary) || 'Not provided';
     const fbStaffCount = staffingSummary;
     const fbPremiseOwnership = (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : (premiseOwnership ? `Business is being operated from ${premiseOwnership.toLowerCase()} premises.` : '')) || (shopOwnership ? `Business is being operated from ${shopOwnership.toLowerCase()} premises.` : 'Not provided');
     const fbFactoryInfra = businessAssets.length > 0 ? `The business setup comprises ${businessAssets.map(a => `${String(a.quantity || 0).padStart(2, '0')} ${a.name} (${a.size})`).join(', ')}.` : 'Not provided';
@@ -2484,6 +2516,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       operationalSavingAnalysis: solarSavingText || fbSolarSaving,
 
       prominentCustomers: toReportContacts(prominentCustomers),
+      officeStaffContacts: toReportContacts(officeStaffContacts),
       prominentSuppliers: toReportContacts(prominentSuppliers),
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
@@ -2500,7 +2533,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       businessLocationRemarks: businessLongitudeRemarks || 'Not provided',
       businessElectricityDetails: hasElectricityConnection === 'Yes' ? `Electricity verified (Supplier: ${electricitySupplierName || 'Not provided'}, Consumer No: ${electricityConsumerNumber || 'Not provided'}), Monthly Bill: ₹${electricityMonthlyExpense || 0}` : 'Not provided',
       businessNeighborName: businessNeighbourName || 'Not provided',
-      businessNeighborFeedback: businessNeighbourFeedback || neighborFeedback || 'Not provided',
+      businessNeighborFeedback: staffOrNeighbourFeedback || neighborFeedback || 'Not provided',
       businessStatus: businessStatus || statusOfCase || 'Recommended',
       constitution,
       partnersDirectorsDetails,
@@ -2521,7 +2554,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         })),
       itemizedExpenses: opexLines.length > 0
         ? opexLines.map(toExpenseRow)
-        : (isSlimForm ? [] : [
+        : (usesItemizedLinesOnly ? [] : [
             ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
             ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
             ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
@@ -2534,10 +2567,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       workingDays: workingDays,
       totalExpensesMonthly: opexLines.length > 0
         ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense)),
+        : (usesItemizedLinesOnly ? 0 : (salariesExpense + rentEffective + utilitiesExpense)),
       totalExpensesYearly: (opexLines.length > 0
         ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (isSlimForm ? 0 : (salariesExpense + rentEffective + utilitiesExpense))) * 12,
+        : (usesItemizedLinesOnly ? 0 : (salariesExpense + rentEffective + utilitiesExpense))) * 12,
 
       // Co-Applicant Financial Assessment
       coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
@@ -2579,6 +2612,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       householdExpensesMonthly: householdExpenses || 0,
       householdExpensesYearly: (householdExpenses || 0) * 12,
       householdExpensesNotes: householdExpensesNotes,
+      earningMembersCount,
       comfortableEmiNotes: comfortableEmiNotes,
       netDisposalIncomeMonthly: (netBusinessIncome - (householdExpenses || 0) - existingEmis),
       netDisposalIncomeYearly: (netBusinessIncome - (householdExpenses || 0) - existingEmis) * 12,
@@ -2592,6 +2626,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       executiveSummary_Community: executiveSummary.community,
 
       // Godrej Specific Fields
+      businessCity,
       alternateMobileNumber,
       officeAccessibility,
       tenorRequested,
@@ -2754,7 +2789,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
   };
 
   const tabFooter = (
-    <PdTabFooter activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
+    <PdTabFooter activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} labelOverrides={formProfile.tabLabels} />
   );
 
   const filteredCategoriesModal = categoriesList.filter(c =>
@@ -3147,7 +3182,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       </div>
 
       {/* Navigation Module Tabs */}
-      <PdTabBar activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} />
+      <PdTabBar activeTab={activeTab} hasCoApplicantBusiness={hasCoAppInBusiness} onSelect={setActiveTab} labelOverrides={formProfile.tabLabels} />
 
       {/* TAB 1: BUSINESS PROFILE */}
       {activeTab === 'profile' && (
@@ -3155,11 +3190,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
             <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
               <Building className="w-4 h-4 text-[#eb8a23]" />
-              Business Profile & Establishment Details
+              {isSalariedForm ? 'Employment Profile' : 'Business Profile & Establishment Details'}
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Firm / Trade Name *">
+              <Field label={isSalariedForm ? 'Office / Employer Firm Name *' : 'Firm / Trade Name *'}>
                 <input
                   type="text"
                   value={firmName}
@@ -3168,6 +3203,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </Field>
 
+              {show.constitution && (
               <Field label="Business Constitution">
                 <select
                   value={constitution}
@@ -3181,14 +3217,15 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <option value="LLP">Limited Liability Partnership</option>
                 </select>
               </Field>
+              )}
 
-              {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
+              {show.partnersAndSharing && (
                 <Field label="Details of Partners/Directors">
                   <input type="text" value={partnersDirectorsDetails} onChange={(e) => setPartnersDirectorsDetails(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Not applicable" />
                 </Field>
               )}
 
-              {['tata', 'sbfc'].includes(selectedClient?.id || '') && (
+              {show.partnersAndSharing && (
                 <Field label="Sharing Pattern">
                   {constitution === 'Proprietorship' ? (
                     <input type="text" value="100%" disabled className="w-full px-3 py-2 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-500 font-semibold" title="Sole proprietorship is always 100%" />
@@ -3198,7 +3235,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </Field>
               )}
 
-              <Field label="Business Status (Recommendation)">
+              <Field label={isSalariedForm ? 'Status of Case' : 'Business Status (Recommendation)'}>
                 <select
                   value={statusOfCase}
                   onChange={(e) => handleStatusChange(e.target.value)}
@@ -3210,6 +3247,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
 
 
+              {show.premisesAndRegistration && (<>
               <Field label="Premises Ownership">
                 <select
                   value={shopOwnership}
@@ -3274,6 +3312,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </Field>
 
+              </>)}
+
+              {show.strengthsWeaknesses && (
               <div className="md:col-span-3 pt-4 border-t border-slate-200">
                 <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Strengths, Weaknesses & Status</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -3336,9 +3377,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </select>
                 </Field>
               </div>
+              )}
 
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-1">Detailed Business Profile & Summary (Executive Appraisal)</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">{isSalariedForm ? 'Brief Profile (Employment / Office)' : 'Detailed Business Profile & Summary (Executive Appraisal)'}</label>
                 <textarea
                   value={briefBusinessProfile}
                   onChange={(e) => setBriefBusinessProfile(e.target.value)}
@@ -3348,7 +3390,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
-              {isSlimForm && (
+              {show.businessProofDetails && (
               <div className="md:col-span-3">
                 <label className="block text-xs font-bold text-slate-700 mb-1">Business Proof Details (GST / Udyam / registration — paste point-wise)</label>
                 <textarea
@@ -3365,7 +3407,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           </div>
 
           {/* AATA CHAKKI DYNAMIC SETUP */}
-          {!isSlimForm && (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
+          {show.aataChakkiSetup && (currentCategory.name.toLowerCase().includes('atta chakki') || currentCategory.name.toLowerCase().includes('aata chakki')) && (
             <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
                 <Settings className="w-4 h-4 text-[#eb8a23]" />
@@ -3508,7 +3550,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           )}
 
           {/* GODREJ SPECIFIC DETAILS */}
-          {selectedClient?.name?.toLowerCase().includes('godrej') && <GodrejDetailsPanel form={godrej} />}
+          {show.godrejPanel && <GodrejDetailsPanel form={godrej} />}
 
           {tabFooter}
         </div>
@@ -3537,18 +3579,20 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {show.initiationAndReportDates && (
               <Field label="1. Case Initiation Date">
                 <input type="date" value={caseInitiationDate} onChange={(e) => setCaseInitiationDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
+              )}
               <Field label="2. Visit Date">
                 <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
+              {show.initiationAndReportDates && (
               <Field label="3. Report Date">
                 <input type="date" value={reportDate} onChange={(e) => setReportDate(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
               </Field>
+              )}
             </div>
-
-
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="3. Name of Applicant *">
@@ -3626,7 +3670,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </div>
 
             {/* 8. Female Candidate */}
-            {!isSlimForm && (
+            {show.femaleCandidate && (
             <Field label="8. Female candidate is on loan / application" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex items-center gap-4">
                 <button type="button" onClick={() => setHasFemaleCandidate(true)} className={`px-4 py-1.5 text-xs font-bold rounded-lg border ${hasFemaleCandidate ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-white text-slate-600 border-slate-300'}`}>Yes</button>
@@ -3665,7 +3709,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* 9. Quotation Amount & 10. Type of Loan */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="9. Quotation Amount">
+              <Field label={isSalariedForm ? '9. Loan Amount' : '9. Quotation Amount'}>
                 <div className="flex gap-2">
                   <div className="relative flex-1">
                     <span className="absolute left-3 top-2 text-slate-500 font-bold">₹</span>
@@ -3687,7 +3731,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   </div>
                 )}
               </Field>
-              <Field label="10. Type of Loan">
+              {show.loanType && (
+              <Field label={isSalariedForm ? '10. Product' : '10. Type of Loan'}>
                 <select value={loanType} onChange={(e) => setLoanType(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold">
                   {['Commercial Solar Loan', 'Residential Solar Loan', 'Personal Loan', 'Home Loan', 'Business Loan', 'Vehicle Loan', 'LAP', 'Micro Buisness Loan', 'Education Loan', 'Other'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                 </select>
@@ -3695,6 +3740,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   <input type="text" value={otherLoanType} onChange={(e) => setOtherLoanType(e.target.value)} className="w-full mt-2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Loan Type" />
                 )}
               </Field>
+              )}
             </div>
 
             {/* Purpose of Loan (as per applicant) */}
@@ -3709,7 +3755,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 11. Solar Purpose & Usage */}
-            {!isSlimForm && loanType === 'Commercial Solar Loan' && (
+            {show.solarPurpose && loanType === 'Commercial Solar Loan' && (
               <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
                 <label className="block text-xs font-bold text-orange-900">11. Solar Purpose & Usage Confirmation</label>
 
@@ -3767,21 +3813,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
             {/* 12. Address of Residence */}
+            {show.residenceAddress && (
             <Field label="12. Address of the Residence" labelClassName="block text-xs font-bold text-slate-700" className="space-y-3">
               <div className="grid grid-cols-1 gap-3">
                 <textarea value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete residence address" rows={2} />
               </div>
             </Field>
+            )}
 
             {/* 13. Address of Business */}
             <div className="space-y-3 pt-4 border-t border-slate-100">
-              <Field label="13. Address of the Business (Applicant)" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
+              <Field label={isSalariedForm ? '13. Address of the Office' : '13. Address of the Business (Applicant)'} labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
+                {show.residenceAddress && (
                 <button type="button" onClick={() => {
                   setBusinessAddress(residenceAddress);
                 }} className="text-[10px] bg-slate-100 text-slate-700 px-3 py-1.5 rounded font-bold hover:bg-slate-200 border border-slate-300">Same as Residence Address</button>
+                )}
               </Field>
               <div className="grid grid-cols-1 gap-3">
-                <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Enter complete business address" rows={2} />
+                <textarea value={businessAddress} onChange={(e) => setBusinessAddress(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder={isSalariedForm ? 'Enter complete office address' : 'Enter complete business address'} rows={2} />
               </div>
 
               <div className="space-y-2">
@@ -3852,9 +3902,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
 
             {/* 15.1 Documents Seen */}
+            {show.documentsSeen && (
             <Field label="15.1 Documents Seen" labelClassName="block text-xs font-bold text-slate-700 mb-2" className="pt-6 border-t border-slate-100">
               <div className="flex flex-wrap gap-3">
-                {['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Buisness Invoices', 'Other'].map(doc => (
+                {(isSalariedForm ? SALARIED_DOCUMENT_OPTIONS : ['PAN Card', 'Udyam Certificate', 'GST Certificate', 'Aadhaar Card', 'Manual Records', 'Buisness Invoices', 'Other']).map(doc => (
                   <label key={doc} className="flex items-center gap-2 text-xs font-semibold text-slate-700">
                     <input 
                       type="checkbox" 
@@ -3873,6 +3924,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <input type="text" value={otherDocumentsSeen} onChange={(e) => setOtherDocumentsSeen(e.target.value)} className="w-full mt-3 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="Specify Other Documents Seen" />
               )}
             </Field>
+            )}
 
             {/* 16. Spouse and Dependencies Details */}
             <div className="mt-8 pt-6 border-t border-slate-200">
@@ -4046,19 +4098,19 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
             <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2 mb-6">
               <Store className="w-4 h-4 text-[#eb8a23]" />
-              Business & Residence Verification
+              {isSalariedForm ? 'Office & Residence Verification' : 'Business & Residence Verification'}
             </h3>
 
             {/* 1. Vintage of Business */}
-            <Field label="1. Vintage of the Business" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+            <Field label={isSalariedForm ? '1. Vintage of the Office (years with current employer)' : '1. Vintage of the Business'} labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Field label="Business Age (Years)" labelClassName={SUB_LABEL}>
+                <Field label={isSalariedForm ? 'Years with Employer' : 'Business Age (Years)'} labelClassName={SUB_LABEL}>
                   <div className="flex gap-2 items-center">
                     <input type="number" min="0" value={businessAgeYears} onChange={(e) => { const v = Number(e.target.value); if (v >= 0) setBusinessAgeYears(v); }} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" disabled={businessAgeApprox} placeholder="Years" />
                     <label className="text-[10px] font-bold text-slate-600 flex items-center gap-1 whitespace-nowrap"><input type="checkbox" checked={businessAgeApprox} onChange={(e) => setBusinessAgeApprox(e.target.checked)} className="accent-[#eb8a23]" /> Approx</label>
                   </div>
                 </Field>
-                {(businessAgeYears !== '' && businessAgeYears < 10) && (
+                {show.previousOccupation && businessAgeYears !== '' && businessAgeYears < 10 && (
                   <Field label="Previous Occupation / Activity" labelClassName={SUB_LABEL}>
                     <select value={previousOccupation} onChange={(e) => setPreviousOccupation(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold bg-white">
                       <option value="">Select...</option>
@@ -4066,7 +4118,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     </select>
                   </Field>
                 )}
-                {(businessAgeYears !== '' && businessAgeYears < 10) && (
+                {show.previousOccupation && businessAgeYears !== '' && businessAgeYears < 10 && (
                   <div>
                     <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1">
                       {previousOccupation === 'Business' ? 'What was it about?' :
@@ -4080,7 +4132,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     } />
                   </div>
                 )}
-                {(businessAgeYears !== '' && businessAgeYears < 10) && (
+                {show.previousOccupation && businessAgeYears !== '' && businessAgeYears < 10 && (
                   <Field label="Reason to leave the last occupation" labelClassName={SUB_LABEL}>
                     <select
                       value={reasonToLeave === 'Not informed' ? 'Not informed' : (reasonToLeave ? 'Informed' : '')}
@@ -4101,12 +4153,13 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     <span className="text-[10px] uppercase font-bold text-blue-800">Generated Narrative (Editable)</span>
                     <button type="button" onClick={() => setBusinessVintageText('')} className="text-[9px] text-blue-600 hover:underline font-bold">Auto-Generate</button>
                   </div>
-                  <textarea value={businessVintageText || vintageSummary} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
+                  <textarea value={businessVintageText || (isSalariedForm ? officeVintageSummary : vintageSummary)} onChange={(e) => setBusinessVintageText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
                 </div>
               </div>
             </Field>
 
             {/* 2. Number of Staffs */}
+            {show.staffCount && (
             <Field label="2. Number of Staffs" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Number of External Staff / Labour" labelClassName={SUB_LABEL}>
@@ -4140,8 +4193,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             </Field>
+            )}
 
             {/* 3. Is Office Premise Rented / Owned */}
+            {show.premiseOwnership && (
             <Field label="3. Is Office Premise Rented / Owned" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
                 {['Self-Owned', 'Rented', 'Leased', 'Residence cum business', 'Other'].map(opt => (
@@ -4162,9 +4217,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <textarea value={premiseOwnershipText || (premiseOwnership === 'Self-Owned' ? 'Business is being operated from self-owned premises.' : `Business is being operated from ${premiseOwnership.toLowerCase()} premises.`)} onChange={(e) => setPremiseOwnershipText(e.target.value)} className="w-full bg-transparent border-0 p-0 text-xs font-semibold text-blue-900 focus:ring-0 resize-none" rows={2} />
               </div>
             </Field>
+            )}
 
             {/* 4. Details of Office / Factory Infrastructure */}
-            {!isSlimForm && (
+            {show.factoryInfrastructure && (
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">4. Details of Office / Factory Infrastructure (Assets)</h4>
@@ -4208,7 +4264,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
             {/* 4. Office / Factory Infrastructure — one-click (Tata/SBFC) */}
-            {isSlimForm && (
+            {show.quickFactoryAssets && (
             <div className="mt-6 bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4">
               <h4 className="text-xs font-bold text-slate-700">4. Details of Office / Factory Infrastructure (Assets)</h4>
               <p className="text-[10px] text-slate-500">Tap the assets observed; the report summary updates automatically.</p>
@@ -4244,6 +4300,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             )}
 
             {/* 5. Stock Details */}
+            {show.stockDetails && (
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-xs font-bold text-slate-700">5. Stock Details with Estimated Value</h4>
@@ -4298,21 +4355,25 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
             </div>
 
-            {/* 6-11: fields not used by Tata/SBFC reports */}
-            {!isSlimForm && (<>
-            {/* 6. Details and confirmation of business by neighbor */}
-            <Field label="6. Details and confirmation of business by neighbor" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
-              <Field label="Neighbor Name" labelClassName={SUB_LABEL}>
-                <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder="e.g. Adjoining neighbors" />
+            )}
+
+            {/* 6. Details and confirmation of business by neighbor / office staff */}
+            {show.neighbourConfirmation && (
+            <Field label={isSalariedForm ? '6. Office staff confirmation of employment' : '6. Details and confirmation of business by neighbor'} labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+              <Field label={isSalariedForm ? 'Staff Name' : 'Neighbor Name'} labelClassName={SUB_LABEL}>
+                <input type="text" value={businessNeighbourName} onChange={(e) => setBusinessNeighbourName(e.target.value)} className="w-full md:w-1/2 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]" placeholder={isSalariedForm ? 'e.g. Colleague / HR contact' : 'e.g. Adjoining neighbors'} />
               </Field>
               <div>
                 <Field label="Feedback Remark" labelClassName="block text-[10px] uppercase font-bold text-slate-500" className="flex items-center justify-between mb-1">
-                  <button type="button" onClick={() => setBusinessNeighbourFeedback("Neighbour verification was conducted, wherein neighbours confirmed that the applicant has been engaged in his stated business for a considerable period, indicating business stability. The feedback received was positive regarding his work, and overall reputation in the locality.")} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
+                  <button type="button" onClick={() => setBusinessNeighbourFeedback(isSalariedForm ? SALARIED_STAFF_FEEDBACK : BUSINESS_NEIGHBOUR_FEEDBACK)} className="text-[9px] text-[#eb8a23] hover:underline font-bold">Autofill Standard Positive Remark</button>
                 </Field>
-                <textarea value={businessNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
+                <textarea value={staffOrNeighbourFeedback} onChange={(e) => setBusinessNeighbourFeedback(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] text-blue-900 bg-blue-50 font-semibold" rows={3} />
               </div>
             </Field>
+            )}
 
+            {/* 7-10: fixed/current assets, asset creation, investment, agricultural income */}
+            {show.assetAnalysis && (<>
             {/* 7. Fixed & Current Asset Analysis */}
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <label className="block text-xs font-bold text-slate-700">7. Fixed & Current Asset Analysis</label>
@@ -4500,7 +4561,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
             </Field>
 
+            </>)}
+
             {/* 10. Other Source Income */}
+            {show.otherSourceIncome && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <Field label="10. Other source income" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex items-center gap-2">
@@ -4538,8 +4602,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               )}
             </div>
+            )}
 
             {/* 11. Solar Saving Analysis */}
+            {show.solarSaving && (
             <Field label="11. Solar Saving Analysis" labelClassName="block text-xs font-bold text-orange-900" className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="Expected Reduction in Operational Cost" labelClassName="block text-[10px] uppercase font-bold text-orange-700 mb-1">
@@ -4563,9 +4629,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </div>
             </Field>
-            </>)}
+            )}
 
-            {/* 12. Address of additional business with or without income assessment */}
+            {/* 12. Address of additional business */}
+            {show.additionalBusiness && (
             <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <Field label="12. Address of additional business with or without income assessment" labelClassName="block text-xs font-bold text-slate-700">
               </Field>
@@ -4588,7 +4655,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </Field>
               </div>
             </div>
+            )}
 
+            {show.residenceVisit && (<>
             {/* RESIDENCE VISIT DETAILS SUB-HEADER */}
             <div className="pt-6 pb-2 border-b border-slate-200">
               <h3 className="text-sm font-extrabold text-[#2d3e50] uppercase tracking-wider flex items-center gap-2">
@@ -4615,15 +4684,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <button type="button" onClick={() => setActiveTab('applicant')} className="px-3 py-1.5 text-[10px] bg-white border border-slate-300 text-slate-700 font-bold rounded shadow-sm hover:bg-slate-50">Edit Participants</button>
               </div>
             </Field>
+            </>)}
 
             {/* 13. Address of the Meeting */}
             <div className="space-y-3">
-              <Field label="13. Address of the Meeting" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
+              <Field label={show.residenceVisit ? '13. Address of the Meeting' : 'Address Visited'} labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
                 <div className="flex gap-2">
+                  {show.residenceAddress && (
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('RESIDENCE');
                     setMeetingAddress(residenceAddress);
                   }} className={`text-[10px] px-3 py-1.5 rounded font-bold border ${meetingAddressSource === 'RESIDENCE' ? 'bg-[#eb8a23] text-white border-[#eb8a23]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border-slate-300'}`}>Use Residence Address</button>
+                  )}
                   <button type="button" onClick={() => {
                     setMeetingAddressSource('BUSINESS');
                     setMeetingAddress(businessAddress);
@@ -4639,6 +4711,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
 
+            {show.residenceVisit && (<>
             {/* 14. Locating Premises Type */}
             <Field label="14. Locating Premises Type" labelClassName="block text-xs font-bold text-slate-700 mb-2">
               <div className="flex flex-wrap gap-3">
@@ -4808,9 +4881,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </Field>
 
-            {/* 19A-21: electricity & neighbor fields not used by Tata/SBFC reports */}
-            {!isSlimForm && (<>
+            </>)}
+
             {/* 19A. Residence Electricity Connection Details */}
+            {show.residenceElectricity && (
             <Field label="19A. Residence Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
@@ -4845,8 +4919,10 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
               {hasResElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Residence</div>}
             </Field>
+            )}
 
             {/* 19B. Business Electricity Connection Details */}
+            {show.businessElectricity && (
             <Field label="19B. Business Electricity Connection Details" labelClassName="block text-xs font-bold text-slate-700" className="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
               <div className="flex gap-2">
                 {['Yes', 'No', 'Not Provided'].map(opt => (
@@ -4881,7 +4957,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
               {hasElectricityConnection === 'No' && <div className="text-xs font-semibold text-blue-800 bg-blue-50 p-2 rounded">Generated: No Electricity Connection at Business</div>}
             </Field>
+            )}
 
+            {show.residenceNeighbours && (<>
             {/* 20. Neighbor Name */}
             <div className="space-y-3">
               <Field label="20. Neighbor Name" labelClassName="block text-xs font-bold text-slate-700" className="flex justify-between items-center">
@@ -4944,6 +5022,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             </Field>
             </>)}
 
+            {show.residenceGpsAndStatus && (<>
             {/* 22. Latitude & Longitude */}
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-2">22. Latitude & Longitude of the business premises</label>
@@ -4980,6 +5059,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 <textarea value={residenceStatusReason} onChange={(e) => setResidenceStatusReason(e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder={`Reason for ${residenceStatus}...`} rows={3} />
               )}
             </Field>
+            </>)}
 
           </div>
           {tabFooter}
@@ -4990,6 +5070,8 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
         <CustomerSupplierSection
           details={customerSupplier}
           showCollateral={['ambit', 'abhiyan', 'lap'].some(key => (selectedClient?.name || '').toLowerCase().includes(key))}
+          officeStaffContacts={show.officeStaffContacts}
+          showBusinessGps={show.businessGps}
           coApplicants={coApplicants}
           setCoApplicants={setCoApplicants}
           gpsLat={gpsLat}
@@ -5028,42 +5110,32 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
             </div>
 
-            {selectedClient?.name?.toLowerCase().includes('godrej') && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pb-2">
-                <Field label="Tenor Requested">
-                  <input type="text" value={tenorRequested} onChange={(e) => godrej.setField('tenorRequested', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 36 Months" />
-                </Field>
-                <Field label="Margins Assessed">
-                  <input type="text" value={marginsAssessed} onChange={(e) => godrej.setField('marginsAssessed', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20%" />
-                </Field>
-                <Field label="Customer GST No.">
-                  <input type="text" value={customerGstNo} onChange={(e) => godrej.setField('customerGstNo', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 27ABCDE1234F1Z5" />
-                </Field>
-              </div>
-            )}
-
+            {show.profitMargin && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pb-2 mb-4">
               <Field label="Profit Margin (%)">
                 <input type="number" value={profitMargin} onChange={(e) => setProfitMargin(e.target.value === '' ? '' : Number(e.target.value))} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-[#eb8a23]" placeholder="e.g. 20" />
               </Field>
             </div>
+            )}
 
             {/* Live Financial Waterfall Summary Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-                <p className="text-[10px] font-bold text-slate-500 uppercase">Adopted Monthly Sales</p>
+                <p className="text-[10px] font-bold text-slate-500 uppercase">{isSalariedForm ? 'Monthly Income (A)' : 'Adopted Monthly Sales'}</p>
                 <div className="text-xl font-black text-[#2d3e50] mt-1">₹{adoptedMonthlySales.toLocaleString('en-IN')}</div>
                 <p className="text-[10px] text-slate-400 mt-0.5">Min(Stated, Footfall Cross-check)</p>
               </div>
 
+              {show.grossProfitCard && (
               <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
                 <p className="text-[10px] font-bold text-emerald-800 uppercase">Gross Profit ({grossMarginPct}%)</p>
                 <div className="text-xl font-black text-emerald-800 mt-1">₹{grossProfit.toLocaleString('en-IN')}</div>
                 <p className="text-[10px] text-emerald-600 mt-0.5">COGS Share: {cogsMarginPct}%</p>
               </div>
+              )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-[10px] font-bold text-blue-800 uppercase">Net Business Operating Income</p>
+                <p className="text-[10px] font-bold text-blue-800 uppercase">{isSalariedForm ? 'Net Income (A − B)' : 'Net Business Operating Income'}</p>
                 <div className="text-xl font-black text-blue-900 mt-1">₹{netBusinessIncome.toLocaleString('en-IN')}</div>
                 <p className="text-[10px] text-blue-600 mt-0.5">OpEx Total: ₹{totalOperatingExpenses.toLocaleString('en-IN')}</p>
               </div>
@@ -5078,7 +5150,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {/* Price x Quantity x Days Itemized Income Breakdown */}
             <ItemizedLinesTable
               accent="emerald"
-              title={`Itemized Income & Goods Revenue (${currentCategory.name})`}
+              title={isSalariedForm ? 'Income from Office (Salary)' : `Itemized Income & Goods Revenue (${currentCategory.name})`}
               subtitle="Editable Price × Quantity per Day × Working Days format."
               headerRight={
                 <div className="flex items-center gap-2">
@@ -5107,7 +5179,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
             {/* Direct Monthly Expenditure Breakdown */}
             <ItemizedLinesTable
               accent="rose"
-              title={`Itemized Operating Expenditures & Direct Costs (${currentCategory.name})`}
+              title={isSalariedForm ? 'Monthly Expenses (Transport / Other)' : `Itemized Operating Expenditures & Direct Costs (${currentCategory.name})`}
               subtitle="Direct Monthly Basis format."
               headerRight={
                 <div className="text-xs font-extrabold px-3 py-1 bg-rose-100 text-rose-800 border border-rose-300 rounded-lg">
@@ -5359,6 +5431,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
             {/* Waterfall Input Controls */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+              {show.statedSales && (
               <Field label="Stated Monthly Sales Turnover (₹)">
                 <input
                   type="number"
@@ -5368,8 +5441,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-bold"
                 />
               </Field>
+              )}
 
-              {!isSlimForm && (
+              {show.cogsSlider && (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">COGS / Stock Purchase % ({cogsMarginPct}%)</label>
                 <input
@@ -5383,7 +5457,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </div>
               )}
 
-              {isSlimForm && (
+              {show.grossProfitPct && (
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Gross Profit % (of Sales)</label>
                 <input
@@ -5412,6 +5486,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 />
               </div>
 
+              {show.staffAndUtilityExpenses && (<>
               <Field label="Staff Salaries (₹/mo)">
                 <input
                   type="number"
@@ -5432,6 +5507,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
                 />
               </div>
+              </>)}
 
               <Field label="Household Expenses (₹/mo)">
                 <div className="space-y-2">
@@ -5452,6 +5528,22 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </div>
               </Field>
 
+              {show.earningMembers && (
+              <Field label="Earning Members in Family">
+                <input
+                  type="number"
+                  min="1"
+                  value={earningMembersCount}
+                  onChange={(e) => { const v = Math.floor(Number(e.target.value)); if (v >= 1) setEarningMembersCount(v); }}
+                  className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg font-semibold"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Applicant&apos;s share deducted in the report: ₹{Math.round(householdExpenses / Math.max(1, earningMembersCount)).toLocaleString('en-IN')} / mo (household ÷ earning members).
+                </p>
+              </Field>
+              )}
+
+              {show.existingEmiNotes && (
               <Field label="Existing EMI Notes (Report Override)">
                 <div className="text-[10px] text-blue-600 font-semibold mb-1">Auto-calculated: {generatedExistingEmiNotes}</div>
                 <input
@@ -5462,7 +5554,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
               </Field>
+              )}
 
+              {show.comfortableEmiNotes && (
               <Field label="Comfortable EMI Notes (Report Override)">
                 <input
                   type="text"
@@ -5472,10 +5566,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg text-slate-600"
                 />
               </Field>
+              )}
             </div>
 
             {/* LIVE FINANCIAL RATIOS CARD */}
-            {!isSlimForm && (
+            {show.ratiosCard && (
             <div className="bg-[#384c5e] text-white rounded-xl p-5 shadow-md flex flex-wrap items-center justify-between gap-6">
               <div>
                 <div className="text-xs text-amber-300 font-bold uppercase tracking-wider">Automated Debt Service Coverage Ratios</div>

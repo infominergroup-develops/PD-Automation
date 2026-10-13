@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildExecutiveSummary, describeBusinessVintage, describeStaffing } from '../src/utils/pdSummaries';
+import { describeOfficeVintage, buildExecutiveSummary, describeBusinessVintage, describeStaffing } from '../src/utils/pdSummaries';
 
 // Verbatim copies of the inline template expressions these helpers replaced
 const legacyVintage = (
@@ -111,5 +111,15 @@ describe('buildExecutiveSummary', () => {
     expect(html.borrowerProfile).toContain('<b>Verma Atta Chakki</b>');
     expect(html.salesWaterfall).toContain('<b>₹1,50,000</b>');
     expect(html.debtService).toContain('<b>2.12x</b>');
+  });
+});
+
+describe('describeOfficeVintage', () => {
+  it('describes years with the employer', () => {
+    expect(describeOfficeVintage(18, false, 'Tata Motors')).toBe('The applicant has been working with Tata Motors for the past 18 years.');
+    expect(describeOfficeVintage(5, true, '')).toBe('The applicant has been working with the current employer for the past approximately 05 years.');
+  });
+  it('is empty when no years are given', () => {
+    expect(describeOfficeVintage('', false, 'Tata Motors')).toBe('');
   });
 });

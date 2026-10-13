@@ -59,6 +59,10 @@ const PD_TABS: PdTab[] = [
   { id: 'decision', label: '7. Risk Score & Decision', navLabel: '7. Risk Score & Summary', icon: Shield },
 ];
 
+type TabLabels = Partial<Record<PdTabId, string>>;
+const labelFor = (tab: PdTab, overrides: TabLabels | undefined, nav: boolean) =>
+  overrides?.[tab.id] || (nav ? tab.navLabel : tab.label);
+
 export const isPdTabId = (value: unknown): value is PdTabId => PD_TABS.some((tab) => tab.id === value);
 
 const visibleTabs = (hasCoApplicantBusiness: boolean) =>
@@ -68,11 +72,14 @@ interface PdTabNavProps {
   activeTab: PdTabId;
   hasCoApplicantBusiness: boolean;
   onSelect: (tab: PdTabId) => void;
+  /** Per-lender tab names (see formProfiles). */
+  labelOverrides?: TabLabels;
 }
 
-export const PdTabBar: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBusiness, onSelect }) => (
+export const PdTabBar: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBusiness, onSelect, labelOverrides }) => (
   <div className="bg-white border border-slate-200 rounded-xl p-1.5 shadow-xs flex flex-wrap gap-1">
-    {visibleTabs(hasCoApplicantBusiness).map(({ id, label, icon: Icon }) => {
+    {visibleTabs(hasCoApplicantBusiness).map((tab) => {
+      const { id, icon: Icon } = tab;
       const isActive = activeTab === id;
       return (
         <button
@@ -83,7 +90,7 @@ export const PdTabBar: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBus
           }`}
         >
           <Icon className={`w-4 h-4 ${isActive ? 'text-[#eb8a23]' : 'text-slate-400'}`} />
-          {label}
+          {labelFor(tab, labelOverrides, false)}
         </button>
       );
     })}
@@ -91,7 +98,7 @@ export const PdTabBar: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBus
 );
 
 /** Previous / Next buttons at the bottom of each PD section. */
-export const PdTabFooter: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBusiness, onSelect }) => {
+export const PdTabFooter: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicantBusiness, onSelect, labelOverrides }) => {
   const tabs = visibleTabs(hasCoApplicantBusiness);
   const currentIndex = tabs.findIndex((tab) => tab.id === activeTab);
   const prevTab = currentIndex > 0 ? tabs[currentIndex - 1] : null;
@@ -111,7 +118,7 @@ export const PdTabFooter: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicant
             className="flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded-xl text-xs font-bold transition shadow-xs"
           >
             <ChevronLeft className="w-4 h-4 text-[#eb8a23]" />
-            Previous: {prevTab.navLabel}
+            Previous: {labelFor(prevTab, labelOverrides, true)}
           </button>
         ) : (
           <div />
@@ -128,7 +135,7 @@ export const PdTabFooter: React.FC<PdTabNavProps> = ({ activeTab, hasCoApplicant
             onClick={() => goTo(nextTab)}
             className="flex items-center gap-2 px-5 py-2 bg-[#384c5e] hover:bg-[#2d3e50] text-white rounded-xl text-xs font-bold transition shadow-sm"
           >
-            Next: {nextTab.navLabel}
+            Next: {labelFor(nextTab, labelOverrides, true)}
             <ChevronRight className="w-4 h-4 text-[#eb8a23]" />
           </button>
         ) : null}
