@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { describeStaffCount, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
+import { describeStaffCount, getReportHTMLForData, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from '../src/utils/templates/abhiyanTemplate';
 import { generateGodrejPDReportHTML } from '../src/utils/templates/godrejTemplate';
 import { generateMoneyboxxLapPDReportHTML } from '../src/utils/templates/moneyboxxLapTemplate';
 import { generateMoneyboxxPDReportHTML } from '../src/utils/templates/moneyboxxTemplate';
 import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from '../src/utils/templates/sbfcTemplate';
 import { generateStandardPDReportHTML } from '../src/utils/templates/standardTemplate';
+import { generateAmbitSalariedPDReportHTML } from '../src/utils/templates/ambitSalariedTemplate';
 import { coverLogoBase64 } from '../src/images/logoBase64';
 import { maheshLogoBase64 } from '../src/images/maheshLogoBase64';
 
@@ -18,6 +19,12 @@ const TEMPLATES: Record<string, (data: PDReportPrintData) => string> = {
   moneyboxxLap: generateMoneyboxxLapPDReportHTML,
   sbfc: generateSbfcPDReportHTML,
   tata: generateTataCapitalPDReportHTML,
+};
+
+// Every template, including the salaried one (which lists office staff instead of customers)
+const ALL_TEMPLATES: Record<string, (data: PDReportPrintData) => string> = {
+  ...TEMPLATES,
+  ambitSalaried: generateAmbitSalariedPDReportHTML,
 };
 
 const minimalReport = { applicantName: 'Asha Verma' } as PDReportPrintData;
@@ -47,7 +54,7 @@ const visibleText = (html: string) =>
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s+/g, ' ');
 
-describe.each(Object.entries(TEMPLATES))('%s report template', (_name, generate) => {
+describe.each(Object.entries(ALL_TEMPLATES))('%s report template', (_name, generate) => {
   it('renders with only the required fields', () => {
     expect(() => generate(minimalReport)).not.toThrow();
   });
@@ -59,10 +66,14 @@ describe.each(Object.entries(TEMPLATES))('%s report template', (_name, generate)
     }
   });
 
-  it('includes the applicant and the prominent customer', () => {
-    const text = visibleText(generate(fullReport));
-    expect(text).toContain('Asha Verma');
-    expect(text).toContain('Sharma Traders');
+  it('includes the applicant', () => {
+    expect(visibleText(generate(fullReport))).toContain('Asha Verma');
+  });
+});
+
+describe.each(Object.entries(TEMPLATES))('%s report template', (_name, generate) => {
+  it('includes the prominent customer', () => {
+    expect(visibleText(generate(fullReport))).toContain('Sharma Traders');
   });
 });
 
@@ -178,14 +189,14 @@ describe('cover page branding', () => {
   const mahesh = { ...fullReport, companyHeader: { id: 'mahesh', name: 'Mahesh & Company', cin: '', designation: '', address: '' } };
   const infominer = { ...fullReport, companyHeader: { id: 'infominers', name: 'Infominer Services Pvt. Ltd.', cin: '', designation: '', address: '' } };
 
-  it.each(Object.entries(TEMPLATES))('%s: Mahesh & Company gets its own logo and name', (_name, generate) => {
+  it.each(Object.entries(ALL_TEMPLATES))('%s: Mahesh & Company gets its own logo and name', (_name, generate) => {
     const cover = coverOf(generate(mahesh));
     expect(cover).toContain(maheshLogoBase64);
     expect(cover).not.toContain(coverLogoBase64);
     expect(cover).toContain('Mahesh & Company');
   });
 
-  it.each(Object.entries(TEMPLATES))('%s: Infominer keeps the Infominer logo', (_name, generate) => {
+  it.each(Object.entries(ALL_TEMPLATES))('%s: Infominer keeps the Infominer logo', (_name, generate) => {
     const html = generate(infominer);
     expect(coverOf(html)).toContain(coverLogoBase64);
     expect(html).not.toContain(maheshLogoBase64);
@@ -401,5 +412,65 @@ describe('Ambit electricity plotting by address', () => {
     } as PDReportPrintData;
     const html = generateAmbitPDReportHTML(data);
     expect((html.match(/SAME-1/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('Ambit Finvest (Salaried) report', () => {
+  // Worked example from the lender's salaried format
+  const salaried = {
+    ...fullReport,
+    clientBankName: 'Ambit Finvest (Salaried)',
+    applicantName: 'Mr. Shankar Kaushik',
+    firmName: 'M/s Tata Motors Pvt. Ltd',
+    appliedAmount: 1500000,
+    loanType: 'LAP',
+    businessAddress: 'Tata Motors, Lucknow 226010',
+    coApplicants: [{ name: 'Mrs. Meera Yadav', relation: 'Wife', mobileNumber: '9000000000' }],
+    itemizedSales: [{ particulars: 'Income from office', businessNotes: 'Technician since September 2008', monthly: 70000, yearly: 840000 }],
+    itemizedExpenses: [{ particulars: 'Transport Expense', businessNotes: 'As required', monthly: 5000, yearly: 60000 }],
+    householdExpensesMonthly: 10000,
+    householdExpensesNotes: '',
+    earningMembersCount: 2,
+    officeStaffContacts: [{ name: 'Mr. Dileep Patel', phone: '9935214271', remark: 'Confirmed employment' }],
+    parsedCreditReport: {
+      accounts: [
+        { applicantName: 'Mr. Shankar Kaushik', accountType: 'Personal Loan', creditGrantor: 'HDFC', instalmentAmount: 1424 },
+        { applicantName: 'Mrs. Meera Yadav', accountType: 'Gold Loan', creditGrantor: 'Muthoot', instalmentAmount: 10594 },
+      ],
+    },
+  } as unknown as PDReportPrintData;
+  const text = visibleText(generateAmbitSalariedPDReportHTML(salaried));
+
+  it('is chosen for the salaried client and not for business Ambit', () => {
+    expect(getReportHTMLForData(salaried)).toContain('Office visit of');
+    expect(getReportHTMLForData({ ...salaried, clientBankName: 'Ambit Finvest' })).not.toContain('Office visit of');
+  });
+
+  it('prints the salaried top sheet', () => {
+    expect(text).toContain('Ambit Finvest Pvt. Ltd.');
+    expect(text).toContain('Office firm name');
+    expect(text).toContain('M/s Tata Motors Pvt. Ltd');
+    expect(text).toContain('Address of the Office');
+    expect(text).toContain('15 Lakh');
+    expect(text).toContain('Mrs. Meera Yadav (Wife)');
+  });
+
+  it('lists office staff instead of customers and suppliers', () => {
+    expect(text).toContain('Mr. Dileep Patel');
+    expect(text).not.toContain('Sharma Traders');
+    expect(text).not.toContain('Gupta Wholesale');
+  });
+
+  it('deducts only the applicant\'s share of household expenses', () => {
+    expect(text).toContain('two earning members');
+    expect(text).toMatch(/Net Profit Per month\(A- B\)\s*65,000\s*7,80,000/);
+    expect(text).toMatch(/Less: Existing Household Expenses.*?5,000\s*60,000/);
+    expect(text).toMatch(/Net Disposal Income.*?60,000\s*7,20,000/);
+    expect(text).toContain('As Per Ambit Finvest');
+  });
+
+  it('splits CRIF obligations between applicant and co-applicant', () => {
+    expect(text).toContain('The applicant currently has 01 running obligations, the amount of which is Rs. 1,424/- per month.');
+    expect(text).toContain('The co-applicant currently has 01 running obligations, the amount of which is Rs. 10,594/- per month.');
   });
 });

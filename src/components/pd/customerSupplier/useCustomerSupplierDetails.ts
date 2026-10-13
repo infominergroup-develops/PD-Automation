@@ -36,7 +36,7 @@ export const GPS_NOT_REACHED_REMARK =
   'The location was checked using the provided coordinates; however, the GPS map was unable to navigate up to the exact point.';
 export const GPS_VERIFIED_REMARK = 'The location was successfully verified using the provided coordinates.';
 
-export const newContact = (prefix: 'c' | 's'): ContactRow => ({
+export const newContact = (prefix: 'c' | 's' | 'o'): ContactRow => ({
   id: prefix + Date.now(),
   name: '',
   phone: '',
@@ -64,6 +64,7 @@ export const newExistingLoan = (remark = ''): ExistingLoanRow => ({
 
 const blankCustomers = (): ContactRow[] => [{ id: 'c1', name: '', phone: '', feedback: '' }];
 const blankSuppliers = (): ContactRow[] => [{ id: 's1', name: '', phone: '', feedback: '' }];
+const blankOfficeStaff = (): ContactRow[] => [{ id: 'o1', name: '', phone: '', feedback: '' }];
 const blankBankAccounts = (): BankAccountRow[] => [{ ...newBankAccount(), id: 'b1' }];
 const blankLoans = (): ExistingLoanRow[] => [{ ...newExistingLoan(NO_OBLIGATION), id: 'l1' }];
 
@@ -71,6 +72,8 @@ const blankLoans = (): ExistingLoanRow[] => [{ ...newExistingLoan(NO_OBLIGATION)
 export function useCustomerSupplierDetails() {
   const [prominentCustomers, setProminentCustomers] = useState<ContactRow[]>(blankCustomers);
   const [prominentSuppliers, setProminentSuppliers] = useState<ContactRow[]>(blankSuppliers);
+  // Salaried applicants: office colleagues contacted to confirm employment
+  const [officeStaffContacts, setOfficeStaffContacts] = useState<ContactRow[]>(blankOfficeStaff);
 
   const [hasCollateral, setHasCollateral] = useState(false);
   const [collateralAddress, setCollateralAddress] = useState('');
@@ -91,6 +94,7 @@ export function useCustomerSupplierDetails() {
   const load = (app: SavedApplicant) => {
     setProminentCustomers(savedList(app.prominentCustomers, blankCustomers()));
     setProminentSuppliers(savedList(app.prominentSuppliers, blankSuppliers()));
+    setOfficeStaffContacts(savedList(app.officeStaffContacts, blankOfficeStaff()));
     // Older records stored the collateral address as `propertyAddress`
     const savedCollateralAddress = savedString(app.collateralAddress) || savedString(app.propertyAddress);
     setHasCollateral(app.hasCollateral !== undefined ? Boolean(app.hasCollateral) : Boolean(savedCollateralAddress));
@@ -111,6 +115,7 @@ export function useCustomerSupplierDetails() {
   const values = {
     prominentCustomers,
     prominentSuppliers,
+    officeStaffContacts,
     hasCollateral,
     collateralAddress,
     collateralPropertyType,
@@ -131,6 +136,7 @@ export function useCustomerSupplierDetails() {
     load,
     setProminentCustomers,
     setProminentSuppliers,
+    setOfficeStaffContacts,
     setHasCollateral,
     setCollateralAddress,
     setCollateralPropertyType,

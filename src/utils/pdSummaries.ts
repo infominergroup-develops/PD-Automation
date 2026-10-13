@@ -36,6 +36,13 @@ export function describeBusinessVintage({
   return parts.join(' ');
 }
 
+/** Vintage sentence for a salaried applicant: years with the current employer. */
+export function describeOfficeVintage(years: number | '', approximate: boolean, employer: string): string {
+  if (!years) return '';
+  const span = `${approximate ? 'approximately ' : ''}${String(years).padStart(2, '0')} years`;
+  return `The applicant has been working with ${employer.trim() || 'the current employer'} for the past ${span}.`;
+}
+
 function describePreviousOccupation(occupation: string, detail: string): string {
   if (occupation === 'Other') return detail;
   if (occupation === 'Business') return `business (${detail})`;
