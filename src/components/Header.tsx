@@ -41,9 +41,6 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="border-l border-slate-300 pl-3 hidden sm:block">
             <h1 className="text-xs md:text-sm font-bold text-[#2d3e50] flex items-center gap-2">
               {selectedCompany?.name || 'Personal Discussion Automator'}
-              <span className="text-[10px] bg-[#eb8a23]/15 text-[#d97917] border border-[#eb8a23]/30 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                Enterprise v3.2
-              </span>
             </h1>
             <p className="text-[11px] text-slate-500 font-medium">
               {selectedClient?.name || 'Axis Bank'} Micro Lending • 21 Business Categories
