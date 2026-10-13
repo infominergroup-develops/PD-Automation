@@ -282,7 +282,7 @@ describe('Abhiyan net disposal income', () => {
       ],
       existingEmiMonthly: 10000,
       existingEmiYearly: 120000,
-      monthlyHouseholdExpensesAmount: 20000,
+      householdExpensesMonthly: 20000, // Waterfall "Household Expenses (₹/mo)"
       // A co-applicant business must NOT inflate the applicant's own net disposal row
       hasCoApplicantBusiness: true,
       coApplicantName: 'Ramesh',
@@ -479,5 +479,50 @@ describe('Godrej report', () => {
   it('prints the city captured in the Godrej panel', () => {
     const html = generateGodrejPDReportHTML({ ...fullReport, businessCity: 'Agra' } as PDReportPrintData);
     expect(visibleText(html)).toMatch(/City\s+Agra/);
+  });
+});
+
+describe('Abhiyan income sheet: net income after all deductions', () => {
+  const base = {
+    ...fullReport,
+    itemizedSales: [{ particulars: 'Retail sales', businessNotes: '', monthly: 100000, yearly: 1200000 }],
+    itemizedExpenses: [{ particulars: 'Operating expenses', businessNotes: '', monthly: 40000, yearly: 480000 }],
+    householdExpensesMonthly: 12000, // Waterfall "Household Expenses (₹/mo)"
+    householdExpensesYearly: 144000,
+    monthlyHouseholdExpensesAmount: 8000, // residence-visit field; must not drive the income sheet
+    householdExpensesNotes: '',
+    existingEmiMonthly: 2000,
+  } as unknown as PDReportPrintData;
+  const sheet = (data: PDReportPrintData) => {
+    const text = visibleText(generateAbhiyanPDReportHTML(data));
+    return text.slice(text.indexOf('Net Profit Per month(A- B)'), text.indexOf('Comfortable Monthly EMI'));
+  };
+
+  it('deducts the Waterfall household expenses, not the residence-visit figure', () => {
+    expect(sheet(base)).toMatch(/Less: Existing Household Expenses.*?12,000\s+1,44,000/);
+  });
+
+  it('net disposal = net profit − EMI − household (manual loans, no CRIF)', () => {
+    const text = sheet(base);
+    expect(text).toMatch(/Net Profit Per month\(A- B\)\s+60,000\s+7,20,000/);
+    expect(text).toContain('Rs. 2,000/- per month.');
+    expect(text).not.toContain('As per CRIF Report');
+    expect(text).toMatch(/Net Disposal Income.*?46,000\s+5,52,000/);
+  });
+
+  it('takes the EMI from the active CRIF accounts when a credit report is attached', () => {
+    const withCrif = {
+      ...base,
+      parsedCreditReport: {
+        accounts: [
+          { applicantName: 'Asha Verma', accountType: 'Business Loan', creditGrantor: 'HDFC', instalmentAmount: 5000, status: 'Active' },
+          { applicantName: 'Asha Verma', accountType: 'Gold Loan', creditGrantor: 'Muthoot', instalmentAmount: 3000, status: 'Closed' },
+        ],
+      },
+    } as unknown as PDReportPrintData;
+    const text = sheet(withCrif);
+    expect(text).toContain('The applicant currently has 01 running obligations, the amount of which is Rs. 5,000/- per month. ( As per CRIF Report )');
+    expect(text).toMatch(/Less: Existing EMI.*?5,000\s+60,000/);
+    expect(text).toMatch(/Net Disposal Income.*?43,000\s+5,16,000/);
   });
 });

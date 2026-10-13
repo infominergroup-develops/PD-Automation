@@ -45,8 +45,14 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     `;
   }
 
-  const existEmiM = Number(data.existingEmiMonthly) || 0;
-  const existEmiY = Number(data.existingEmiYearly) || (existEmiM * 12);
+  // Existing EMI: when a CRIF/CIBIL report is attached, its active accounts are the obligations (the
+  // income sheet says "As per CRIF Report"); otherwise the loans entered manually on the form.
+  const crifAccounts = data.parsedCreditReport?.accounts || [];
+  const activeCrifAccounts = crifAccounts.filter(a => a.status !== 'Closed');
+  const crifEmiM = activeCrifAccounts.reduce((sum, a) => sum + (Number(a.instalmentAmount) || 0), 0);
+  const emiFromCrif = crifEmiM > 0;
+  const existEmiM = emiFromCrif ? crifEmiM : Number(data.existingEmiMonthly) || 0;
+  const existEmiY = existEmiM * 12;
   const hasItemizedSales = Boolean(data.itemizedSales && data.itemizedSales.length > 0 && data.itemizedSales.some((i: any) => (Number(i.monthly) || 0) > 0));
   const salesItems = hasItemizedSales
     ? data.itemizedSales!.filter((i: any) => (Number(i.monthly) || 0) > 0 && i.particulars && i.particulars.trim() !== '')
@@ -133,12 +139,14 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
   const coAppNetProfM = coAppTotalSalesM > 0 ? (coAppTotalSalesM - coAppTotalExpM) : 0;
   const coAppNetProfY = coAppTotalSalesY > 0 ? coAppTotalSalesY - coAppTotalExpY : 0;
 
-  const hhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || Number(data.householdExpensesMonthly) || Number(data.householdExpenses) || 0;
+  // The income sheet deducts the "Household Expenses (₹/mo)" entered in the Waterfall Cash Flow section.
+  const hhExpM = Number(data.householdExpensesMonthly ?? data.householdExpenses) || 0;
+  const hhExpY = hhExpM * 12;
   const resHhExpM = Number(data.monthlyHouseholdExpensesAmount) || Number(data.monthlyHouseholdExpenses) || hhExpM;
   // Net Disposal must reconcile with the rows printed directly above it: the applicant's
   // own Net Profit (A − B) less EMI and household. The co-applicant has its own section.
   const netDisposalM = netProfM - existEmiM - hhExpM;
-  const netDisposalY = netProfY - existEmiY - (hhExpM * 12);
+  const netDisposalY = netProfY - existEmiY - hhExpY;
   
   const customerList = data.prominentCustomers && data.prominentCustomers.length > 0
     ? data.prominentCustomers.map((c: any) => ({
@@ -167,7 +175,6 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
       }))
     : [{ bankName: 'Not shared', branchName: 'NA', accountType: 'Saving', limit: 'NA', accountNo: 'NA', remark: 'NA' }];
 
-  const crifAccounts = data.parsedCreditReport?.accounts || [];
   const loansList = crifAccounts.length > 0 
     ? crifAccounts.map((acc: any) => ({
         applicantName: acc.applicantName || data.applicantName || 'Applicant',
@@ -182,7 +189,15 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
         remark: acc.status || 'NA'
       }))
     : (data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : []);
+  const obligationCount = emiFromCrif ? activeCrifAccounts.length : loansList.length;
+  const obligationNote = obligationCount > 0 || existEmiM > 0
+    ? `The applicant currently has ${String(obligationCount).padStart(2, '0')} running obligations, the amount of which is Rs. ${existEmiM.toLocaleString('en-IN')}/- per month.${emiFromCrif ? ' ( As per CRIF Report )' : ''}`
+    : 'The applicant currently has no running obligations.';
   const familyList = data.familyMembers && data.familyMembers.length > 0 ? data.familyMembers : [{ name: data.applicantName || 'Applicant', relation: 'Self', age: '', occupation: '', dependent: false }];
+
+  const householdExpensesNote = (data.householdExpensesNotes && data.householdExpensesNotes.trim() !== '')
+    ? data.householdExpensesNotes.trim()
+    : `The applicant’s family has ${familyList.filter((f: any) => f.occupation !== 'Student' && f.occupation !== 'Housewife' && f.occupation).length || 2} earning members, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`;
 
   return `
 <!DOCTYPE html>
@@ -677,7 +692,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     <tr>
       <td colspan="2" class="text-center" style="font-size: 8pt;">Current Obligation</td>
       <td colspan="9" style="font-size: 8pt;">
-        The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )
+        ${obligationNote}
       </td>
     </tr>
   </table>
@@ -735,15 +750,15 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td>${loansList.length > 0 ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )` : (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
+      <td>${obligationNote}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="text-center">
       <td class="text-left bold">Less: Existing Household Expenses</td>
-      <td>${(data.householdExpensesNotes && data.householdExpensesNotes.trim() !== '') ? data.householdExpensesNotes : `The applicant’s family has ${familyList.filter((f: any) => f.occupation !== 'Student' && f.occupation !== 'Housewife' && f.occupation).length || 2} earning members, and the total monthly household expenses are ₹${Number(hhExpM).toLocaleString('en-IN')}.`}</td>
+      <td>${householdExpensesNote}</td>
       <td class="bold">${Number(hhExpM).toLocaleString('en-IN')}</td>
-      <td class="bold">${Number(hhExpM * 12).toLocaleString('en-IN')}</td>
+      <td class="bold">${Number(hhExpY).toLocaleString('en-IN')}</td>
     </tr>
     <tr class="bold text-center bg-gray-100">
       <td class="text-left">Net Disposal Income</td>
