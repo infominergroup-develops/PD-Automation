@@ -1,6 +1,7 @@
 import React from 'react';
 import { Briefcase, MapPin, Plus, Trash2 } from 'lucide-react';
 import type { CoApplicant } from '../../../types/applicant';
+import { describeCurrentObligation } from '../../../utils/pdReportPrinter';
 import { Field, SUB_LABEL, removeListItem, updateListItem } from '../formControls';
 import { ContactListTable } from './ContactListTable';
 import {
@@ -11,6 +12,9 @@ import {
   newExistingLoan,
   type CustomerSupplierDetails,
 } from './useCustomerSupplierDetails';
+
+/** Blank stays blank ("not entered"); otherwise a whole number ≥ 0. */
+const blankOrNonNegative = (raw: string): number | '' => (raw === '' ? '' : Math.max(0, Math.floor(Number(raw)) || 0));
 
 interface CustomerSupplierSectionProps {
   details: CustomerSupplierDetails;
@@ -74,8 +78,10 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
     setBankingDetails,
     existingLoans,
     setExistingLoans,
-    currentObligation,
-    setCurrentObligation,
+    currentObligationCount,
+    setCurrentObligationCount,
+    currentObligationEmi,
+    setCurrentObligationEmi,
     businessLongitudeVerified,
     setBusinessLongitudeVerified,
     businessLongitudeRemarks,
@@ -476,19 +482,36 @@ export const CustomerSupplierSection: React.FC<CustomerSupplierSectionProps> = (
                 ))}
               </tbody>
             </table>
-            <Field
-              label="Current Obligation"
-              labelClassName="text-[10px] uppercase font-bold text-slate-500 whitespace-nowrap"
-              className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100"
-            >
-              <input
-                type="text"
-                value={currentObligation}
-                onChange={(e) => setCurrentObligation(e.target.value)}
-                className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
-                placeholder="e.g. No any existing obligation"
-              />
-            </Field>
+            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
+              <span className="block text-[10px] uppercase font-bold text-slate-500">Current Obligation</span>
+              <div className="flex flex-wrap items-end gap-3">
+                <Field label="Running loans" labelClassName={SUB_LABEL}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentObligationCount}
+                    onChange={(e) => setCurrentObligationCount(blankOrNonNegative(e.target.value))}
+                    className="w-28 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
+                    placeholder="e.g. 3"
+                  />
+                </Field>
+                <Field label="Total EMI (₹ / month)" labelClassName={SUB_LABEL}>
+                  <input
+                    type="number"
+                    min="0"
+                    value={currentObligationEmi}
+                    onChange={(e) => setCurrentObligationEmi(blankOrNonNegative(e.target.value))}
+                    className="w-40 px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23]"
+                    placeholder="e.g. 42105"
+                  />
+                </Field>
+              </div>
+              <p className="text-xs font-semibold text-blue-900 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                {currentObligationCount === '' && currentObligationEmi === ''
+                  ? 'Enter the number of running loans and the total EMI from the CRIF report.'
+                  : describeCurrentObligation(Number(currentObligationCount) || 0, Number(currentObligationEmi) || 0)}
+              </p>
+            </div>
           </div>
         </div>
 

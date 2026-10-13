@@ -32,7 +32,7 @@ import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
 import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
 import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
 import { formProfileFor } from './pd/formProfiles';
-import { openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
+import { describeCurrentObligation, openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
   Store, User, DollarSign, Sparkles, CheckCircle2, MapPin, Plus, Trash2, ArrowRight, Building,
@@ -126,7 +126,8 @@ const buildSlimFactorySummary = (assets: string[], other: string): string => {
   if (items.length === 0) return '';
   return `${items.join(', ')}, and other similar assets were observed in the applicant's business setup.`;
 };
-const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits'];
+// Options are positional: each lines up with the same-index option of the other list when a case changes lender
+const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits', 'Suspicious'];
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit','Fraud'];
 const getCaseStatusOptions = (clientId?: string) =>
   POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
@@ -1237,6 +1238,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const customerSupplier = useCustomerSupplierDetails();
   const {
     prominentCustomers, prominentSuppliers, officeStaffContacts, bankingDetails, existingLoans, currentObligation,
+    currentObligationCount, currentObligationEmi,
     hasCollateral, collateralAddress, collateralPropertyType, collateralPropertyArea, collateralPropertyUsage,
     collateralValuation, collateralRemarks, businessLongitudeRemarks,
   } = customerSupplier;
@@ -1330,18 +1332,24 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   const [coAppUtilitiesExpense, setCoAppUtilitiesExpense] = useState(0);
   const [coAppMiscExpense, setCoAppMiscExpense] = useState(0);
 
-  // Total Existing EMIs
+  // Running obligations typed on the Customer & Supplier tab (count + total EMI) take precedence
+  const obligationEntered = currentObligationCount !== '' || currentObligationEmi !== '';
+  const obligationSentence = describeCurrentObligation(Number(currentObligationCount) || 0, Number(currentObligationEmi) || 0);
+
+  // Total Existing EMIs: the entered total, else the loans listed one by one
   const existingEmis = useMemo(() => {
+    if (obligationEntered) return Number(currentObligationEmi) || 0;
     return (existingLoans || []).reduce((sum, loan) => sum + (Number(loan?.emi) || 0), 0);
-  }, [existingLoans]);
+  }, [obligationEntered, currentObligationEmi, existingLoans]);
 
   const generatedExistingEmiNotes = useMemo(() => {
+    if (obligationEntered) return obligationSentence;
     const validLoans = (existingLoans || []).filter(l => l?.typeOfLoan && l.typeOfLoan !== 'NA' && String(l.typeOfLoan).trim() !== '');
     if (validLoans.length > 0) {
       return `Existing obligations include ${validLoans.map(l => `${l.typeOfLoan} from ${l.financerName || 'Unknown'} (EMI: ₹${l.emi || 0})`).join(', ')}.`;
     }
     return 'As per applicant no any existing obligation.';
-  }, [existingLoans]);
+  }, [obligationEntered, obligationSentence, existingLoans]);
 
   const handleDeleteApplication = async (appIdOrNumber: string) => {
     if (isManagement && window.confirm(`MANAGER ACTION: Are you sure you want to delete application ${appIdOrNumber}?`)) {
@@ -2520,7 +2528,11 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       prominentSuppliers: toReportContacts(prominentSuppliers),
       bankingDetails: bankingDetails.length > 0 && bankingDetails[0].bankName ? bankingDetails : [],
       existingLoans: existingLoans.length > 0 && existingLoans[0].typeOfLoan !== 'NA' ? existingLoans : [],
-      currentObligationSummary: currentObligation || 'Not provided',
+      currentObligationSummary: obligationEntered ? obligationSentence : (currentObligation || 'Not provided'),
+      ...(obligationEntered && {
+        currentObligationCount: Number(currentObligationCount) || 0,
+        currentObligationEmi: Number(currentObligationEmi) || 0,
+      }),
       hasCollateral,
       collateralAddress: collateralAddress || 'Not provided',
       propertyAddress: collateralAddress || 'Not provided',

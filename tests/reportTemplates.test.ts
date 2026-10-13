@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeStaffCount, getReportHTMLForData, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
+import { describeCurrentObligation, describeStaffCount, getReportHTMLForData, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from '../src/utils/templates/abhiyanTemplate';
 import { generateGodrejPDReportHTML } from '../src/utils/templates/godrejTemplate';
 import { generateMoneyboxxLapPDReportHTML } from '../src/utils/templates/moneyboxxLapTemplate';
@@ -524,5 +524,53 @@ describe('Abhiyan income sheet: net income after all deductions', () => {
     expect(text).toContain('The applicant currently has 01 running obligations, the amount of which is Rs. 5,000/- per month. ( As per CRIF Report )');
     expect(text).toMatch(/Less: Existing EMI.*?5,000\s+60,000/);
     expect(text).toMatch(/Net Disposal Income.*?43,000\s+5,16,000/);
+  });
+});
+
+describe('Current obligation entered as loan count + total EMI', () => {
+  const SENTENCE = 'The applicant currently has 3 running obligations, the amount of which is Rs. 42105/- per month. ( As per CRIF Report )';
+
+  it('builds the fixed sentence from the two numbers', () => {
+    expect(describeCurrentObligation(3, 42105)).toBe(SENTENCE);
+    expect(describeCurrentObligation(0, 0)).toBe('The applicant currently has no running obligations.');
+  });
+
+  const entered = {
+    ...fullReport,
+    itemizedSales: [{ particulars: 'Retail sales', businessNotes: '', monthly: 100000, yearly: 1200000 }],
+    itemizedExpenses: [{ particulars: 'Operating expenses', businessNotes: '', monthly: 10000, yearly: 120000 }],
+    householdExpensesMonthly: 12000,
+    existingEmiMonthly: 42105,
+    currentObligationCount: 3,
+    currentObligationEmi: 42105,
+    currentObligationSummary: SENTENCE,
+    // A CRIF report is attached too, but the officer's entered figures take precedence
+    parsedCreditReport: { accounts: [{ applicantName: 'Asha Verma', instalmentAmount: 5000, status: 'Active' }] },
+  } as unknown as PDReportPrintData;
+
+  it('Abhiyan/Ambit: prints the sentence in Less: Existing EMI and deducts the entered total', () => {
+    const text = visibleText(generateAbhiyanPDReportHTML(entered));
+    expect(text).toMatch(new RegExp('Less: Existing EMI\\s+' + SENTENCE.replace(/[().]/g, '\\$&') + '\\s+42,105\\s+5,05,260'));
+    // 90,000 − 42,105 − 12,000
+    expect(text).toMatch(/Net Disposal Income.*?35,895\s+4,30,740/);
+  });
+
+  it.each([
+    ['moneyboxx', generateMoneyboxxPDReportHTML],
+    ['moneyboxxLap', generateMoneyboxxLapPDReportHTML],
+    ['standard', generateStandardPDReportHTML],
+  ] as const)('%s: prints the sentence in Less: Existing EMI', (_name, generate) => {
+    expect(visibleText(generate(entered))).toContain(SENTENCE);
+  });
+
+  it('an explicit "Existing EMI Notes" override still wins where a report supports it', () => {
+    const text = visibleText(generateMoneyboxxPDReportHTML({ ...entered, existingEmiNotes: 'Custom EMI remark' } as PDReportPrintData));
+    expect(text).toContain('Custom EMI remark');
+  });
+
+  it('without entered figures the reports keep their previous behaviour', () => {
+    const { currentObligationCount: _c, currentObligationEmi: _e, ...rest } = entered as unknown as Record<string, unknown>;
+    const text = visibleText(generateAbhiyanPDReportHTML({ ...rest, currentObligationSummary: 'Not provided' } as unknown as PDReportPrintData));
+    expect(text).toContain('Rs. 5,000/- per month. ( As per CRIF Report )');
   });
 });

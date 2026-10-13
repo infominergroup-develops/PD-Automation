@@ -10,6 +10,18 @@ import { maheshLogoBase64 } from '../images/maheshLogoBase64';
 export const isProvided = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '' && value !== 'Not provided';
 
+/** Fixed "Current Obligation" sentence; the PD officer only types the loan count and the total monthly EMI. */
+export function describeCurrentObligation(count: number, monthlyEmi: number): string {
+  if (count <= 0 && monthlyEmi <= 0) return 'The applicant currently has no running obligations.';
+  return `The applicant currently has ${count} running obligations, the amount of which is Rs. ${monthlyEmi}/- per month. ( As per CRIF Report )`;
+}
+
+/** The "Less: Existing EMI" note when the obligations were entered on the form, otherwise undefined. */
+export function enteredObligationNote(data: PDReportPrintData): string | undefined {
+  if (data.currentObligationCount === undefined && data.currentObligationEmi === undefined) return undefined;
+  return describeCurrentObligation(Number(data.currentObligationCount) || 0, Number(data.currentObligationEmi) || 0);
+}
+
 /** Customer / supplier form rows → report rows. The form stores the remark as `feedback`; templates read `remark`. */
 export const toReportContacts = (rows: Array<{ name?: string; phone?: string; feedback?: string; remark?: string }>) =>
   rows
@@ -317,6 +329,9 @@ export interface PDReportPrintData {
     remark: string;
   }>;
   currentObligationSummary?: string;
+  // Running-loan count and total monthly EMI typed on the form; set only when the PD officer entered them
+  currentObligationCount?: number;
+  currentObligationEmi?: number;
   businessGpsCoords?: string;
   businessLocationRemarks?: string;
   businessElectricityDetails?: string;

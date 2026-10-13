@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, isProvided } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
@@ -220,11 +220,11 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
     ? crifAccounts 
     : (data.existingLoans && data.existingLoans.length > 0 ? data.existingLoans : []);
 
-  const emiNotes = loansList.length > 0
+  const emiNotes = enteredObligationNote(data) ?? (loansList.length > 0
     ? `The applicant currently has ${loansList.length} running obligations, the amount of which is Rs. ${existEmiM}/- per month. ( As per CRIF Report )`
     : (existEmiM > 0 
         ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.`
-        : `The applicant currently has 0 running obligations.`);
+        : `The applicant currently has 0 running obligations.`));
 
   const earningCount = familyList.filter((f: any) => {
     const occ = String(f.occupation || f.profession || '').toLowerCase();

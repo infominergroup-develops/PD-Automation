@@ -1,4 +1,4 @@
-import { PDReportPrintData, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
+import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
@@ -939,7 +939,7 @@ ${execHeaderLogoHTML(data)}
 
     <tr class="text-center">
       <td class="text-left bold">Less: Existing EMI</td>
-      <td class="text-left">${data.existingEmiNotes || (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
+      <td class="text-left">${data.existingEmiNotes || enteredObligationNote(data) || (existEmiM > 0 ? `The applicant currently has running obligations of Rs. ${existEmiM}/- per month.` : 'The applicant currently has 0 running obligations.')}</td>
       <td class="bold">${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="bold">${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>

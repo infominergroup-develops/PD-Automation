@@ -1,4 +1,4 @@
-import { PDReportPrintData, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
+import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateStandardPDReportHTML(data: PDReportPrintData): string {
@@ -1117,7 +1117,7 @@ ${execHeaderLogoHTML(data)}
 
     <tr>
       <td>Less: Existing EMI</td>
-      <td>${data.existingEmiNotes || 'No any existing obligation / Current active loans'}</td>
+      <td>${data.existingEmiNotes || enteredObligationNote(data) || 'No any existing obligation / Current active loans'}</td>
       <td class="text-right">₹${Number(existEmiM).toLocaleString('en-IN')}</td>
       <td class="text-right">₹${Number(existEmiY).toLocaleString('en-IN')}</td>
     </tr>
