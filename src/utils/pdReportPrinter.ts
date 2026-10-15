@@ -1,4 +1,5 @@
 import type { ParsedCreditReport } from '../types/creditTypes';
+import { PHOTO_CATEGORIES, PHOTO_SECTIONS } from '../components/pd/fieldInvestigation/photoEvidence';
 // Dedicated Company Standard PD Report Printer Module
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
@@ -9,6 +10,53 @@ import { maheshLogoBase64 } from '../images/maheshLogoBase64';
 /** True when a report field holds real content rather than being empty or the "Not provided" placeholder. */
 export const isProvided = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '' && value !== 'Not provided';
+
+export interface ReportPhotoSection {
+  title: string;
+  photos: NonNullable<PDReportPrintData['photos']>;
+}
+
+/**
+ * The report's photos grouped by upload section, in order, leaving out sections with no photos.
+ * Photos without a known section (e.g. saved before sections existed) come last under "Other Photos".
+ * `titles` renames sections for a lender, e.g. "Office Visit Photos" for salaried applicants.
+ */
+export function reportPhotoSections(
+  photos: PDReportPrintData['photos'] = [],
+  titles: Partial<Record<string, string>> = {},
+): ReportPhotoSection[] {
+  const known = new Set(PHOTO_CATEGORIES);
+  const sections: ReportPhotoSection[] = PHOTO_SECTIONS.map(({ category, title }) => ({
+    title: titles[category] ?? title,
+    photos: photos.filter((photo) => photo.category === category),
+  }));
+  sections.push({ title: 'Other Photos', photos: photos.filter((photo) => !known.has(photo.category)) });
+  return sections.filter((section) => section.photos.length > 0);
+}
+
+const PHOTO_HEAD_STYLE = 'border:1px solid #000; padding:6px; text-align:center; font-weight:bold; font-size:10pt; background-color:#f3f4f6;';
+
+/** "Photographs" annexure with one titled block per section that has photos; '' when there are none. */
+export function photoSectionsHTML(data: PDReportPrintData): string {
+  const sections = reportPhotoSections(data.photos);
+  if (sections.length === 0) return '';
+  return `
+  <div style="page-break-before: always; margin-top: 15px;"></div>
+  <table style="width:100%; border-collapse:collapse; margin-bottom:20px;">
+    <tr><td style="${PHOTO_HEAD_STYLE} font-size:11pt;">Photographs</td></tr>
+    ${sections.map((section) => `
+    <tr><td style="${PHOTO_HEAD_STYLE}">${section.title}</td></tr>
+    <tr><td style="border:1px solid #000; padding:8px;">
+      <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:10px;">
+        ${section.photos.map((photo) => `
+        <div style="border:1px solid #000; padding:5px; text-align:center; break-inside:avoid;">
+          <img src="${photo.dataUrl}" alt="${photo.name || section.title}" style="max-width:100%; max-height:250px; display:block; margin:0 auto; object-fit:contain;" />
+          <div style="font-size:8pt; margin-top:5px; font-weight:bold;">${photo.name || section.title}</div>
+        </div>`).join('')}
+      </div>
+    </td></tr>`).join('')}
+  </table>`;
+}
 
 /** Fixed "Current Obligation" sentence; the PD officer only types the loan count and the total monthly EMI. */
 export function describeCurrentObligation(count: number, monthlyEmi: number): string {

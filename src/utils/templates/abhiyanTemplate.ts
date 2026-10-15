@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided, photoSectionsHTML } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
@@ -24,26 +24,7 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
   const sameAddress = bAddr !== '' && rAddr !== '' && bAddr !== 'not provided' && rAddr !== 'not provided' && bAddr === rAddr;
   const caseStatus = data.statusOfCase || data.businessStatus || 'Recommended';
   
-  let photosHtml = '';
-  const photos = data.photos || [];
-  if (photos && photos.length > 0) {
-    photosHtml = `
-      <div class="page-break"></div>
-      <table class="report-table">
-        <tr><td class="sec-head" style="text-align:center;">Photographs</td></tr>
-        <tr><td>
-          <div class="photo-grid">
-            ${photos.map((p: any) => `
-              <div class="photo-card">
-                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
-                <div style="font-size:8pt; margin-top:5px; font-weight:bold;">${p.label || 'Site Photo'}</div>
-              </div>
-            `).join('')}
-          </div>
-        </td></tr>
-      </table>
-    `;
-  }
+  const photosHtml = photoSectionsHTML(data);
 
   // Existing EMI, in order of precedence: the running-loan count and total EMI typed on the form; the
   // active accounts of an attached CRIF/CIBIL report; the loans listed one by one on the form.

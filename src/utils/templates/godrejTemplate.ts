@@ -1,4 +1,4 @@
-import { PDReportPrintData, isProvided } from '../pdReportPrinter';
+import { PDReportPrintData, isProvided, photoSectionsHTML } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
@@ -17,25 +17,7 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
   ].map(c => ({ name: c.name, contact: c.phone }));
   if (buyerSupplierList.length === 0) buyerSupplierList.push({ name: 'Not shared' });
   
-  let photosHtml = '';
-  const photos = data.photos || [];
-  if (photos && photos.length > 0) {
-    photosHtml = `
-      <div class="page-break"></div>
-      <table class="report-table" style="border:none;">
-        <tr><td style="font-weight:bold; font-size:12pt; border:none;">Photographs</td></tr>
-        <tr><td style="border:none;">
-          <div style="display: flex; flex-wrap: wrap; gap: 10px;">
-            ${photos.map((p: any) => `
-              <div style="width: 48%; margin-bottom: 15px;">
-                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" style="width: 100%; height: auto;" />
-              </div>
-            `).join('')}
-          </div>
-        </td></tr>
-      </table>
-    `;
-  }
+  const photosHtml = photoSectionsHTML(data);
 
   return `
 <!DOCTYPE html>
