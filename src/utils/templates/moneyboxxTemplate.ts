@@ -1,4 +1,4 @@
-import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
+import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
@@ -1028,8 +1028,6 @@ ${execHeaderLogoHTML(data)}
       <br/><br/>
       <strong>Sales & Cash Flow Waterfall:</strong> ${data.executiveSummary_SalesWaterfall || 'Not Provided'}
       <br/><br/>
-      <strong>Debt Service Capacity & Policy Compliance:</strong> ${data.executiveSummary_DebtService || 'Not Provided'}
-      <br/><br/>
       <strong>Community Verification:</strong> ${data.executiveSummary_Community || 'Not Provided'}
     </p>
   </div>
@@ -1056,27 +1054,24 @@ ${execHeaderLogoHTML(data)}
     </div>
   </div>
 
-  <!-- Annexure: Uploaded Photos -->
+  <!-- Annexure: Uploaded Photos (only when there are any) -->
+  ${reportPhotoSections(data.photos).length === 0 ? '' : `
   <div class="page-break"></div>
   <table>
     <tr><td class="sec-title" style="font-size: 14pt;">Annexure: Field Inspection & KYC Photos</td></tr>
   </table>
   <div style="max-width: 800px; margin: 0 auto;">
-    ${['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map(category => {
-      const catPhotos = (data.photos || []).filter(p => p.category === category);
-      if (catPhotos.length === 0) return '';
-      return `
-        <h4 style="text-align: center; background: #f5f5f5; padding: 5px; margin-top: 20px; border: 1px solid #000;">${category}</h4>
+    ${reportPhotoSections(data.photos).map(section => `
+        <h4 style="text-align: center; background: #f5f5f5; padding: 5px; margin-top: 20px; border: 1px solid #000;">${section.title}</h4>
         <div class="photo-grid" style="grid-template-columns: 1fr 1fr; border: 1px solid #000; border-top: none; min-height: 50px;">
-          ${catPhotos.map(p => `
+          ${section.photos.map(p => `
             <div class="photo-card">
               <img src="${p.dataUrl}" alt="Photo" />
             </div>
           `).join('')}
         </div>
-      `;
-    }).join('')}
-  </div>
+      `).join('')}
+  </div>`}
   </div>
 </body>
 </html>

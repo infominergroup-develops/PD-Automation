@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeCurrentObligation, describeStaffCount, getReportHTMLForData, isProvided, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
+import { describeCurrentObligation, describeStaffCount, getReportHTMLForData, isProvided, reportPhotoSections, toReportContacts, type PDReportPrintData } from '../src/utils/pdReportPrinter';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from '../src/utils/templates/abhiyanTemplate';
 import { generateGodrejPDReportHTML } from '../src/utils/templates/godrejTemplate';
 import { generateMoneyboxxLapPDReportHTML } from '../src/utils/templates/moneyboxxLapTemplate';
@@ -572,5 +572,41 @@ describe('Current obligation entered as loan count + total EMI', () => {
     const { currentObligationCount: _c, currentObligationEmi: _e, ...rest } = entered as unknown as Record<string, unknown>;
     const text = visibleText(generateAbhiyanPDReportHTML({ ...rest, currentObligationSummary: 'Not provided' } as unknown as PDReportPrintData));
     expect(text).toContain('Rs. 5,000/- per month. ( As per CRIF Report )');
+  });
+});
+
+describe('Report photos by section', () => {
+  const photo = (id: string, category: string, name: string) => ({ id, name, dataUrl: `data:image/png;base64,${id}`, category });
+  const photos = [
+    photo('k1', 'KYC PHOTOS', 'PAN card'),
+    photo('c1', 'Collateral Documents', 'Sale deed'),
+    photo('c2', 'Collateral Documents', 'Property tax receipt'),
+    photo('o1', 'Field Proof', 'Old untagged photo'),
+  ];
+
+  it('groups photos in section order, leaving out empty sections', () => {
+    const sections = reportPhotoSections(photos);
+    expect(sections.map(s => s.title)).toEqual(['KYC Photos', 'Collateral Documents', 'Other Photos']);
+    expect(sections[1].photos.map(p => p.name)).toEqual(['Sale deed', 'Property tax receipt']);
+  });
+
+  it('lets a lender rename a section', () => {
+    expect(reportPhotoSections([photo('b1', 'BUSINESS VISIT PHOTO', 'Desk')], { 'BUSINESS VISIT PHOTO': 'Office Visit Photos' })[0].title)
+      .toBe('Office Visit Photos');
+  });
+
+  it.each(Object.entries(ALL_TEMPLATES))('%s prints only the sections that have photos, with their names', (_name, generate) => {
+    const text = visibleText(generate({ ...fullReport, photos } as PDReportPrintData));
+    expect(text).toMatch(/KYC Photos/i);
+    expect(text).toContain('Collateral Documents');
+    expect(text).not.toMatch(/Residence Visit Photos/i);
+    expect(text).not.toMatch(/Collateral Photos/i);
+    const html = generate({ ...fullReport, photos } as PDReportPrintData);
+    for (const p of photos) expect(html).toContain(p.dataUrl);
+  });
+
+  it.each(Object.entries(ALL_TEMPLATES))('%s prints no photo section when there are no photos', (_name, generate) => {
+    const text = visibleText(generate({ ...fullReport, photos: [] } as PDReportPrintData));
+    expect(text).not.toMatch(/KYC Photos|Collateral Documents|Other Photos/i);
   });
 });

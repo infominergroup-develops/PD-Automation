@@ -1,4 +1,4 @@
-import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding } from '../pdReportPrinter';
+import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateStandardPDReportHTML(data: PDReportPrintData): string {
@@ -1326,7 +1326,8 @@ ${execHeaderLogoHTML(data)}
     </div>
   </div>
 
-  <!-- SECTION 7: ANNEXURES - KYC DOCUMENTS & FIELD VISIT PHOTOS -->
+  <!-- SECTION 7: ANNEXURES - KYC DOCUMENTS & FIELD VISIT PHOTOS (only when there are any) -->
+  ${reportPhotoSections(data.photos).length === 0 ? '' : `
   <div class="page-break"></div>
 
   <div class="hdr-main" style="margin-bottom: 10px;">
@@ -1335,17 +1336,14 @@ ${execHeaderLogoHTML(data)}
   </div>
 
   <table class="report-table">
-    ${['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS'].map(category => {
-      const catPhotos = (data.photos || []).filter(p => p.category === category);
-      if (catPhotos.length === 0) return '';
-      return `
+    ${reportPhotoSections(data.photos).map(section => `
         <tr>
-          <td class="sec-head">${category}</td>
+          <td class="sec-head">${section.title}</td>
         </tr>
         <tr>
           <td style="padding: 10px;">
             <div class="photo-grid">
-              ${catPhotos.map(p => `
+              ${section.photos.map(p => `
                 <div class="photo-card">
                   <img src="${p.dataUrl}" alt="Photo" />
                 </div>
@@ -1353,9 +1351,8 @@ ${execHeaderLogoHTML(data)}
             </div>
           </td>
         </tr>
-      `;
-    }).join('')}
-  </table>
+      `).join('')}
+  </table>`}
   </div>
 
 </body>

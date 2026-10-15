@@ -1,5 +1,5 @@
 import { PDReportPrintData } from '../pdReportPrinter';
-import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate } from '../pdReportPrinter';
+import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate, photoSectionsHTML } from '../pdReportPrinter';
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
   const bankName = data.clientBankName || 'SBFC Finance LTD';
@@ -20,26 +20,7 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
   const reportDate = formatReportDate(data.reportDate || data.visitDate) || '-';
   const caseStatus = data.statusOfCase || data.businessStatus || 'Positive';
   
-  let photosHtml = '';
-  const photos = data.photos || [];
-  if (photos && photos.length > 0) {
-    photosHtml = `
-      <div class="page-break"></div>
-      <table class="report-table">
-        <tr><td class="sec-head" style="text-align:center;">Photographs</td></tr>
-        <tr><td>
-          <div class="photo-grid">
-            ${photos.map((p: any) => `
-              <div class="photo-card">
-                <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
-                <div style="font-size:8pt; margin-top:5px; font-weight:bold;">${p.label || 'Site Photo'}</div>
-              </div>
-            `).join('')}
-          </div>
-        </td></tr>
-      </table>
-    `;
-  }
+  const photosHtml = photoSectionsHTML(data);
 
   const existEmiM = data.existingEmiMonthly || 0;
   const existEmiY = data.existingEmiYearly || (existEmiM * 12);

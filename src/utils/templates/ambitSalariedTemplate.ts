@@ -6,6 +6,7 @@ import {
   getUniversalCoverPageCSS,
   getUniversalCoverPageHTML,
   isProvided,
+  reportPhotoSections,
 } from '../pdReportPrinter';
 
 const LENDER = 'Ambit Finvest Pvt. Ltd.';
@@ -16,14 +17,8 @@ const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'sev
 const countWord = (n: number) => NUMBER_WORDS[n] ?? String(n);
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
-// Photo groups in the order the Ambit salaried format lists them.
-const PHOTO_SECTIONS: Array<{ category: string; title: string }> = [
-  { category: 'KYC PHOTOS', title: 'KYC' },
-  { category: 'RESIDENCE VISIT PHOTO', title: 'Residence visit photos' },
-  { category: 'Collateral Photos', title: 'Collateral Property' },
-  { category: 'BUSINESS VISIT PHOTO', title: 'Office visit photos' },
-  { category: 'BUSINESS DOCUMENTS', title: 'Office Documents Photos' },
-];
+// Salaried applicants are visited at their office, so the business photo sections are titled "Office".
+const OFFICE_PHOTO_TITLES = { 'BUSINESS VISIT PHOTO': 'Office Visit Photos', 'BUSINESS DOCUMENTS': 'Office Documents Photos' };
 
 // Older saved records may still carry these legacy keys alongside the typed ones.
 type FamilyRow = NonNullable<PDReportPrintData['familyMembers']>[number] & {
@@ -180,10 +175,7 @@ export function generateAmbitSalariedPDReportHTML(data: PDReportPrintData): stri
     ? data.residenceElectricityDetails
     : 'During verification, the electricity bill/meter was not found';
 
-  const photoPages = PHOTO_SECTIONS.map(({ category, title }) => {
-    const group = (data.photos || []).filter(p => p.category === category);
-    if (group.length === 0) return '';
-    return `
+  const photoPages = reportPhotoSections(data.photos, OFFICE_PHOTO_TITLES).map(({ title, photos: group }) => `
   <div class="page-break"></div>
   <table>
     <tr><td class="sec-head">${title}</td></tr>
@@ -196,8 +188,7 @@ export function generateAmbitSalariedPDReportHTML(data: PDReportPrintData): stri
           </div>`).join('')}
       </div>
     </td></tr>
-  </table>`;
-  }).join('');
+  </table>`).join('');
 
   return `
 <!DOCTYPE html>

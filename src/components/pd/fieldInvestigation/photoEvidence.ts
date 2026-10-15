@@ -1,6 +1,19 @@
 /** Field photos and where their location came from. Pure helpers, shared by the tab and the report. */
 
-export const PHOTO_CATEGORIES = ['KYC PHOTOS', 'RESIDENCE VISIT PHOTO', 'BUSINESS VISIT PHOTO', 'BUSINESS DOCUMENTS','Collateral Photos'];
+/**
+ * Photo upload sections, in the order the reports print them. `category` is the tag saved on each
+ * photo (keep existing tags unchanged so older photos stay in their section); `title` is the report heading.
+ */
+export const PHOTO_SECTIONS = [
+  { category: 'KYC PHOTOS', title: 'KYC Photos' },
+  { category: 'RESIDENCE VISIT PHOTO', title: 'Residence Visit Photos' },
+  { category: 'BUSINESS VISIT PHOTO', title: 'Business Visit Photos' },
+  { category: 'BUSINESS DOCUMENTS', title: 'Business Documents' },
+  { category: 'Collateral Photos', title: 'Collateral Photos' },
+  { category: 'Collateral Documents', title: 'Collateral Documents' },
+] as const;
+
+export const PHOTO_CATEGORIES: string[] = PHOTO_SECTIONS.map((section) => section.category);
 
 export interface GpsPoint {
   latitude: number;

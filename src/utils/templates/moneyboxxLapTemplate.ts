@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided } from '../pdReportPrinter';
+import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
@@ -238,70 +238,25 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
   const comfortableEmiLeftText = data.comfortableEmiNotes?.trim() || 'Comfortable Monthly EMI Post all expenses (Business and Household):-';
   const comfortableEmiRightText = `As per ${bankName}`;
 
-  // Photos Categorization
-  const photos = data.photos || [];
-  const photoCategories = [
-    { key: 'KYC', title: 'KYC', filter: ['KYC', 'ID', 'AADHAAR', 'PAN', 'PASSPORT', 'VOTER'] },
-    { key: 'RESIDENCE', title: 'Residence visit photos', filter: ['RESIDENCE', 'HOUSE', 'HOME', 'LIVING'] },
-    { key: 'BUSINESS', title: 'Business visit photos', filter: ['BUSINESS', 'SHOP', 'FACTORY', 'DAIRY', 'OFFICE', 'FARM', 'WORK'] },
-    { key: 'DOCUMENTS', title: 'Business Documents Photos', filter: ['DOCUMENT', 'DOC', 'BILL', 'METER', 'LICENSE', 'REGISTRATION', 'GST'] }
-  ];
-
-  const renderedPhotoKeys = new Set<string>();
-
-  const categorizedPhotoHtml = photoCategories.map(cat => {
-    const catPhotos = photos.filter((p: any) => {
-      const label = (p.label || p.category || '').toUpperCase();
-      const match = cat.filter.some(k => label.includes(k));
-      if (match) renderedPhotoKeys.add(p.dataUrl || p.id || p.label);
-      return match;
-    });
-
-    if (catPhotos.length === 0) return '';
-
-    return `
+  // Photos, one page per upload section that has photos
+  const categorizedPhotoHtml = reportPhotoSections(data.photos).map(section => `
       <div class="page-break"></div>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
         <tr>
           <td style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 6px; font-size: 10pt;">
-            ${cat.title}
+            ${section.title}
           </td>
         </tr>
       </table>
       <div class="photo-grid">
-        ${catPhotos.map((p: any) => `
+        ${section.photos.map(p => `
           <div class="photo-card">
-            <img src="${p.dataUrl}" alt="${p.label || cat.title}" />
-            ${p.label ? `<div style="font-size: 8pt; margin-top: 4px; font-weight: bold;">${p.label}</div>` : ''}
+            <img src="${p.dataUrl}" alt="${p.name || section.title}" />
+            ${p.name ? `<div style="font-size: 8pt; margin-top: 4px; font-weight: bold;">${p.name}</div>` : ''}
           </div>
         `).join('')}
       </div>
-    `;
-  }).join('');
-
-  // Any remaining photos not matched
-  const remainingPhotos = photos.filter((p: any) => !renderedPhotoKeys.has(p.dataUrl || p.id || p.label));
-  let remainingPhotosHtml = '';
-  if (remainingPhotos.length > 0) {
-    remainingPhotosHtml = `
-      <div class="page-break"></div>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
-        <tr>
-          <td style="border: 1px solid #000; text-align: center; font-weight: bold; padding: 6px; font-size: 10pt;">
-            Additional Site Photos
-          </td>
-        </tr>
-      </table>
-      <div class="photo-grid">
-        ${remainingPhotos.map((p: any) => `
-          <div class="photo-card">
-            <img src="${p.dataUrl}" alt="${p.label || 'Site Photo'}" />
-            ${p.label ? `<div style="font-size: 8pt; margin-top: 4px; font-weight: bold;">${p.label}</div>` : ''}
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }
+    `).join('');
 
   return `
 <!DOCTYPE html>
@@ -783,7 +738,6 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
 
   <!-- ==================== PAGES 7+ (PHOTOS) ==================== -->
   ${categorizedPhotoHtml}
-  ${remainingPhotosHtml}
 
 </body>
 </html>
