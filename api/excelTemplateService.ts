@@ -1,7 +1,10 @@
-import * as ExceljsModule from 'exceljs';
-const ExcelJS = (ExceljsModule as any).default || ExceljsModule;
+async function getExcelJS() {
+  const ExceljsModule = await import('exceljs');
+  return (ExceljsModule as any).default || ExceljsModule;
+}
 
 export async function parseExcelTemplate(buffer: Buffer): Promise<string[]> {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
   
@@ -33,6 +36,7 @@ export async function parseExcelTemplate(buffer: Buffer): Promise<string[]> {
 }
 
 export async function generateExcelReport(buffer: Buffer, data: Record<string, any>): Promise<Buffer> {
+  const ExcelJS = await getExcelJS();
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(buffer as any);
   

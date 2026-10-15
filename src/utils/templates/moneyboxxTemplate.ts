@@ -1028,8 +1028,6 @@ ${execHeaderLogoHTML(data)}
       <br/><br/>
       <strong>Sales & Cash Flow Waterfall:</strong> ${data.executiveSummary_SalesWaterfall || 'Not Provided'}
       <br/><br/>
-      <strong>Debt Service Capacity & Policy Compliance:</strong> ${data.executiveSummary_DebtService || 'Not Provided'}
-      <br/><br/>
       <strong>Community Verification:</strong> ${data.executiveSummary_Community || 'Not Provided'}
     </p>
   </div>

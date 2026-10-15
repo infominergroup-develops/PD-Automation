@@ -1,6 +1,4 @@
 import { logger } from './utils/logger.js';
-import * as pdfParseModule from 'pdf-parse';
-const pdfParse = (pdfParseModule as any).default || pdfParseModule;
 
 export class PdfService {
   /**
@@ -8,6 +6,8 @@ export class PdfService {
    */
   public async extractText(pdfBuffer: Buffer): Promise<string> {
     try {
+      const pdfParseModule = await import('pdf-parse');
+      const pdfParse = (pdfParseModule as any).default || pdfParseModule;
       const data = await pdfParse(pdfBuffer);
       if (!data || !data.text) {
         throw new Error('PDF parsing resulted in empty text stream');
