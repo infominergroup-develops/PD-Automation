@@ -73,10 +73,6 @@ describe('buildExecutiveSummary', () => {
     existingEmis: 3000,
     householdExpenses: 9000,
     disposableSurplus: 25000,
-    appliedAmount: 300000,
-    interestRatePct: 24,
-    tenureMonths: 36,
-    proposedEmi: 11770,
     dscrRatio: 2.12,
     foirPct: 41,
     residenceNeighbourCheckDone: true,
@@ -92,7 +88,8 @@ describe('buildExecutiveSummary', () => {
     expect(summary.borrowerProfile).toBe('Asha Verma operates Verma Atta Chakki (Atta Chakki). 06 years in business.');
     expect(summary.salesWaterfall).toContain('existing obligations of ₹3,000');
     expect(summary.salesWaterfall).toContain('net monthly disposable surplus stands at ₹25,000.');
-    expect(summary.debtService).toContain('requires a monthly EMI of ₹11,770');
+    expect(summary.debtService).not.toContain('requested micro-lending facility');
+    expect(summary.debtService).toMatch(/^The post-loan DSCR/);
     expect(summary.debtService).toMatch(/fully satisfying institutional credit guidelines\.$/);
     expect(summary.community).toBe(
       'Residence Neighbor Verification: Neighbours confirmed that the applicant has been residing at the given address. ' +
