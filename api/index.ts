@@ -177,13 +177,44 @@ app.post("/api/clients", requireRole(...MANAGEMENT_ROLES), async (req, res) => {
 });
 
 // Applicant Management Endpoints
+
+// Fields the case list (gallery, search, sorting) needs. Full records carry the form and photos and can be
+// close to 1 MB each, so the list returns only these and a case is fetched in full when it is opened.
+// `formData.*` covers records saved by older versions, which nested the form under `formData`.
+const APPLICANT_SUMMARY_FIELDS = [
+  "clientId", "applicationNumber", "appIdRefNo", "applicantName", "applicantEntity", "firmName",
+  "financialInstitute", "bankName", "categoryId", "categoryName", "constitution", "appliedAmount",
+  "yearsInBusiness", "riskScore", "preparedBy", "isClosed", "status", "caseDeliveryStatus", "closedAt",
+  "closedBy", "createdAt", "updatedAt", "dateOfVisit", "visitDate", "reportDate",
+  "formData.applicantName", "formData.firmName", "formData.categoryId", "formData.financialInstitute",
+  "formData.preparedBy", "formData.isClosed", "formData.status", "formData.caseDeliveryStatus",
+  "formData.closedAt", "formData.closedBy", "formData.createdAt", "formData.updatedAt",
+];
+
 app.get("/api/clients/:clientId/applicants", async (req, res) => {
   try {
     if (!db) return res.status(500).json({ error: "Database not connected" });
-    const snapshot = await db.collection("applicants").where("clientId", "==", req.params.clientId).get();
+    const snapshot = await db.collection("applicants")
+      .where("clientId", "==", req.params.clientId)
+      .select(...APPLICANT_SUMMARY_FIELDS)
+      .get();
     res.json({ applicants: mapDocs(snapshot) });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch applicants" });
+  }
+});
+
+app.get("/api/clients/:clientId/applicants/:appId", async (req, res) => {
+  try {
+    if (!db) return res.status(500).json({ error: "Database not connected" });
+    const doc = await db.collection("applicants").doc(req.params.appId).get();
+    if (!doc.exists || doc.data()?.clientId !== req.params.clientId) {
+      return res.status(404).json({ error: "Applicant not found" });
+    }
+    res.json({ applicant: { _id: doc.id, ...doc.data() } });
+  } catch (err) {
+    console.error("GET Applicant Error:", err);
+    res.status(500).json({ error: "Failed to fetch applicant" });
   }
 });
 

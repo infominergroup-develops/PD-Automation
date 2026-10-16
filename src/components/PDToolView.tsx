@@ -587,7 +587,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             const appToLoad = data.find((a: any) => a._id === lastId);
             if (appToLoad) {
               // We do a small timeout to let the initial render settle before triggering 100 state updates
-              setTimeout(() => handleLoadSampleApp(appToLoad), 100);
+              setTimeout(() => openApplicant(appToLoad), 100);
             }
           }
         }
@@ -1489,6 +1489,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // 1-CLICK LOAD APPLICATION HANDLER
+  // The case list holds summaries only, so a case is fetched in full (form + photos) when it is opened
+  const openApplicant = async (summary: GalleryApplicant) => {
+    if (!selectedClient?.id || !summary._id) return;
+    try {
+      const full = await api.getApplicant(selectedClient.id, summary._id);
+      handleLoadSampleApp(normaliseApplicant(full));
+    } catch (err) {
+      console.error('Failed to open applicant:', err);
+      setLoadedToastMessage(`⚠️ Could not open ${summary.applicantName || 'this case'}. Please try again.`);
+      setTimeout(() => setLoadedToastMessage(null), 4000);
+    }
+  };
+
   const handleLoadSampleApp = (dbApp: any) => {
     let app = { ...dbApp, ...(dbApp.formData || {}) };
     let isRecovered = false;
@@ -2864,7 +2877,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     return (
                       <div
                         key={app._id || app.applicationNumber}
-                        onClick={() => handleLoadSampleApp(app)}
+                        onClick={() => openApplicant(app)}
                         className={`p-3 hover:bg-amber-50/60 cursor-pointer transition flex items-center justify-between text-xs ${
                           isClosed ? 'bg-emerald-50/30' : ''
                         }`}
@@ -5727,7 +5740,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           canManageCases={isManagement}
           canDeleteAll={isAdmin}
           onClose={() => setIsAppGalleryOpen(false)}
-          onLoad={handleLoadSampleApp}
+          onLoad={openApplicant}
           onToggleClosed={handleToggleCloseCase}
           onDelete={app => handleDeleteApplication(app._id || app.applicationNumber)}
           onDeleteAll={handleDeleteAllApplicants}
