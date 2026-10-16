@@ -32,6 +32,7 @@ import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
 import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
 import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
 import { formProfileFor } from './pd/formProfiles';
+import { assessRisk } from '../utils/riskScore';
 import { describeCurrentObligation, openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
 import { GoogleDriveSaveModal } from './GoogleDriveSaveModal';
 import {
@@ -133,6 +134,12 @@ const getCaseStatusOptions = (clientId?: string) =>
   POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
 
 const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
+
+// Tata/SBFC derive purchases from the Gross Profit %, so a typed "Purchase" line is not an operating expense
+const isPurchaseLine = (particulars?: string) => /purchase|cost of goods|cogs/i.test(particulars || '');
+const filledLines = (lines: ItemizedCalculationLine[]) =>
+  lines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '');
+const sumMonthly = (lines: ItemizedCalculationLine[]) => lines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0);
 
 const ITEMIZED_ACCENTS = {
   emerald: { icon: 'text-emerald-600', amount: 'text-emerald-700', addButton: 'bg-emerald-600 hover:bg-emerald-700' },
@@ -580,7 +587,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
             const appToLoad = data.find((a: any) => a._id === lastId);
             if (appToLoad) {
               // We do a small timeout to let the initial render settle before triggering 100 state updates
-              setTimeout(() => handleLoadSampleApp(appToLoad), 100);
+              setTimeout(() => openApplicant(appToLoad), 100);
             }
           }
         }
@@ -1482,6 +1489,19 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   };
 
   // 1-CLICK LOAD APPLICATION HANDLER
+  // The case list holds summaries only, so a case is fetched in full (form + photos) when it is opened
+  const openApplicant = async (summary: GalleryApplicant) => {
+    if (!selectedClient?.id || !summary._id) return;
+    try {
+      const full = await api.getApplicant(selectedClient.id, summary._id);
+      handleLoadSampleApp(normaliseApplicant(full));
+    } catch (err) {
+      console.error('Failed to open applicant:', err);
+      setLoadedToastMessage(`⚠️ Could not open ${summary.applicantName || 'this case'}. Please try again.`);
+      setTimeout(() => setLoadedToastMessage(null), 4000);
+    }
+  };
+
   const handleLoadSampleApp = (dbApp: any) => {
     let app = { ...dbApp, ...(dbApp.formData || {}) };
     let isRecovered = false;
@@ -2043,9 +2063,7 @@ ${qaPairs.join('\n\n')}`;
   const rentEffective = shopOwnership === 'RENTED' ? monthlyRent : 0;
   const totalOperatingExpenses = useMemo(() => {
     if (usesItemizedLinesOnly) {
-      return expenseLines
-        .filter(l => !/purchase|cost of goods|cogs/i.test(l.particulars || ''))
-        .reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0);
+      return sumMonthly(expenseLines.filter(l => !isPurchaseLine(l.particulars)));
     }
     return salariesExpense + rentEffective + utilitiesExpense + transportExpense + miscExpense;
   }, [usesItemizedLinesOnly, expenseLines, salariesExpense, rentEffective, utilitiesExpense, transportExpense, miscExpense]);
@@ -2079,10 +2097,22 @@ ${qaPairs.join('\n\n')}`;
     });
   }, [isSlimForm, shopOwnership]);
 
-  // Net Business Operating Income
-  const netBusinessIncome = useMemo(() => {
-    return Math.max(0, grossProfit - totalOperatingExpenses);
-  }, [grossProfit, totalOperatingExpenses]);
+  // The applicant's income sheet exactly as the reports print it: Sales (A) − Expenses (B), and for
+  // Tata/SBFC also Purchases from the Gross Profit %. The report data, the waterfall net-income tile and
+  // the risk score (DSCR / FOIR) all use it, so they always agree with the printed sheet.
+  const incomeSheet = useMemo(() => {
+    const incomeRows = filledLines(incomeLines);
+    const expenseRows = filledLines(expenseLines).filter(l => !(isSlimForm && isPurchaseLine(l.particulars)));
+    const salesM = incomeRows.length > 0 ? sumMonthly(incomeRows) : adoptedMonthlySales;
+    const purchasesM = isSlimForm ? Math.max(0, salesM - Math.round(salesM * (grossProfitPct / 100))) : 0;
+    const expensesM = expenseRows.length > 0
+      ? sumMonthly(expenseRows)
+      : (usesItemizedLinesOnly ? 0 : salariesExpense + rentEffective + utilitiesExpense);
+    return { incomeRows, expenseRows, salesM, purchasesM, expensesM, netProfitM: salesM - purchasesM - expensesM };
+  }, [incomeLines, expenseLines, isSlimForm, usesItemizedLinesOnly, adoptedMonthlySales, grossProfitPct, salariesExpense, rentEffective, utilitiesExpense]);
+
+  // Net income = the income sheet's Net Profit
+  const netBusinessIncome = incomeSheet.netProfitM;
 
   // Effective Tenure Months (Parses Godrej 'Tenor Requested' if available)
   const effectiveTenureMonths = useMemo(() => {
@@ -2182,76 +2212,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     });
   }, [currentCategory, applicantName, firmName, yearsInBusiness, shopOwnership, adoptedMonthlySales, grossMarginPct, grossProfit, totalOperatingExpenses, householdExpenses, postLoanSurplus]);
 
-  // Automated Risk Score Calculation
-  const riskAssessment = useMemo(() => {
-    let score = 85; // Base high score
-    const flags: string[] = [];
-    const strengths: string[] = [];
-
-    if (dscrRatio >= 1.25) {
-      strengths.push(`Healthy DSCR of ${dscrRatio}x (exceeds 1.25x policy norm)`);
-    } else {
-      score -= 25;
-      flags.push(`DSCR of ${dscrRatio}x is below standard 1.25x minimum requirement`);
-    }
-
-    if (foirPct <= 60) {
-      strengths.push(`FOIR of ${foirPct}% within 60% cap`);
-    } else {
-      score -= 20;
-      flags.push(`High FOIR obligation (${foirPct}% exceeds 60% threshold)`);
-    }
-
-    if (yearsInBusiness >= 3) {
-      strengths.push(`Stable business vintage of ${yearsInBusiness} years`);
-    } else {
-      score -= 10;
-      flags.push(`Business vintage under 3 years`);
-    }
-
-    // 1. Residence Ownership Risk
-    if (residenceOwnership?.toUpperCase() === 'OWNED') {
-      strengths.push('Applicant owns their residence, demonstrating stability');
-      score += 5;
-    } else if (residenceOwnership?.toUpperCase() === 'RENTED') {
-      flags.push('Rented residence (monitor stability)');
-      score -= 5;
-    }
-
-    // 2. Business Premise Ownership Risk
-    if (premiseOwnership?.toUpperCase() === 'OWNED' || shopOwnership?.toUpperCase() === 'OWNED') {
-      strengths.push('Applicant owns the business premises, reducing operational risk');
-      score += 5;
-    } else if (premiseOwnership?.toUpperCase() === 'RENTED' || shopOwnership?.toUpperCase() === 'RENTED') {
-      flags.push('Rented business premises');
-      score -= 5;
-    }
-
-    // 3. Feedback Checks
-    if (neighborFeedback?.toUpperCase().includes('NEGATIVE')) {
-      score -= 15;
-      flags.push('Negative feedback received from neighbors');
-    } else if (neighborFeedback?.toUpperCase().includes('POSITIVE')) {
-      strengths.push('Positive feedback received from neighbors');
-    }
-
-    if (landlordFeedback?.toUpperCase().includes('NEGATIVE')) {
-      score -= 15;
-      flags.push('Negative feedback received from landlord');
-    }
-
-    // Bound the score between 0 and 100
-    score = Math.max(0, Math.min(100, score));
-
-    let decision: 'APPROVED' | 'CONDITIONAL' | 'REJECTED' = 'APPROVED';
-    if (score < 50 || dscrRatio < 1.0) {
-      decision = 'REJECTED';
-    } else if (score < 75 || dscrRatio < 1.25 || foirPct > 65) {
-      decision = 'CONDITIONAL';
-    }
-
-    return { score, flags, strengths, decision };
-  }, [dscrRatio, foirPct, yearsInBusiness, residenceOwnership, shopOwnership, premiseOwnership, neighborFeedback, landlordFeedback]);
+  // Automated Risk Score (rules in utils/riskScore). DSCR and FOIR come from the income sheet.
+  const riskAssessment = useMemo(() => assessRisk({
+    dscrRatio,
+    foirPct,
+    // "Business Age (Years)" on the verification tab; older records only have yearsInBusiness
+    vintageYears: Number(businessAgeYears) || yearsInBusiness || 0,
+    vintageLabel: isSalariedForm ? 'employment' : 'business',
+    residenceOwnership: propertyOwnership || residenceOwnership,
+    premisesOwnership: premiseOwnership || shopOwnership,
+    neighborFeedback: neighborFeedback || '',
+    landlordFeedback: landlordFeedback || '',
+  }), [dscrRatio, foirPct, businessAgeYears, yearsInBusiness, isSalariedForm, propertyOwnership, residenceOwnership, premiseOwnership, shopOwnership, neighborFeedback, landlordFeedback]);
 
   // Saved with the form (declared after it) so the case gallery can show the risk badge
   updateDataRef.current = { ...updateDataRef.current, riskScore: riskAssessment.score };
@@ -2270,10 +2242,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     existingEmis,
     householdExpenses,
     disposableSurplus: netFamilySurplusBeforeEmi,
-    appliedAmount,
-    interestRatePct,
-    tenureMonths: effectiveTenureMonths,
-    proposedEmi,
     dscrRatio,
     foirPct,
     residenceNeighbourCheckDone: neighborVerificationConducted,
@@ -2417,15 +2385,6 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
     const fbAgriIncome = `Applicant owns ${agriLandArea} ${agriLandUnit} agricultural land with yearly supplementary crop income of ₹${agriIncomeMin}-${agriIncomeMax} Lakhs.`;
     const fbSolarSaving = `As informed by the applicant, machinery is presently operated through ${powerSource.toLowerCase()} setup and approximate electricity expenses are around ₹${monthlyEnergyExpense || 0} per month. Applicant expects reduction in approx. ${expectedSolarCostReductionPct || 0}% operational cost after solar installation.`;
 
-    // Tata/SBFC income sheet: the user enters a Gross Profit %, so purchases (B) = Sales − Gross Profit.
-    // Operating expenses (C) are the itemized expense lines (electricity, salary, rent, other).
-    const isPurchaseLine = (p?: string) => /purchase|cost of goods|cogs/i.test(p || '');
-    const filledExpenseLines = expenseLines.filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '');
-    const opexLines = isSlimForm ? filledExpenseLines.filter(l => !isPurchaseLine(l.particulars)) : filledExpenseLines;
-    const slimGrossProfitMonthly = Math.round(adoptedMonthlySales * (grossProfitPct / 100));
-    const purchaseMonthly = isSlimForm
-      ? Math.max(0, adoptedMonthlySales - slimGrossProfitMonthly)
-      : cogsAmount;
     const toExpenseRow = (l: ItemizedCalculationLine) => ({
       particulars: l.particulars.trim(),
       businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
@@ -2556,33 +2515,29 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       inventoryValue,
       businessRemark,
 
-      itemizedSales: incomeLines
-        .filter(l => (Number(l.monthlyAmount) || 0) > 0 && l.particulars && l.particulars.trim() !== '')
+      // Income sheet (see `incomeSheet`)
+      itemizedSales: incomeSheet.incomeRows
         .map(l => ({
           particulars: l.particulars.trim(),
           businessNotes: l.businessNotes || (l.quantity && l.price ? `${l.quantity} ${l.unit || ''} × ₹${l.price} × ${l.workingDays || workingDays || 26} Days` : `Monthly Assessed`),
           monthly: Number(l.monthlyAmount) || 0,
           yearly: (Number(l.monthlyAmount) || 0) * 12,
         })),
-      itemizedExpenses: opexLines.length > 0
-        ? opexLines.map(toExpenseRow)
+      itemizedExpenses: incomeSheet.expenseRows.length > 0
+        ? incomeSheet.expenseRows.map(toExpenseRow)
         : (usesItemizedLinesOnly ? [] : [
             ...(salariesExpense > 0 ? [{ particulars: 'Salary & Labour Expenses', businessNotes: 'Staff wages', monthly: salariesExpense, yearly: salariesExpense * 12 }] : []),
             ...(rentEffective > 0 ? [{ particulars: 'Business Premises Rent', businessNotes: 'Shop rent expense', monthly: rentEffective, yearly: rentEffective * 12 }] : []),
             ...(utilitiesExpense > 0 ? [{ particulars: 'Monthly Electricity & Utilities', businessNotes: 'Utility charges', monthly: utilitiesExpense, yearly: utilitiesExpense * 12 }] : []),
           ]),
 
-      totalSalesMonthly: adoptedMonthlySales,
-      totalSalesYearly: adoptedMonthlySales * 12,
-      totalPurchasesMonthly: purchaseMonthly,
-      totalPurchasesYearly: purchaseMonthly * 12,
+      totalSalesMonthly: incomeSheet.salesM,
+      totalSalesYearly: incomeSheet.salesM * 12,
+      totalPurchasesMonthly: incomeSheet.purchasesM,
+      totalPurchasesYearly: incomeSheet.purchasesM * 12,
       workingDays: workingDays,
-      totalExpensesMonthly: opexLines.length > 0
-        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (usesItemizedLinesOnly ? 0 : (salariesExpense + rentEffective + utilitiesExpense)),
-      totalExpensesYearly: (opexLines.length > 0
-        ? opexLines.reduce((sum, l) => sum + (Number(l.monthlyAmount) || 0), 0)
-        : (usesItemizedLinesOnly ? 0 : (salariesExpense + rentEffective + utilitiesExpense))) * 12,
+      totalExpensesMonthly: incomeSheet.expensesM,
+      totalExpensesYearly: incomeSheet.expensesM * 12,
 
       // Co-Applicant Financial Assessment
       coApplicantName: coAppBusinessPerson ? coAppBusinessPerson.name : (coApplicants[0]?.name || 'Co-applicant'),
@@ -2918,7 +2873,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                     return (
                       <div
                         key={app._id || app.applicationNumber}
-                        onClick={() => handleLoadSampleApp(app)}
+                        onClick={() => openApplicant(app)}
                         className={`p-3 hover:bg-amber-50/60 cursor-pointer transition flex items-center justify-between text-xs ${
                           isClosed ? 'bg-emerald-50/30' : ''
                         }`}
@@ -5147,9 +5102,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               )}
 
               <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                <p className="text-[10px] font-bold text-blue-800 uppercase">{isSalariedForm ? 'Net Income (A − B)' : 'Net Business Operating Income'}</p>
+                <p className="text-[10px] font-bold text-blue-800 uppercase">{isSalariedForm ? 'Net Income (A − B)' : 'Net Profit (Income Sheet)'}</p>
                 <div className="text-xl font-black text-blue-900 mt-1">₹{netBusinessIncome.toLocaleString('en-IN')}</div>
-                <p className="text-[10px] text-blue-600 mt-0.5">OpEx Total: ₹{totalOperatingExpenses.toLocaleString('en-IN')}</p>
+                <p className="text-[10px] text-blue-600 mt-0.5">Income sheet: ₹{incomeSheet.salesM.toLocaleString('en-IN')} − ₹{(incomeSheet.purchasesM + incomeSheet.expensesM).toLocaleString('en-IN')}</p>
               </div>
 
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
@@ -5781,7 +5736,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
           canManageCases={isManagement}
           canDeleteAll={isAdmin}
           onClose={() => setIsAppGalleryOpen(false)}
-          onLoad={handleLoadSampleApp}
+          onLoad={openApplicant}
           onToggleClosed={handleToggleCloseCase}
           onDelete={app => handleDeleteApplication(app._id || app.applicationNumber)}
           onDeleteAll={handleDeleteAllApplicants}

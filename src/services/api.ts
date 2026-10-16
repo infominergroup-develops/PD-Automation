@@ -119,11 +119,20 @@ export const api = {
     return data.client;
   },
 
+  /** Case-list summaries only (no form data or photos); use getApplicant to open a case. */
   getApplicants: async (clientId: string): Promise<ApplicantRecord[]> => {
     const data = await handleResponse<{ applicants: ApplicantRecord[] }>(
       await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants`)
     );
     return data.applicants;
+  },
+
+  /** The full saved applicant, with every form field and photo. */
+  getApplicant: async (clientId: string, appId: string): Promise<ApplicantRecord> => {
+    const data = await handleResponse<{ applicant: ApplicantRecord }>(
+      await authFetch(`${BASE_URL}/api/clients/${clientId}/applicants/${appId}`)
+    );
+    return data.applicant;
   },
 
   createApplicant: async (clientId: string, newApplicantData: ApplicantPayload): Promise<ApplicantRecord> => {

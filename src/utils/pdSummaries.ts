@@ -83,10 +83,6 @@ export interface ExecutiveSummaryInput {
   householdExpenses: number;
   /** Family surplus before the proposed EMI, including co-applicant and other income. */
   disposableSurplus: number;
-  appliedAmount: number;
-  interestRatePct: number;
-  tenureMonths: number;
-  proposedEmi: number;
   dscrRatio: number;
   foirPct: number;
   residenceNeighbourCheckDone: boolean;
@@ -144,8 +140,6 @@ export function buildExecutiveSummary(
       `and household living costs of ${em(inr(input.householdExpenses))}, ` +
       `net monthly disposable surplus stands at ${em(inr(input.disposableSurplus))}.`,
     debtService:
-      `The requested micro-lending facility of ${em(inr(input.appliedAmount))} at ${input.interestRatePct}% for ` +
-      `${input.tenureMonths} months requires a monthly EMI of ${em(inr(input.proposedEmi))}. ` +
       `The post-loan DSCR is calculated at ${em(`${input.dscrRatio}x`)} (policy threshold ≥ 1.25x) with FOIR at ` +
       `${em(`${input.foirPct}%`)} (policy cap ≤ 60%), ` +
       (withinPolicy
