@@ -1,4 +1,4 @@
-import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxPDReportHTML(data: PDReportPrintData): string {
@@ -410,12 +410,12 @@ ${execHeaderLogoHTML(data)}
       <td>Address of the business (applicant)</td>
       <td colspan="3"><strong>${data.businessAddress || 'Not Provided'}</strong></td>
     </tr>
-    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    ${additionalAddressRows(data).map(({ label, address }) => `
     <tr>
-      <td>Additional Address ${idx + 1}</td>
-      <td colspan="3"><strong>${addr}</strong></td>
+      <td>${label}</td>
+      <td colspan="3"><strong>${address}</strong></td>
     </tr>
-    `).join('') : ''}
+    `).join('')}
     <tr>
       <td>Met person during visit time.</td>
       <td colspan="3">${data.metPersonName || data.applicantName + ' (Self)'}</td>

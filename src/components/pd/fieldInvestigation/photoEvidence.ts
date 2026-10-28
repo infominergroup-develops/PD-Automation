@@ -9,6 +9,7 @@ export const PHOTO_SECTIONS = [
   { category: 'RESIDENCE VISIT PHOTO', title: 'Residence Visit Photos' },
   { category: 'BUSINESS VISIT PHOTO', title: 'Business Visit Photos' },
   { category: 'BUSINESS DOCUMENTS', title: 'Business Documents' },
+  { category: 'OTHER BUSINESS', title: 'Other Business Photos' },
   { category: 'Collateral Photos', title: 'Collateral Photos' },
   { category: 'Collateral Documents', title: 'Collateral Documents' },
 ] as const;

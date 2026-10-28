@@ -1,4 +1,4 @@
-import { PDReportPrintData, isProvided, photoSectionsHTML } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows, isProvided, photoSectionsHTML } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
@@ -83,12 +83,12 @@ export function generateGodrejPDReportHTML(data: PDReportPrintData): string {
       <td class="bg-green">Add Provided</td>
       <td colspan="3">${data.businessAddress || ''}</td>
     </tr>
-    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    ${additionalAddressRows(data).map(({ label, address }) => `
     <tr>
-      <td class="bg-green">Addl. Address ${idx + 1}</td>
-      <td colspan="5">${addr}</td>
+      <td class="bg-green">${label}</td>
+      <td colspan="5">${address}</td>
     </tr>
-    `).join('') : ''}
+    `).join('')}
     <tr>
       <td class="bg-green">Designation of person met</td>
       <td>${data.metPersonIdProof ? 'Owner' : 'Self'}</td>

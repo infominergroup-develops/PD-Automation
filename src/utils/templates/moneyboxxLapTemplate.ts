@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided, reportPhotoSections } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows, describeStaffCount, enteredObligationNote, isProvided, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): string {
@@ -363,6 +363,12 @@ export function generateMoneyboxxLapPDReportHTML(data: PDReportPrintData): strin
       <td style="border: 1px solid #000; padding: 5px 8px;">Address of the business</td>
       <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${businessAddress}</td>
     </tr>
+    ${additionalAddressRows(data).map(({ label, address }) => `
+    <tr>
+      <td style="border: 1px solid #000; padding: 5px 8px;">${label}</td>
+      <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${address}</td>
+    </tr>
+    `).join('')}
     <tr>
       <td style="border: 1px solid #000; padding: 5px 8px;">Address of the collateral property</td>
       <td colspan="3" style="border: 1px solid #000; padding: 5px 8px;">${collateralAddress}</td>

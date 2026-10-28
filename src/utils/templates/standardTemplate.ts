@@ -1,4 +1,4 @@
-import { PDReportPrintData, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows, enteredObligationNote, execHeaderLogoHTML, reportBranding, reportPhotoSections } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateStandardPDReportHTML(data: PDReportPrintData): string {
@@ -544,12 +544,12 @@ ${execHeaderLogoHTML(data)}
       <td class="bold">Address of the business (applicant)</td>
       <td colspan="3">${data.businessAddress || data.residenceAddress || 'Not Provided'}</td>
     </tr>
-    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
+    ${additionalAddressRows(data).map(({ label, address }) => `
     <tr>
-      <td class="bold">Additional Address ${idx + 1}</td>
-      <td colspan="3">${addr}</td>
+      <td class="bold">${label}</td>
+      <td colspan="3">${address}</td>
     </tr>
-    `).join('') : ''}
+    `).join('')}
     <tr>
       <td class="bold">Met person during visit time</td>
       <td>${data.metPersonName || 'Not Provided'}</td>

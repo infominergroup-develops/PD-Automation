@@ -1,4 +1,4 @@
-import { PDReportPrintData } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML, formatReportDate, photoSectionsHTML } from '../pdReportPrinter';
 
 export function generateSbfcPDReportHTML(data: PDReportPrintData): string {
@@ -198,9 +198,9 @@ function generateSbfcLayoutPDReportHTML(data: PDReportPrintData, bankName: strin
     <tr><td colspan="2">Applicant Qualification</td><td colspan="2">${data.applicantQualification || '12th passed'}</td></tr>
     <tr><td colspan="2">Firm's Name</td><td colspan="2">${data.firmName || '-'}</td></tr>
     <tr><td colspan="2">Business Address</td><td colspan="2">${data.businessAddress || '-'}</td></tr>
-    ${data.additionalAddresses && data.additionalAddresses.length > 0 ? data.additionalAddresses.map((addr, idx) => `
-    <tr><td colspan="2">Additional Address ${idx + 1}</td><td colspan="2">${addr}</td></tr>
-    `).join('') : ''}
+    ${additionalAddressRows(data).map(({ label, address }) => `
+    <tr><td colspan="2">${label}</td><td colspan="2">${address}</td></tr>
+    `).join('')}
     <tr><td colspan="2">Address of the meeting</td><td colspan="2">${data.meetingAddress || '-'}</td></tr>
     <tr><td colspan="2">Documents Seen</td><td colspan="2">${data.documentsSeen && data.documentsSeen.length > 0 ? data.documentsSeen.join(', ') : 'Not provided'}</td></tr>
     <tr><td colspan="2">Quotation Amount (as per applicant)</td><td colspan="2">${(data.appliedAmount || data.loanAmount || data.quotationAmount) ? (String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('Rs') || String(data.appliedAmount || data.loanAmount || data.quotationAmount).startsWith('₹') ? (data.appliedAmount || data.loanAmount || data.quotationAmount) : `Rs. ${Number(data.appliedAmount || data.loanAmount || data.quotationAmount).toLocaleString('en-IN')}/-`) : 'Not provided'}</td></tr>
