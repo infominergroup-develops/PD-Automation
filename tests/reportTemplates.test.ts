@@ -69,6 +69,14 @@ describe.each(Object.entries(ALL_TEMPLATES))('%s report template', (_name, gener
   it('includes the applicant', () => {
     expect(visibleText(generate(fullReport))).toContain('Asha Verma');
   });
+
+  it('prints an additional address only when one is given', () => {
+    const withAddress = { ...minimalReport, businessAddress: 'Shop 4, Agra', additionalAddresses: [' ', 'Godown 7, Mathura'] };
+    const text = visibleText(generate(withAddress));
+    expect(text).toContain('Additional Address Godown 7, Mathura');
+    expect(text.indexOf('Shop 4, Agra')).toBeLessThan(text.indexOf('Godown 7, Mathura'));
+    expect(visibleText(generate({ ...minimalReport, additionalAddresses: ['', '  '] }))).not.toContain('Additional Address');
+  });
 });
 
 describe.each(Object.entries(TEMPLATES))('%s report template', (_name, generate) => {

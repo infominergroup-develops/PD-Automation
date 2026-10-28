@@ -1,4 +1,4 @@
-import { PDReportPrintData, describeStaffCount, enteredObligationNote, isProvided, photoSectionsHTML } from '../pdReportPrinter';
+import { PDReportPrintData, additionalAddressRows, describeStaffCount, enteredObligationNote, isProvided, photoSectionsHTML } from '../pdReportPrinter';
 import { getUniversalCoverPageCSS, getUniversalCoverPageHTML } from '../pdReportPrinter';
 
 export function generateAbhiyanPDReportHTML(data: PDReportPrintData): string {
@@ -291,6 +291,12 @@ function generateCapitalPDReportHTML(data: PDReportPrintData, lenderFullName: st
       <td>Address of the business</td>
       <td colspan="3">${data.businessAddress || '-'}</td>
     </tr>
+    ${additionalAddressRows(data).map(({ label, address }) => `
+    <tr>
+      <td>${label}</td>
+      <td colspan="3">${address}</td>
+    </tr>
+    `).join('')}
     <tr>
       <td>Address of the collateral property</td>
       <td colspan="3">${data.collateralAddress || data.propertyAddress || '-'}</td>

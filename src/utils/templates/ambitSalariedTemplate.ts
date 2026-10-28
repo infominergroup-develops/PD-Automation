@@ -1,6 +1,7 @@
 import type { CreditAccount } from '../../types/creditTypes';
 import {
   PDReportPrintData,
+  additionalAddressRows,
   enteredObligationNote,
   formatReportDate,
   getUniversalCoverPageCSS,
@@ -246,6 +247,7 @@ export function generateAmbitSalariedPDReportHTML(data: PDReportPrintData): stri
     <tr><td class="label">Purpose of Loan (as per applicant)</td><td colspan="3">${orDash(data.loanPurpose)}</td></tr>
     <tr><td class="label">Address of the residence</td><td colspan="3">${orDash(data.residenceAddress)}</td></tr>
     <tr><td class="label">Address of the Office</td><td colspan="3">${orDash(data.businessAddress)}</td></tr>
+    ${additionalAddressRows(data).map(({ label, address }) => `<tr><td class="label">${label}</td><td colspan="3">${address}</td></tr>`).join('')}
     <tr><td class="label">Address of the collateral property</td><td colspan="3">${orDash(data.collateralAddress)}</td></tr>
     <tr><td class="label">Met person during visit time.</td><td colspan="3">${orDash(data.metPersonName)}</td></tr>
     <tr><td class="label">Met person identity proof</td><td colspan="3">${data.metPersonIdProof || 'PAN Card'}</td></tr>

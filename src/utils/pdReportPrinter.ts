@@ -11,6 +11,15 @@ import { maheshLogoBase64 } from '../images/maheshLogoBase64';
 export const isProvided = (value: unknown): value is string =>
   typeof value === 'string' && value.trim() !== '' && value !== 'Not provided';
 
+/** Additional addresses with their report labels; blank entries are left out, so none means no rows. */
+export function additionalAddressRows(data: PDReportPrintData): { label: string; address: string }[] {
+  const addresses = (data.additionalAddresses || []).map((a) => a.trim()).filter(Boolean);
+  return addresses.map((address, i) => ({
+    label: addresses.length > 1 ? `Additional Address ${i + 1}` : 'Additional Address',
+    address,
+  }));
+}
+
 export interface ReportPhotoSection {
   title: string;
   photos: NonNullable<PDReportPrintData['photos']>;
