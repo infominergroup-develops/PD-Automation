@@ -31,6 +31,8 @@ import { photoLocation } from './pd/fieldInvestigation/photoEvidence';
 import { usePhotoEvidence } from './pd/fieldInvestigation/usePhotoEvidence';
 import { GodrejDetailsPanel } from './pd/godrej/GodrejDetailsPanel';
 import { useGodrejDetails } from './pd/godrej/useGodrejDetails';
+import { IndusIndDetailsPanel } from './pd/indusind/IndusIndDetailsPanel';
+import { useIndusIndDetails } from './pd/indusind/useIndusIndDetails';
 import { formProfileFor } from './pd/formProfiles';
 import { assessRisk } from '../utils/riskScore';
 import { describeCurrentObligation, openStandardPDReportPrintWindow, PDReportPrintData, toReportContacts } from '../utils/pdReportPrinter';
@@ -130,8 +132,11 @@ const buildSlimFactorySummary = (assets: string[], other: string): string => {
 // Options are positional: each lines up with the same-index option of the other list when a case changes lender
 const RECOMMENDATION_STATUSES = ['Recommended', 'Not Recommended', 'Recommended subject to demerits', 'Suspicious'];
 const POSITIVE_NEGATIVE_STATUSES = ['Positive', 'Negative', 'Refer to Credit','Fraud'];
+// IndusInd Bank's format lists exactly these three outcomes
+const INDUSIND_STATUSES = ['Recommended', 'Not Recommended', 'Fraud'];
 const getCaseStatusOptions = (clientId?: string) =>
-  POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
+  clientId === 'indusind' ? INDUSIND_STATUSES
+    : POSITIVE_NEGATIVE_STATUS_CLIENTS.includes(clientId || '') ? POSITIVE_NEGATIVE_STATUSES : RECOMMENDATION_STATUSES;
 
 const ITEMIZED_UNITS = ['Litre', 'Kg', 'Piece', 'Box', 'Dozen', 'Quintal', 'Ton'];
 
@@ -505,6 +510,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
   // Godrej Specific State
   // Godrej-specific Business Profile fields
   const godrej = useGodrejDetails();
+  const indusInd = useIndusIndDetails();
   const {
     businessCity, alternateMobileNumber, applicantQualification, officeAccessibility, tenorRequested, marginsAssessed, customerGstNo,
     industryType, productType, onLoanStructure, machineryDetailsText, keyEmployeeDetailsText, groupCompanyDetailsText,
@@ -1711,6 +1717,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
 
     customerSupplier.load(app);
     godrej.load(app);
+    indusInd.load(app);
     photoEvidence.load(app);
     coApplicantBusiness.load(app);
     setPartnersDirectorsDetails(app.partnersDirectorsDetails || 'Not applicable');
@@ -1813,6 +1820,7 @@ export const PDToolView: React.FC<PDToolViewProps> = ({ currentUser, selectedCli
     coAppIncomeLines, coAppExpenseLines, coAppStatedMonthlySales, coAppSalariesExpense, coAppRentExpense,
     coAppUtilitiesExpense, coAppMiscExpense,
     ...godrej.values,
+    indusInd: indusInd.values,
     categoryId: selectedCategoryId,
     // Persist the extracted CRIF/CIBIL report so it reloads with the applicant
     creditReportType, parsedCreditReport,
@@ -2591,6 +2599,9 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
       executiveSummary_SalesWaterfall: executiveSummary.salesWaterfall,
       executiveSummary_DebtService: executiveSummary.debtService,
       executiveSummary_Community: executiveSummary.community,
+
+      // IndusInd Bank fields (its report prints residence area and value as separate rows)
+      indusInd: { ...indusInd.values, residencePropertyArea: String(propertyArea), residencePropertyValue: String(propertyValue) },
 
       // Godrej Specific Fields
       businessCity,
@@ -3518,6 +3529,7 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
 
           {/* GODREJ SPECIFIC DETAILS */}
           {show.godrejPanel && <GodrejDetailsPanel form={godrej} />}
+          {show.indusindPanel && <IndusIndDetailsPanel form={indusInd} />}
 
           {tabFooter}
         </div>
@@ -3543,6 +3555,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
                 </select>
               </Field>
             </div>
+
+            {/* IndusInd Bank: report header fields */}
+            {show.indusindPanel && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Branch Name">
+                  <input type="text" value={indusInd.values.branchName} onChange={(e) => indusInd.setField('branchName', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. Lucknow" />
+                </Field>
+                <Field label="SR. No">
+                  <input type="text" value={indusInd.values.srNo} onChange={(e) => indusInd.setField('srNo', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                </Field>
+              </div>
+            )}
 
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

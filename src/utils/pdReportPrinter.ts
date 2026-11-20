@@ -1,5 +1,6 @@
 import type { ParsedCreditReport } from '../types/creditTypes';
 import { PHOTO_CATEGORIES, PHOTO_SECTIONS } from '../components/pd/fieldInvestigation/photoEvidence';
+import type { IndusIndDetails } from '../components/pd/indusind/useIndusIndDetails';
 // Dedicated Company Standard PD Report Printer Module
 // Adheres strictly to Infominer Services Private Limited (Chartered Accountant) format
 
@@ -363,6 +364,8 @@ export interface PDReportPrintData {
 
   // Customers & Suppliers & Banking & Liabilities
   prominentCustomers?: Array<{ name: string; phone: string; remark: string }>;
+  // IndusInd Bank: fields only its report asks for, plus the residence property area / value it prints separately
+  indusInd?: IndusIndDetails & { residencePropertyArea?: string; residencePropertyValue?: string };
   // Ambit salaried: office colleagues contacted to confirm the applicant's employment
   officeStaffContacts?: Array<{ name: string; phone: string; remark: string }>;
   // Ambit salaried: earning members who share the household expenses (household ÷ this = applicant's share)
@@ -541,6 +544,7 @@ import { generateSbfcPDReportHTML, generateTataCapitalPDReportHTML } from './tem
 import { generateGodrejPDReportHTML } from './templates/godrejTemplate';
 import { generateAbhiyanPDReportHTML, generateAmbitPDReportHTML } from './templates/abhiyanTemplate';
 import { generateAmbitSalariedPDReportHTML } from './templates/ambitSalariedTemplate';
+import { generateIndusIndPDReportHTML } from './templates/indusindTemplate';
 
 export {
   generateStandardPDReportHTML,
@@ -551,7 +555,8 @@ export {
   generateTataCapitalPDReportHTML,
   generateAbhiyanPDReportHTML,
   generateAmbitPDReportHTML,
-  generateAmbitSalariedPDReportHTML
+  generateAmbitSalariedPDReportHTML,
+  generateIndusIndPDReportHTML
 };
 
 /** Picks the lender's report template from the client name. Used by both print and PDF export. */
@@ -569,6 +574,7 @@ export function getReportHTMLForData(data: PDReportPrintData): string {
   // The salaried client's name also contains "ambit", so it must be matched first.
   if (bankLower.includes('ambit') && bankLower.includes('salaried')) return generateAmbitSalariedPDReportHTML(data);
   if (bankLower.includes('ambit')) return generateAmbitPDReportHTML(data);
+  if (bankLower.includes('indusind')) return generateIndusIndPDReportHTML(data);
   return generateStandardPDReportHTML(data);
 }
 

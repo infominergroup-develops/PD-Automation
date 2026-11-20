@@ -129,5 +129,19 @@ export const CLIENT_BANKS: ClientBank[] = [
     defaultScheme: 'Tata Business Loan',
     tagline: 'Tata Capital • Business Loan',
     templateFormat: 'standard'
+  },
+  {
+    id: 'indusind',
+    name: 'IndusInd Bank Limited',
+    shortCode: 'INDUSIND',
+    division: 'Business Loan Division',
+    logoColor: '#98272A',
+    accentColor: '#98272A',
+    borderClass: 'border-[#98272A]',
+    bgGradient: 'from-[#98272A]/10 to-red-50',
+    description: 'IndusInd Bank personal discussion (PD) report portal.',
+    defaultScheme: 'IndusInd Business Loan',
+    tagline: 'IndusInd Bank • PD Report',
+    templateFormat: 'standard'
   }
 ];
