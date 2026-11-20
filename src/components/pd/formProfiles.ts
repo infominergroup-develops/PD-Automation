@@ -4,7 +4,7 @@ import type { PdTabId } from './PdTabs';
  * Lenders print different reports, so the PD form only asks for what the selected lender's report uses.
  * Each profile lists the optional sections it shows; everything else on the form is always shown.
  */
-export type FormProfileId = 'standard' | 'tataSbfc' | 'salaried' | 'godrej';
+export type FormProfileId = 'standard' | 'tataSbfc' | 'salaried' | 'godrej' | 'indusind';
 
 export interface FormSections {
   // Business Profile tab
@@ -18,6 +18,8 @@ export interface FormSections {
   businessProofDetails: boolean;
   aataChakkiSetup: boolean;
   godrejPanel: boolean;
+  /** IndusInd Bank: the fields only its report asks for. */
+  indusindPanel: boolean;
 
   // Applicant tab
   initiationAndReportDates: boolean;
@@ -82,6 +84,7 @@ const STANDARD_SECTIONS: FormSections = {
   businessProofDetails: false,
   aataChakkiSetup: true,
   godrejPanel: false,
+  indusindPanel: false,
 
   initiationAndReportDates: true,
   femaleCandidate: true,
@@ -222,6 +225,38 @@ const PROFILES: Record<FormProfileId, FormProfile> = {
     },
     tabLabels: { verification: '2. Business Verification' },
   },
+
+  // IndusInd Bank: a one-page bank PD format with no income sheet (turnover, margins and cash flow only).
+  // Its panel asks the bank-specific fields; residence, family, banking and loans come from the shared form.
+  indusind: {
+    id: 'indusind',
+    sections: {
+      ...STANDARD_SECTIONS,
+      indusindPanel: true,
+      partnersAndSharing: true,
+      businessProofDetails: true,
+      premisesAndRegistration: false,
+      strengthsWeaknesses: false,
+      aataChakkiSetup: false,
+      femaleCandidate: false,
+      solarPurpose: false,
+      assetAnalysis: false,
+      solarSaving: false,
+      additionalBusiness: false,
+      residenceElectricity: false,
+      businessElectricity: false,
+      residenceNeighbours: false,
+      residenceGpsAndStatus: false,
+      businessGps: false,
+      profitMargin: false,
+      cogsSlider: false,
+      grossProfitCard: false,
+      staffAndUtilityExpenses: false,
+      existingEmiNotes: false,
+      comfortableEmiNotes: false,
+    },
+    tabLabels: {},
+  },
 };
 
 const PROFILE_BY_CLIENT: Record<string, FormProfileId> = {
@@ -229,6 +264,7 @@ const PROFILE_BY_CLIENT: Record<string, FormProfileId> = {
   sbfc: 'tataSbfc',
   ambit_salaried: 'salaried',
   godrej: 'godrej',
+  indusind: 'indusind',
 };
 
 export function formProfileFor(clientId: string | undefined): FormProfile {
