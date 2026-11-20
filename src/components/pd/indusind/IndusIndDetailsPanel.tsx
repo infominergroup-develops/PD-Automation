@@ -16,10 +16,8 @@ interface FieldSpec {
 
 const SECTIONS: Array<{ title: string; fields: FieldSpec[] }> = [
   {
-    title: 'Report Header',
+    title: 'Co-Applicant',
     fields: [
-      { field: 'srNo', label: 'SR. No' },
-      { field: 'branchName', label: 'Branch Name', placeholder: 'e.g. Lucknow' },
       { field: 'coApplicantQualification', label: 'Co-Applicant Education Qualification', placeholder: 'e.g. Graduate (NA if no co-applicant)' },
     ],
   },

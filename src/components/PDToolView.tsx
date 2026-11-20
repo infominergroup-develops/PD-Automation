@@ -3556,6 +3556,18 @@ Income Estimation: The business generates an assessed monthly revenue of approxi
               </Field>
             </div>
 
+            {/* IndusInd Bank: report header fields */}
+            {show.indusindPanel && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="Branch Name">
+                  <input type="text" value={indusInd.values.branchName} onChange={(e) => indusInd.setField('branchName', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" placeholder="e.g. Lucknow" />
+                </Field>
+                <Field label="SR. No">
+                  <input type="text" value={indusInd.values.srNo} onChange={(e) => indusInd.setField('srNo', e.target.value)} className="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#eb8a23] font-semibold" />
+                </Field>
+              </div>
+            )}
+
             {/* 1. Case Initiation Date, 2. Visit Date & 3. Report Date */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {show.initiationAndReportDates && (
